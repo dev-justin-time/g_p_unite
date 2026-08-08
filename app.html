@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FCM Expert Agent Swarm</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg:#0a0e17; --panel:#111827; --panel-hover:#1a2332; --border:#1f2937; --text:#e5e7eb; --text-dim:#9ca3af; --accent:#3b82f6; --green:#10b981; --amber:#f59e0b; --red:#ef4444; --purple:#8b5cf6; --cyan:#06b6d4; --pink:#ec4899; --orange:#f97316; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif; min-height:100vh; }
+    .app { padding:24px; max-width:1400px; margin:0 auto; }
+    .header { text-align:center; margin-bottom:28px; }
+    .header h1 { font-size:28px; font-weight:700; background:linear-gradient(135deg,var(--accent),var(--cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .header p { color:var(--text-dim); font-size:14px; margin-top:6px; }
+    .stats-bar { display:flex; gap:16px; justify-content:center; margin-bottom:24px; flex-wrap:wrap; }
+    .stat-pill { background:var(--panel); border:1px solid var(--border); border-radius:24px; padding:8px 18px; font-size:13px; display:flex; align-items:center; gap:8px; }
+    .dot { width:8px; height:8px; border-radius:50%; animation:pulse 2s infinite; }
+    .dot.green { background:var(--green); box-shadow:0 0 8px rgba(16,185,129,0.3); }
+    .dot.blue { background:var(--accent); box-shadow:0 0 8px rgba(59,130,246,0.3); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .agents-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(380px,1fr)); gap:16px; }
+    .agent-card { background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:20px; transition:all .2s; position:relative; overflow:hidden; }
+    .agent-card:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,0.4); }
+    .agent-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+    .inf::before { background:linear-gradient(90deg,var(--accent),var(--cyan)); }
+    .ren::before { background:linear-gradient(90deg,var(--purple),var(--pink)); }
+    .fl::before { background:linear-gradient(90deg,var(--green),var(--cyan)); }
+    .edge::before { background:linear-gradient(90deg,var(--amber),var(--orange)); }
+    .zk::before { background:linear-gradient(90deg,var(--purple),var(--accent)); }
+    .game::before { background:linear-gradient(90deg,var(--red),var(--amber)); }
+    .sci::before { background:linear-gradient(90deg,var(--cyan),var(--green)); }
+    .priv::before { background:linear-gradient(90deg,var(--pink),var(--red)); }
+    .agent-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
+    .agent-title { display:flex; align-items:center; gap:10px; }
+    .agent-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; }
+    .inf .agent-icon { background:rgba(59,130,246,0.15); }
+    .ren .agent-icon { background:rgba(139,92,246,0.15); }
+    .fl .agent-icon { background:rgba(16,185,129,0.15); }
+    .edge .agent-icon { background:rgba(245,158,11,0.15); }
+    .zk .agent-icon { background:rgba(139,92,246,0.15); }
+    .game .agent-icon { background:rgba(239,68,68,0.15); }
+    .sci .agent-icon { background:rgba(6,182,212,0.15); }
+    .priv .agent-icon { background:rgba(236,72,153,0.15); }
+    .agent-name { font-size:15px; font-weight:600; }
+    .agent-role { font-size:11px; color:var(--text-dim); margin-top:2px; }
+    .status-badge { font-size:11px; padding:4px 10px; border-radius:12px; font-weight:500; }
+    .status-active { background:rgba(16,185,129,0.15); color:var(--green); }
+    .status-standby { background:rgba(245,158,11,0.15); color:var(--amber); }
+    .logic-section { background:var(--bg); border-radius:10px; padding:12px; margin-bottom:12px; border:1px solid var(--border); }
+    .logic-title { font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim); margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+    .logic-title::before { content:'\u26a1'; }
+    .logic-item { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border); font-size:12px; }
+    .logic-item:last-child { border-bottom:none; }
+    .logic-key { color:var(--text-dim); }
+    .logic-val { font-family:'JetBrains Mono',monospace; font-size:11px; }
+    .logic-val.true { color:var(--green); }
+    .logic-val.false { color:var(--red); }
+    .metrics-row { display:flex; gap:12px; margin-top:12px; }
+    .metric { flex:1; background:var(--bg); border-radius:8px; padding:10px; text-align:center; border:1px solid var(--border); }
+    .metric-value { font-size:18px; font-weight:700; font-family:'JetBrains Mono',monospace; }
+    .metric-label { font-size:10px; color:var(--text-dim); margin-top:2px; text-transform:uppercase; }
+    .inf .metric-value { color:var(--accent); }
+    .ren .metric-value { color:var(--purple); }
+    .fl .metric-value { color:var(--green); }
+    .edge .metric-value { color:var(--amber); }
+    .zk .metric-value { color:var(--purple); }
+    .game .metric-value { color:var(--red); }
+    .sci .metric-value { color:var(--cyan); }
+    .priv .metric-value { color:var(--pink); }
+    .action-bar { display:flex; gap:8px; margin-top:14px; }
+    .btn { flex:1; padding:8px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:12px; cursor:pointer; transition:all .15s; font-weight:500; }
+    .btn:hover { background:var(--panel-hover); border-color:var(--accent); }
+    .btn.primary { background:var(--accent); border-color:var(--accent); color:white; }
+    .btn.primary:hover { background:#2563eb; }
+    .detail-panel { display:none; margin-top:14px; padding:14px; background:var(--bg); border-radius:10px; border:1px solid var(--border); font-size:12px; }
+    .detail-panel.show { display:block; }
+    .detail-panel h4 { font-size:12px; margin-bottom:8px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em; }
+    .code-block { background:#000; border-radius:6px; padding:10px; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.5; overflow-x:auto; color:#a5b4fc; border:1px solid #1f2937; }
+    .code-block .kw { color:#c084fc; }
+    .code-block .fn { color:#60a5fa; }
+    .code-block .str { color:#4ade80; }
+    .code-block .num { color:#fbbf24; }
+    .code-block .cm { color:#6b7280; }
+  </style>
+<base target="_blank">
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <h1>FCM Expert Agent Swarm</h1>
+      <p>Built-in logic engines — zero LLM calls required for hot paths</p>
+    </div>
+    <div class="stats-bar">
+      <div class="stat-pill"><span class="dot green"></span>8 Agents Online</div>
+      <div class="stat-pill"><span class="dot blue"></span>Logic Cache Hit: 99.7%</div>
+      <div class="stat-pill"><span class="dot green"></span>LLM Calls Saved: 2.4M/hr</div>
+      <div class="stat-pill"><span class="dot blue"></span>Avg Latency: 12ms</div>
+    </div>
+    <div class="agents-grid" id="grid"></div>
+  </div>
+
+<script>
+const agents = [
+  {
+    id:'inf', name:'Inference Router', icon:'\u{1f9e0}', role:'Model scheduling & batching', status:'active',
+    rules:[{n:'Batch Coalescing',e:true},{n:'KV-Cache Routing',e:true},{n:'VRAM Overflow Guard',e:true},{n:'Quantization Auto-Select',e:true},{n:'Speculative Decoding',e:true}],
+    metrics:[{k:'tps',l:'Tok/sec',v:'4,821'},{k:'queue',l:'Queue',v:'3'},{k:'batch',l:'Batch Size',v:'12'}],
+    src:`fn route(req, pool) {
+  if req.model_size > node.vram * 0.85
+    return find_larger_node(req);
+  if req.max_latency < 50ms
+    return geo_nearest(req, radius=100km);
+  if req.tokens > 2048
+    return batch_coalesce(req, window=10ms);
+  return least_loaded(req);
+}`
+  },
+  {
+    id:'ren', name:'Render Splitter', icon:'\u{1f3ac}', role:'Frame distribution & dependency graph', status:'active',
+    rules:[{n:'Tile-based Splitting',e:true},{n:'Dependency DAG Solver',e:true},{n:'Preview Stream Encoding',e:true},{n:'GPU Memory Predictor',e:true},{n:'Denoise Pass Merge',e:true}],
+    metrics:[{k:'fps',l:'FPS Output',v:'24'},{k:'nodes',l:'Nodes',v:'18'},{k:'progress',l:'Complete',v:'67%'}],
+    src:`fn split_job(job, pool) {
+  let tiles = calculate_tiles(
+    job.resolution, job.samples, pool.avg_vram()
+  );
+  let dag = build_dependency_graph(job.scene);
+  return topological_schedule(tiles, dag);
+}`
+  },
+  {
+    id:'fl', name:'FL Coordinator', icon:'\u{1f512}', role:'Secure aggregation & privacy', status:'active',
+    rules:[{n:'Differential Privacy (\u03b5=1.0)',e:true},{n:'Secure Aggregation (MPC)',e:true},{n:'Gradient Clipping (L2=1.0)',e:true},{n:'Byzantine Fault Tolerance',e:true},{n:'Model Poisoning Detection',e:true}],
+    metrics:[{k:'rounds',l:'Rounds',v:'42'},{k:'nodes',l:'Hospitals',v:'156'},{k:'accuracy',l:'Accuracy',v:'94.2%'}],
+    src:`fn aggregate(gradients) {
+  let clipped = gradients.map(g => l2_clip(g, 1.0));
+  let noised = clipped.map(g => add_gaussian_noise(g, 1.0));
+  return mpc_sum(noised, threshold=t+1);
+}`
+  },
+  {
+    id:'edge', name:'Edge Runner', icon:'\u26a1', role:'WASM cold-start & routing', status:'active',
+    rules:[{n:'WASM Module Cache',e:true},{n:'Pre-warm Pools',e:true},{n:'HTTP Route Trie Match',e:true},{n:'Memory Limiter (128MB)',e:true},{n:'CPU Throttle (100ms)',e:true}],
+    metrics:[{k:'cold',l:'Cold Start',v:'8ms'},{k:'rps',l:'RPS',v:'12.4k'},{k:'funcs',l:'Functions',v:'892'}],
+    src:`fn handle_request(req) {
+  let route = trie_match(ROUTER, req.path);
+  let module = cache_get(route.wasm_cid)
+    .unwrap_or(precompile(route.wasm_cid));
+  let instance = pool_checkout(module);
+  return instance.call(req);
+}`
+  },
+  {
+    id:'zk', name:'ZK Prover', icon:'\u{1f6e1}', role:'Circuit compilation & witness gen', status:'standby',
+    rules:[{n:'Circuit Pre-compilation',e:true},{n:'Witness Parallelization',e:true},{n:'Proof Aggregation (BLS)',e:true},{n:'GPU Acceleration (CUDA)',e:true},{n:'Verification Cache',e:true}],
+    metrics:[{k:'time',l:'Proof Time',v:'2.4s'},{k:'agg',l:'Agg Batch',v:'16'},{k:'cost',l:'Cost',v:'$0.04'}],
+    src:`fn generate_proof(circuit, witness) {
+  let pk = cache_get(circuit.hash)
+    .unwrap_or(gpu_setup(circuit));
+  let proof = gpu_prove(pk, witness);
+  if batch.len >= 16
+    return aggregate_proofs(batch);
+  return proof;
+}`
+  },
+  {
+    id:'game', name:'Game Host', icon:'\u{1f3ae}', role:'Tick sync & matchmaking', status:'active',
+    rules:[{n:'Deterministic Lockstep',e:true},{n:'Latency-Compensated Hitreg',e:true},{n:'Geo-Balanced Matchmaking',e:true},{n:'State Delta Compression',e:true},{n:'Anti-Cheat Heuristics',e:true}],
+    metrics:[{k:'tick',l:'Tick/s',v:'128'},{k:'players',l:'Players',v:'64'},{k:'latency',l:'Latency',v:'18ms'}],
+    src:`fn game_tick(state, inputs) {
+  let validated = inputs
+    .filter(i => validate_timestamp(i, 200ms))
+    .filter(i => speed_check(i, 500u/s));
+  return deterministic_simulate(state, validated);
+}`
+  },
+  {
+    id:'sci', name:'Science Grid', icon:'\u{1f52c}', role:'Job splitting & validation', status:'standby',
+    rules:[{n:'Domain Decomposition',e:true},{n:'Checkpoint Every 15min',e:true},{n:'Result Cross-Validation',e:true},{n:'BOINC Credit System',e:true},{n:'Fault-Tolerant Redundancy',e:true}],
+    metrics:[{k:'tflops',l:'TFLOPS',v:'847'},{k:'jobs',l:'Active',v:'23'},{k:'valid',l:'Valid',v:'100%'}],
+    src:`fn decompose_simulation(sim, pool) {
+  let grid = cartesian_split(sim.domain, pool.size());
+  let halo = calculate_ghost_zones(
+    sim.pde_order, sim.stencil_width
+  );
+  return assign_with_affinity(grid, halo);
+}`
+  },
+  {
+    id:'priv', name:'Privacy Mesh', icon:'\u{1f575}', role:'Mixnet routing & relay selection', status:'active',
+    rules:[{n:'Onion Layer Encryption',e:true},{n:'Sphinx Packet Format',e:true},{n:'Cover Traffic Generation',e:true},{n:'Reputation-Weighted Path',e:true},{n:'Exit Policy Enforcement',e:true}],
+    metrics:[{k:'relays',l:'Relays',v:'1,247'},{k:'latency',l:'Hop Latency',v:'145ms'},{k:'throughput',l:'Aggregate',v:'2.1Gbps'}],
+    src:`fn build_circuit(exit, pool) {
+  let candidates = filter_by_policy(pool, exit);
+  let path = weighted_sample(candidates, 
+    weight = r => r.bandwidth * r.reputation
+  );
+  return ensure_geo_diversity(path, min_hops=3);
+}`
+  }
+];
+
+function render() {
+  document.getElementById('grid').innerHTML = agents.map(a => `
+    <div class="agent-card ${a.id}">
+      <div class="agent-header">
+        <div class="agent-title">
+          <div class="agent-icon">${a.icon}</div>
+          <div><div class="agent-name">${a.name}</div><div class="agent-role">${a.role}</div></div>
+        </div>
+        <span class="status-badge ${a.status==='active'?'status-active':'status-standby'}">${a.status==='active'?'\u25cf ACTIVE':'\u25cb STANDBY'}</span>
+      </div>
+      <div class="logic-section">
+        <div class="logic-title">Built-in Logic Rules</div>
+        ${a.rules.map(r=>`<div class="logic-item"><span class="logic-key">${r.n}</span><span class="logic-val ${r.e?'true':'false'}">${r.e?'ON':'OFF'}</span></div>`).join('')}
+      </div>
+      <div class="metrics-row">
+        ${a.metrics.map(m=>`<div class="metric"><div class="metric-value" id="${a.id}-${m.k}">${m.v}</div><div class="metric-label">${m.l}</div></div>`).join('')}
+      </div>
+      <div class="action-bar">
+        <button class="btn" onclick="toggleSrc('${a.id}')">View Logic</button>
+        <button class="btn primary" onclick="sim('${a.id}')">Simulate</button>
+      </div>
+      <div class="detail-panel" id="d-${a.id}">
+        <h4>Hard-Coded Decision Tree</h4>
+        <div class="code-block"><pre>${a.src}</pre></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.toggleSrc = function(id) {
+  document.getElementById('d-'+id).classList.toggle('show');
+};
+
+window.sim = function(id) {
+  document.querySelectorAll('.'+id+' .metric-value').forEach(m=>{
+    m.style.transform='scale(1.2)'; setTimeout(()=>m.style.transform='scale(1)',150);
+  });
+  if(id==='inf'){ const q=document.getElementById('inf-queue'); q.textContent=parseInt(q.textContent)+1; setTimeout(()=>q.textContent=parseInt(q.textContent)-1,2000); }
+  if(id==='ren'){ const p=document.getElementById('ren-progress'); p.textContent=Math.min(parseInt(p.textContent)+3,100)+'%'; }
+  if(id==='fl'){ const r=document.getElementById('fl-rounds'); r.textContent=parseInt(r.textContent)+1; }
+  if(id==='edge'){ const r=document.getElementById('edge-rps'); r.textContent=(parseFloat(r.textContent)+0.3).toFixed(1)+'k'; }
+  if(id==='game'){ const l=document.getElementById('game-latency'); l.textContent=(Math.random()*10+12).toFixed(0)+'ms'; }
+  if(id==='sci'){ const j=document.getElementById('sci-jobs'); j.textContent=parseInt(j.textContent)+1; }
+  if(id==='priv'){ const r=document.getElementById('priv-relays'); r.textContent=(1240+Math.floor(Math.random()*20)).toLocaleString(); }
+};
+
+setInterval(()=>{
+  const inf=document.getElementById('inf-tps'); if(inf) inf.textContent=(4800+Math.floor(Math.random()*200)).toLocaleString();
+  const game=document.getElementById('game-latency'); if(game) game.textContent=(16+Math.floor(Math.random()*8))+'ms';
+  const priv=document.getElementById('priv-relays'); if(priv) priv.textContent=(1240+Math.floor(Math.random()*20)).toLocaleString();
+}, 2000);
+
+render();
+</script>
+</body>
+</html>

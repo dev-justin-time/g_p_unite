@@ -1,0 +1,8 @@
+Component,Technology,Purpose
+**Identity Layer**,IPFS/IPNS + DIDs,Trustless node identity without central registries
+**Location Engine**,GeoHash clustering + RTT probing,Sub-50ms task dispatch via regional grouping
+**Runtime Kernel**,Rust (Tokio) + WASM3,"Universal sandbox executing Python, TS, Lua, CUDA, Swift, JVM"
+**GPU Abstraction**,wgpu + native backends,"CUDA, Metal, Vulkan, OpenCL, DirectX 12"
+**Networking**,libp2p + WebRTC + QUIC,P2P mesh with 0-RTT connection resumption
+**Consensus**,HotStuff BFT (regional supernodes),Byzantine fault tolerance for result verification
+**Economics**,FCM token (L2 rollup),Pay-per-compute with stake/slashing security
