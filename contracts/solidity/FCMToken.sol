@@ -9,17 +9,20 @@ contract FCMToken is ERC20, ERC20Burnable, AccessControl {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     uint256 public constant MAX_SUPPLY = 1_000_000_000 * 10**18;
     uint256 public totalBurned;
-    uint256 public burnRate = 100;
-    uint256 public treasuryRate = 200;
+    uint256 public burnRate = 100;       // 1%
+    uint256 public treasuryRate = 200;   // 2%
     address public treasury;
     mapping(address => bool) public feeExempt;
-    bool private _inTransfer;
+    bool private _inFeeTransfer;
 
     event BurnMintEquilibrium(uint256 burned, uint256 minted, uint256 timestamp);
 
     constructor(address _treasury) ERC20("Federated Compute Mesh", "FCM") {
         treasury = _treasury;
         feeExempt[_treasury] = true;
+        feeExempt[address(this)] = true;
+        // Note: registry and marketplace addresses should be set fee-exempt after deployment
+        // via setFeeExempt() by the admin
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
         _mint(msg.sender, 200_000_000 * 10**18);
@@ -32,19 +35,29 @@ contract FCMToken is ERC20, ERC20Burnable, AccessControl {
         _mint(to, amount);
     }
 
-    function _update(address from, address to, uint256 value) internal override {
-        super._update(from, to, value);
-        if (_inTransfer) return;
-        if (from != address(0) && to != address(0) && !feeExempt[from] && !feeExempt[to]) {
-            uint256 burnAmount = (value * burnRate) / 10000;
-            uint256 treasuryAmount = (value * treasuryRate) / 10000;
-            if (burnAmount > 0) { _burn(to, burnAmount); totalBurned += burnAmount; }
-            if (treasuryAmount > 0) {
-                _inTransfer = true;
-                super._update(to, treasury, treasuryAmount);
-                _inTransfer = false;
-            }
+    function _afterTokenTransfer(address from, address to, uint256 amount) internal override {
+        super._afterTokenTransfer(from, to, amount);
+
+        // Skip if this is already a fee transfer, or if minting/burning, or if either party is exempt
+        if (_inFeeTransfer) return;
+        if (from == address(0) || to == address(0)) return;
+        if (feeExempt[from] || feeExempt[to]) return;
+
+        uint256 burnAmount = (amount * burnRate) / 10000;
+        uint256 treasuryAmount = (amount * treasuryRate) / 10000;
+
+        _inFeeTransfer = true;
+
+        if (burnAmount > 0) {
+            _burn(to, burnAmount);
+            totalBurned += burnAmount;
         }
+
+        if (treasuryAmount > 0) {
+            _transfer(to, treasury, treasuryAmount);
+        }
+
+        _inFeeTransfer = false;
     }
 
     function setFeeRates(uint256 _burnRate, uint256 _treasuryRate) external onlyRole(DEFAULT_ADMIN_ROLE) {

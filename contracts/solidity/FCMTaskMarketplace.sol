@@ -14,6 +14,7 @@ contract FCMTaskMarketplace is ReentrancyGuard {
         uint256 minPrice;
         uint256 maxPrice;
         uint256 auctionEnd;
+        uint256 auctionDuration;
         Bid[] bids;
     }
 
@@ -35,14 +36,15 @@ contract FCMTaskMarketplace is ReentrancyGuard {
         auction.minPrice = _minPrice;
         auction.maxPrice = _maxPrice;
         auction.auctionEnd = block.timestamp + _auctionDuration;
+        auction.auctionDuration = _auctionDuration;
     }
 
     function getAuctionPrice(bytes32 _taskId) public view returns (uint256) {
         AuctionTask storage auction = auctionTasks[_taskId];
         if (block.timestamp >= auction.auctionEnd) return auction.minPrice;
-        uint256 elapsed = block.timestamp - (auction.auctionEnd - _auctionDuration);
+        uint256 elapsed = block.timestamp - (auction.auctionEnd - auction.auctionDuration);
         uint256 priceDrop = auction.maxPrice - auction.minPrice;
-        return auction.maxPrice - ((priceDrop * elapsed) / _auctionDuration);
+        return auction.maxPrice - ((priceDrop * elapsed) / auction.auctionDuration);
     }
 
     function placeBid(bytes32 _taskId, bytes32 _agentDid, uint256 _price) external {
