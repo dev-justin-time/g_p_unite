@@ -24,7 +24,7 @@ async function main() {
         const didHash = ethers.keccak256(ethers.toUtf8Bytes(agent.name + "-" + Date.now()));
         const stakeAmount = ethers.parseUnits(agent.stake, 18);
         const geohash = ethers.encodeBytes32String("u4pru");
-        const capabilities = ethers.encodeBytes32String(agent.capabilities);
+        const capabilities = ethers.zeroPadValue(ethers.toBeHex(parseInt(agent.capabilities, 16)), 32);
         const ipns = `/ipns/k51qzi5uqu5dil0q8${agent.type}`;
 
         console.log(`Registering ${agent.name}...`);

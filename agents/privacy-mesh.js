@@ -30,6 +30,10 @@ pub struct PrivacyMesh {
 impl PrivacyMesh {
     /// Sphinx packet routing — pure cryptography
     pub fn build_circuit(&self, exit_policy: &ExitPolicy, pool: &NodePool) -> Result<Circuit, MeshError> {
+        self.build_circuit_with_retry(exit_policy, pool, 0, 10)
+    }
+
+    fn build_circuit_with_retry(&self, exit_policy: &ExitPolicy, pool: &NodePool, attempt: usize, max_retries: usize) -> Result<Circuit, MeshError> {
         // Step 1: Filter relays by exit policy and capability
         let candidates: Vec<_> = pool.relays()
             .filter(|r| r.supports_exit_policy(exit_policy))
@@ -58,7 +62,10 @@ impl PrivacyMesh {
 
         // Step 3: Ensure geo-diversity (no two nodes in same /24)
         if !self.geo_diverse(&[entry.clone(), middle.clone(), exit.clone()]) {
-            return self.build_circuit(exit_policy, pool); // Retry
+            if attempt >= max_retries {
+                return Err(MeshError::InsufficientRelays);
+            }
+            return self.build_circuit_with_retry(exit_policy, pool, attempt + 1, max_retries);
         }
 
         // Step 4: Build Sphinx packet layers

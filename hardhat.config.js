@@ -11,17 +11,17 @@ module.exports = {
         localhost: { url: "http://127.0.0.1:8545", chainId: 31337 },
         arbitrumSepolia: {
             url: process.env.ARBITRUM_SEPOLIA_RPC || "https://sepolia-rollup.arbitrum.io/rpc",
-            accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+            accounts: process.env.TESTNET_PRIVATE_KEY ? [process.env.TESTNET_PRIVATE_KEY] : [],
             chainId: 421614,
         },
         baseSepolia: {
             url: process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org",
-            accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+            accounts: process.env.TESTNET_PRIVATE_KEY ? [process.env.TESTNET_PRIVATE_KEY] : [],
             chainId: 84532,
         },
         base: {
             url: process.env.BASE_RPC || "https://mainnet.base.org",
-            accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+            accounts: process.env.MAINNET_PRIVATE_KEY ? [process.env.MAINNET_PRIVATE_KEY] : [],
             chainId: 8453,
         },
     },

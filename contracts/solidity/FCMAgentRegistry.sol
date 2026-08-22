@@ -49,6 +49,7 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
     mapping(bytes32 => Task) public tasks;
     mapping(address => bytes32[]) public operatorAgents;
     mapping(bytes32 => uint256) public slashHistory;
+    mapping(address => uint256) public operatorActiveTasks;
 
     bytes32[] public agentList;
     bytes32[] public taskList;
@@ -66,6 +67,7 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
     event TaskDisputed(bytes32 indexed taskId, address disputant, string reason);
     event AgentSlashed(bytes32 indexed didHash, uint256 amount, string reason);
     event Heartbeat(bytes32 indexed didHash, uint256 timestamp, bytes32 geohash);
+    event TaskCancelled(bytes32 indexed taskId, address requester, uint256 refund);
 
     constructor(address _fcmToken) {
         fcmToken = IERC20(_fcmToken);
@@ -154,6 +156,7 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
 
         task.assignedAgent = msg.sender;
         task.status = TaskStatus.Assigned;
+        operatorActiveTasks[msg.sender]++;
         emit TaskAssigned(_taskId, _didHash);
     }
 
@@ -166,6 +169,7 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
         task.outputCID = _outputCID;
         task.proofHash = _proofHash;
         task.status = TaskStatus.Completed;
+        operatorActiveTasks[msg.sender]--;
         emit TaskCompleted(_taskId, _outputCID, _proofHash);
     }
 
@@ -216,20 +220,23 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
         Agent storage agent = agents[_didHash];
         require(agent.operator == msg.sender, "Not operator");
         require(agent.stake > 0, "No stake");
-
-        bool hasActive = false;
-        for (uint i = 0; i < taskList.length; i++) {
-            if (tasks[taskList[i]].assignedAgent == msg.sender && tasks[taskList[i]].status == TaskStatus.Assigned) {
-                hasActive = true;
-                break;
-            }
-        }
-        require(!hasActive, "Active tasks");
+        require(operatorActiveTasks[msg.sender] == 0, "Active tasks");
 
         uint256 amount = agent.stake;
         agent.stake = 0;
         agent.isActive = false;
         require(fcmToken.transfer(msg.sender, amount), "Unstake failed");
+    }
+
+    function cancelTask(bytes32 _taskId) external nonReentrant {
+        Task storage task = tasks[_taskId];
+        require(task.requester == msg.sender, "Not requester");
+        require(task.status == TaskStatus.Open, "Task not open");
+        require(block.timestamp < task.deadline, "Deadline passed");
+
+        task.status = TaskStatus.Slashed;
+        require(fcmToken.transfer(msg.sender, task.reward), "Refund failed");
+        emit TaskCancelled(_taskId, msg.sender, task.reward);
     }
 
     function getAgentsByType(uint8 _agentType) external view returns (bytes32[] memory) {
@@ -253,6 +260,10 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
     function findDidByOperator(address _operator) internal view returns (bytes32) {
         bytes32[] memory ops = operatorAgents[_operator];
         require(ops.length > 0, "No agent");
+        // Find the active agent, or fall back to last registered
+        for (uint i = ops.length; i > 0; i--) {
+            if (agents[ops[i - 1]].isActive) return ops[i - 1];
+        }
         return ops[ops.length - 1];
     }
 

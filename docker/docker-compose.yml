@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   fcm-bootstrap:
     image: ipfs/kubo:latest
@@ -37,7 +35,7 @@ services:
       - FCM_GEOHASH=u4pru
       - FCM_REGISTRY_CONTRACT=${REGISTRY_CONTRACT}
       - FCM_RPC_URL=${RPC_URL}
-      - FCM_PRIVATE_KEY=${PRIVATE_KEY}
+      - FCM_PRIVATE_KEY=${INFERENCE_ROUTER_KEY:-${PRIVATE_KEY}}
       - NVIDIA_VISIBLE_DEVICES=all
     volumes:
       - model-cache:/fcm/models
@@ -69,7 +67,7 @@ services:
       - FCM_GEOHASH=u4pru
       - FCM_REGISTRY_CONTRACT=${REGISTRY_CONTRACT}
       - FCM_RPC_URL=${RPC_URL}
-      - FCM_PRIVATE_KEY=${PRIVATE_KEY}
+      - FCM_PRIVATE_KEY=${RENDER_SPLITTER_KEY:-${PRIVATE_KEY}}
     volumes:
       - render-cache:/fcm/renders
       - ./config/render-splitter.yaml:/fcm/config/agent.yaml:ro
@@ -99,7 +97,7 @@ services:
       - FCM_GEOHASH=u4pru
       - FCM_REGISTRY_CONTRACT=${REGISTRY_CONTRACT}
       - FCM_RPC_URL=${RPC_URL}
-      - FCM_PRIVATE_KEY=${PRIVATE_KEY}
+      - FCM_PRIVATE_KEY=${FL_COORDINATOR_KEY:-${PRIVATE_KEY}}
       - FCM_DP_EPSILON=1.0
       - FCM_MPC_THRESHOLD=3
     volumes:
@@ -127,7 +125,7 @@ services:
       - FCM_GEOHASH=u4pru
       - FCM_REGISTRY_CONTRACT=${REGISTRY_CONTRACT}
       - FCM_RPC_URL=${RPC_URL}
-      - FCM_PRIVATE_KEY=${PRIVATE_KEY}
+      - FCM_PRIVATE_KEY=${EDGE_RUNNER_KEY:-${PRIVATE_KEY}}
       - FCM_WASM_POOL_SIZE=100
       - FCM_MEMORY_LIMIT_MB=128
     volumes:
@@ -153,7 +151,7 @@ services:
       - FCM_GEOHASH=u4pru
       - FCM_REGISTRY_CONTRACT=${REGISTRY_CONTRACT}
       - FCM_RPC_URL=${RPC_URL}
-      - FCM_PRIVATE_KEY=${PRIVATE_KEY}
+      - FCM_PRIVATE_KEY=${ZK_PROVER_KEY:-${PRIVATE_KEY}}
       - FCM_AGGREGATION_THRESHOLD=16
     volumes:
       - zk-circuits:/fcm/circuits
@@ -181,7 +179,7 @@ services:
       - FCM_GEOHASH=u4pru
       - FCM_REGISTRY_CONTRACT=${REGISTRY_CONTRACT}
       - FCM_RPC_URL=${RPC_URL}
-      - FCM_PRIVATE_KEY=${PRIVATE_KEY}
+      - FCM_PRIVATE_KEY=${GAME_HOST_KEY:-${PRIVATE_KEY}}
       - FCM_TICK_RATE=128
       - FCM_MAX_PLAYERS=64
     ports:
@@ -208,7 +206,7 @@ services:
       - FCM_GEOHASH=u4pru
       - FCM_REGISTRY_CONTRACT=${REGISTRY_CONTRACT}
       - FCM_RPC_URL=${RPC_URL}
-      - FCM_PRIVATE_KEY=${PRIVATE_KEY}
+      - FCM_PRIVATE_KEY=${SCIENCE_GRID_KEY:-${PRIVATE_KEY}}
       - FCM_CHECKPOINT_INTERVAL=900
       - FCM_REDUNDANCY_FACTOR=3
     volumes:
@@ -233,7 +231,7 @@ services:
       - FCM_GEOHASH=u4pru
       - FCM_REGISTRY_CONTRACT=${REGISTRY_CONTRACT}
       - FCM_RPC_URL=${RPC_URL}
-      - FCM_PRIVATE_KEY=${PRIVATE_KEY}
+      - FCM_PRIVATE_KEY=${PRIVACY_MESH_KEY:-${PRIVATE_KEY}}
       - FCM_MIN_HOPS=3
       - FCM_COVER_TRAFFIC_RATIO=0.3
     ports:
@@ -269,7 +267,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:?Set GRAFANA_PASSWORD in .env}
     networks:
       - fcm-mesh
 
