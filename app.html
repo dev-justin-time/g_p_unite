@@ -200,30 +200,39 @@ const agents = [
   }
 ];
 
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 function render() {
   document.getElementById('grid').innerHTML = agents.map(a => `
-    <div class="agent-card ${a.id}">
+    <div class="agent-card ${escapeHtml(a.id)}">
       <div class="agent-header">
         <div class="agent-title">
-          <div class="agent-icon">${a.icon}</div>
-          <div><div class="agent-name">${a.name}</div><div class="agent-role">${a.role}</div></div>
+          <div class="agent-icon">${escapeHtml(a.icon)}</div>
+          <div><div class="agent-name">${escapeHtml(a.name)}</div><div class="agent-role">${escapeHtml(a.role)}</div></div>
         </div>
         <span class="status-badge ${a.status==='active'?'status-active':'status-standby'}">${a.status==='active'?'\u25cf ACTIVE':'\u25cb STANDBY'}</span>
       </div>
       <div class="logic-section">
         <div class="logic-title">Built-in Logic Rules</div>
-        ${a.rules.map(r=>`<div class="logic-item"><span class="logic-key">${r.n}</span><span class="logic-val ${r.e?'true':'false'}">${r.e?'ON':'OFF'}</span></div>`).join('')}
+        ${a.rules.map(r=>`<div class="logic-item"><span class="logic-key">${escapeHtml(r.n)}</span><span class="logic-val ${r.e?'true':'false'}">${r.e?'ON':'OFF'}</span></div>`).join('')}
       </div>
       <div class="metrics-row">
-        ${a.metrics.map(m=>`<div class="metric"><div class="metric-value" id="${a.id}-${m.k}">${m.v}</div><div class="metric-label">${m.l}</div></div>`).join('')}
+        ${a.metrics.map(m=>`<div class="metric"><div class="metric-value" id="${escapeHtml(a.id)}-${escapeHtml(m.k)}">${escapeHtml(m.v)}</div><div class="metric-label">${escapeHtml(m.l)}</div></div>`).join('')}
       </div>
       <div class="action-bar">
-        <button class="btn" onclick="toggleSrc('${a.id}')">View Logic</button>
-        <button class="btn primary" onclick="sim('${a.id}')">Simulate</button>
+        <button class="btn" onclick="toggleSrc('${escapeHtml(a.id)}')">View Logic</button>
+        <button class="btn primary" onclick="sim('${escapeHtml(a.id)}')">Simulate</button>
       </div>
-      <div class="detail-panel" id="d-${a.id}">
+      <div class="detail-panel" id="d-${escapeHtml(a.id)}">
         <h4>Hard-Coded Decision Tree</h4>
-        <div class="code-block"><pre>${a.src}</pre></div>
+        <div class="code-block"><pre>${escapeHtml(a.src)}</pre></div>
       </div>
     </div>
   `).join('');

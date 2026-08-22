@@ -2,15 +2,24 @@ import { agents } from './agents/index.js';
 
 const grid = document.getElementById('agentsGrid');
 
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 function renderAgents() {
   grid.innerHTML = agents.map(agent => `
-    <div class="agent-card ${agent.id}" data-id="${agent.id}">
+    <div class="agent-card ${escapeHtml(agent.id)}" data-id="${escapeHtml(agent.id)}">
       <div class="agent-header">
         <div class="agent-title">
-          <div class="agent-icon">${agent.icon}</div>
+          <div class="agent-icon">${escapeHtml(agent.icon)}</div>
           <div>
-            <div class="agent-name">${agent.name}</div>
-            <div class="agent-role">${agent.role}</div>
+            <div class="agent-name">${escapeHtml(agent.name)}</div>
+            <div class="agent-role">${escapeHtml(agent.role)}</div>
           </div>
         </div>
         <span class="status-badge ${agent.status === 'active' ? 'status-active' : 'status-standby'}">
@@ -21,7 +30,7 @@ function renderAgents() {
         <div class="logic-title">Built-in Logic Rules</div>
         ${agent.rules.map(r => `
           <div class="logic-item">
-            <span class="logic-key">${r.name}</span>
+            <span class="logic-key">${escapeHtml(r.name)}</span>
             <span class="logic-val ${r.enabled ? 'true' : 'false'}">${r.enabled ? 'ON' : 'OFF'}</span>
           </div>
         `).join('')}
@@ -29,14 +38,14 @@ function renderAgents() {
       <div class="metrics-row">
         ${agent.metrics.map(m => `
           <div class="metric">
-            <div class="metric-value" id="${agent.id}-${m.key}">${m.value}</div>
-            <div class="metric-label">${m.label}</div>
+            <div class="metric-value" id="${escapeHtml(agent.id)}-${escapeHtml(m.key)}">${escapeHtml(m.value)}</div>
+            <div class="metric-label">${escapeHtml(m.label)}</div>
           </div>
         `).join('')}
       </div>
       <div class="action-bar">
-        <button class="btn" onclick="viewSource('${agent.id}')">View Source</button>
-        <button class="btn primary" onclick="simulate('${agent.id}')">Simulate</button>
+        <button class="btn" onclick="viewSource('${escapeHtml(agent.id)}')">View Source</button>
+        <button class="btn primary" onclick="simulate('${escapeHtml(agent.id)}')">Simulate</button>
       </div>
     </div>
   `).join('');
@@ -57,15 +66,6 @@ window.simulate = function(id) {
 window.closeModal = function() {
   document.getElementById('modalOverlay').classList.remove('show');
 };
-
-function escapeHtml(text) {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
 
 // Live metric updates
 setInterval(() => {
