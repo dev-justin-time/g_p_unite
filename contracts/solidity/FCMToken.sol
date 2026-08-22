@@ -13,11 +13,13 @@ contract FCMToken is ERC20, ERC20Burnable, AccessControl {
     uint256 public treasuryRate = 200;
     address public treasury;
     mapping(address => bool) public feeExempt;
+    bool private _inTransfer;
 
     event BurnMintEquilibrium(uint256 burned, uint256 minted, uint256 timestamp);
 
     constructor(address _treasury) ERC20("Federated Compute Mesh", "FCM") {
         treasury = _treasury;
+        feeExempt[_treasury] = true;
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
         _mint(msg.sender, 200_000_000 * 10**18);
@@ -32,11 +34,16 @@ contract FCMToken is ERC20, ERC20Burnable, AccessControl {
 
     function _update(address from, address to, uint256 value) internal override {
         super._update(from, to, value);
+        if (_inTransfer) return;
         if (from != address(0) && to != address(0) && !feeExempt[from] && !feeExempt[to]) {
             uint256 burnAmount = (value * burnRate) / 10000;
             uint256 treasuryAmount = (value * treasuryRate) / 10000;
             if (burnAmount > 0) { _burn(to, burnAmount); totalBurned += burnAmount; }
-            if (treasuryAmount > 0) { super._update(to, treasury, treasuryAmount); }
+            if (treasuryAmount > 0) {
+                _inTransfer = true;
+                super._update(to, treasury, treasuryAmount);
+                _inTransfer = false;
+            }
         }
     }
 

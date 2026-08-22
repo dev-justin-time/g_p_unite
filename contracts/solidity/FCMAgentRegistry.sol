@@ -40,6 +40,7 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
         address assignedAgent;
         TaskStatus status;
         bytes32 proofHash;
+        bool rewardWithdrawn;
     }
 
     enum TaskStatus { Open, Assigned, Completed, Disputed, Slashed }
@@ -133,7 +134,8 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
             outputCID: bytes32(0),
             assignedAgent: address(0),
             status: TaskStatus.Open,
-            proofHash: bytes32(0)
+            proofHash: bytes32(0),
+            rewardWithdrawn: false
         });
 
         taskList.push(_taskId);
@@ -147,7 +149,7 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
         require(task.status == TaskStatus.Open, "Task not open");
         require(agent.isActive, "Agent inactive");
         require(agent.operator == msg.sender, "Not operator");
-        require(agent.capabilities & task.requirements == task.requirements, "Capability mismatch");
+        require((agent.capabilities & task.requirements) == task.requirements, "Capability mismatch");
         require(block.timestamp < task.deadline, "Deadline passed");
 
         task.assignedAgent = msg.sender;
@@ -170,10 +172,11 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
     function withdrawReward(bytes32 _taskId) external nonReentrant {
         Task storage task = tasks[_taskId];
         require(task.status == TaskStatus.Completed, "Not completed");
+        require(!task.rewardWithdrawn, "Reward already withdrawn");
         require(block.timestamp > task.deadline + DISPUTE_WINDOW, "Dispute window active");
         require(task.assignedAgent == msg.sender, "Not assignee");
 
-        task.status = TaskStatus.Open;
+        task.rewardWithdrawn = true;
         require(fcmToken.transfer(msg.sender, task.reward), "Transfer failed");
 
         bytes32 didHash = findDidByOperator(msg.sender);
