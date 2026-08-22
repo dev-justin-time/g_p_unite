@@ -23,8 +23,15 @@ const AGENT_CONFIGS = [
 class FCMDeployer {
     constructor() {
         this.provider = new ethers.JsonRpcProvider(process.env.FCM_RPC_URL || "http://localhost:8545");
-        this.wallet = new ethers.Wallet(process.env.FCM_PRIVATE_KEY || "0x".padEnd(66, "0"), this.provider);
         this.configPath = path.join(process.cwd(), ".fcm-deploy.json");
+
+        const key = process.env.FCM_PRIVATE_KEY;
+        if (!key) {
+            console.error("Error: FCM_PRIVATE_KEY environment variable is required.");
+            console.error("Set it to your deployer wallet private key (0x...).\n");
+            process.exit(1);
+        }
+        this.wallet = new ethers.Wallet(key, this.provider);
     }
 
     async loadConfig() {
