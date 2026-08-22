@@ -1,0 +1,151 @@
+network:
+  name: blocks.ai
+  chain_id: 8453
+  rpc_url: ${FCM_RPC_URL}
+  registry_contract: ${FCM_REGISTRY_CONTRACT}
+  token_contract: ${FCM_TOKEN_CONTRACT}
+  heartbeat_interval: 300
+  dispute_window: 86400
+
+ipfs:
+  swarm_key: /key/swarm.key
+  bootstrap_peers:
+    - /dns4/blocks.ai/tcp/4001/p2p/12D3KooW...
+  gateway: https://ipfs.blocks.ai
+  api_endpoint: http://localhost:5001
+
+agents:
+  inference-router:
+    enabled: true
+    type: inference
+    did: did:ipfs:QmInfRouter
+    stake: 500
+    capabilities: [gpu, cuda, avx512, fp16]
+    resources:
+      min_vram_gb: 8
+      min_compute_capability: 7.5
+    batching:
+      max_batch_size: 32
+      coalesce_window_ms: 10
+      continuous_batching: true
+    models:
+      - name: llama-3-70b
+        quantization: int4
+        max_concurrent: 4
+
+  render-splitter:
+    enabled: true
+    type: render
+    did: did:ipfs:QmRenderSplitter
+    stake: 500
+    capabilities: [gpu, vulkan, tee, optix]
+    resources:
+      min_vram_gb: 12
+    tile_config:
+      max_tile_size: 1024
+      overlap_px: 64
+      denoise_passes: 3
+
+  fl-coordinator:
+    enabled: true
+    type: federated_learning
+    did: did:ipfs:QmFLCoordinator
+    stake: 1000
+    capabilities: [tee, sgx, avx512]
+    privacy:
+      differential_privacy:
+        epsilon: 1.0
+        delta: 1e-5
+      gradient_clipping:
+        l2_norm: 1.0
+      secure_aggregation:
+        protocol: shamir
+        threshold: 3
+        num_parties: 5
+
+  edge-runner:
+    enabled: true
+    type: edge
+    did: did:ipfs:QmEdgeRunner
+    stake: 500
+    capabilities: [wasm, neon, avx2]
+    runtime:
+      wasm_engine: wasmtime
+      module_cache_size: 1000
+      instance_pool_size: 100
+    limits:
+      max_memory_mb: 128
+      max_cpu_ms: 100
+      max_concurrent: 1000
+
+  zk-prover:
+    enabled: true
+    type: zk_prover
+    did: did:ipfs:QmZKProver
+    stake: 750
+    capabilities: [gpu, cuda, npu]
+    proving:
+      system: groth16
+      backend: cuda
+      curve: bn254
+      aggregation:
+        enabled: true
+        threshold: 16
+        scheme: bls
+
+  game-host:
+    enabled: true
+    type: game
+    did: did:ipfs:QmGameHost
+    stake: 500
+    capabilities: [gpu, metal, avx2]
+    network:
+      tick_rate_hz: 128
+      max_players: 64
+      latency_compensation_ms: 200
+
+  science-grid:
+    enabled: true
+    type: science
+    did: did:ipfs:QmScienceGrid
+    stake: 500
+    capabilities: [avx512, mpi, openmp]
+    decomposition:
+      method: cartesian
+      ghost_layers: 2
+    checkpoint:
+      interval_seconds: 900
+      max_retries: 3
+    validation:
+      redundancy_factor: 3
+      tolerance: 1e-6
+
+  privacy-mesh:
+    enabled: true
+    type: privacy
+    did: did:ipfs:QmPrivacyMesh
+    stake: 1000
+    capabilities: [tee, sgx, neon]
+    mixnet:
+      min_hops: 3
+      max_hops: 5
+      cover_traffic_ratio: 0.3
+      path_refresh_interval_minutes: 10
+    exit_policies:
+      - allow: "*:80,*:443"
+      - deny: "*:25,*:465"
+
+metrics:
+  prometheus:
+    enabled: true
+    port: 9090
+    scrape_interval: 15s
+  grafana:
+    enabled: true
+    port: 3000
+    admin_password: ${GRAFANA_PASSWORD}
+
+logging:
+  level: info
+  format: json
+  output: stdout

@@ -1,0 +1,294 @@
+version: "3.9"
+
+services:
+  fcm-bootstrap:
+    image: ipfs/kubo:latest
+    container_name: fcm-ipfs-node
+    volumes:
+      - ipfs-data:/data/ipfs
+      - ./config/ipfs-swarm.key:/key/swarm.key:ro
+    ports:
+      - "4001:4001"
+      - "4002:4002/udp"
+      - "5001:5001"
+      - "8080:8080"
+    environment:
+      - IPFS_SWARM_KEY=/key/swarm.key
+      - IPFS_PROFILE=server
+    command: ["daemon", "--migrate=true", "--enable-pubsub-experiment"]
+    networks:
+      - fcm-mesh
+    healthcheck:
+      test: ["CMD", "ipfs", "id"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  inference-router:
+    build: { context: ., dockerfile: docker/Dockerfile, target: production }
+    container_name: fcm-inference-router
+    runtime: nvidia
+    environment:
+      - FCM_AGENT_TYPE=inference
+      - FCM_AGENT_ID=inf-router-001
+      - FCM_DID=did:ipfs:QmInfRouter
+      - FCM_STAKE=500
+      - FCM_CAPABILITIES=gpu,cuda,avx512
+      - FCM_GEOHASH=u4pru
+      - FCM_REGISTRY_CONTRACT=${REGISTRY_CONTRACT}
+      - FCM_RPC_URL=${RPC_URL}
+      - FCM_PRIVATE_KEY=${PRIVATE_KEY}
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      - model-cache:/fcm/models
+      - ./config/inference-router.yaml:/fcm/config/agent.yaml:ro
+    depends_on:
+      fcm-bootstrap:
+        condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - fcm-mesh
+    restart: unless-stopped
+
+  render-splitter:
+    build: { context: ., dockerfile: docker/Dockerfile, target: production }
+    container_name: fcm-render-splitter
+    runtime: nvidia
+    environment:
+      - FCM_AGENT_TYPE=render
+      - FCM_AGENT_ID=render-split-001
+      - FCM_DID=did:ipfs:QmRenderSplitter
+      - FCM_STAKE=500
+      - FCM_CAPABILITIES=gpu,vulkan,tee
+      - FCM_GEOHASH=u4pru
+      - FCM_REGISTRY_CONTRACT=${REGISTRY_CONTRACT}
+      - FCM_RPC_URL=${RPC_URL}
+      - FCM_PRIVATE_KEY=${PRIVATE_KEY}
+    volumes:
+      - render-cache:/fcm/renders
+      - ./config/render-splitter.yaml:/fcm/config/agent.yaml:ro
+    depends_on:
+      fcm-bootstrap:
+        condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - fcm-mesh
+    restart: unless-stopped
+
+  fl-coordinator:
+    build: { context: ., dockerfile: docker/Dockerfile, target: production }
+    container_name: fcm-fl-coordinator
+    environment:
+      - FCM_AGENT_TYPE=federated_learning
+      - FCM_AGENT_ID=fl-coord-001
+      - FCM_DID=did:ipfs:QmFLCoordinator
+      - FCM_STAKE=1000
+      - FCM_CAPABILITIES=tee,sgx,avx512
+      - FCM_GEOHASH=u4pru
+      - FCM_REGISTRY_CONTRACT=${REGISTRY_CONTRACT}
+      - FCM_RPC_URL=${RPC_URL}
+      - FCM_PRIVATE_KEY=${PRIVATE_KEY}
+      - FCM_DP_EPSILON=1.0
+      - FCM_MPC_THRESHOLD=3
+    volumes:
+      - fl-models:/fcm/fl-models
+      - ./config/fl-coordinator.yaml:/fcm/config/agent.yaml:ro
+    devices:
+      - /dev/sgx_enclave
+      - /dev/sgx_provision
+    depends_on:
+      fcm-bootstrap:
+        condition: service_healthy
+    networks:
+      - fcm-mesh
+    restart: unless-stopped
+
+  edge-runner:
+    build: { context: ., dockerfile: docker/Dockerfile, target: production }
+    container_name: fcm-edge-runner
+    environment:
+      - FCM_AGENT_TYPE=edge
+      - FCM_AGENT_ID=edge-run-001
+      - FCM_DID=did:ipfs:QmEdgeRunner
+      - FCM_STAKE=500
+      - FCM_CAPABILITIES=wasm,neon,avx2
+      - FCM_GEOHASH=u4pru
+      - FCM_REGISTRY_CONTRACT=${REGISTRY_CONTRACT}
+      - FCM_RPC_URL=${RPC_URL}
+      - FCM_PRIVATE_KEY=${PRIVATE_KEY}
+      - FCM_WASM_POOL_SIZE=100
+      - FCM_MEMORY_LIMIT_MB=128
+    volumes:
+      - wasm-modules:/fcm/wasm
+      - ./config/edge-runner.yaml:/fcm/config/agent.yaml:ro
+    depends_on:
+      fcm-bootstrap:
+        condition: service_healthy
+    networks:
+      - fcm-mesh
+    restart: unless-stopped
+
+  zk-prover:
+    build: { context: ., dockerfile: docker/Dockerfile, target: production }
+    container_name: fcm-zk-prover
+    runtime: nvidia
+    environment:
+      - FCM_AGENT_TYPE=zk_prover
+      - FCM_AGENT_ID=zk-prover-001
+      - FCM_DID=did:ipfs:QmZKProver
+      - FCM_STAKE=750
+      - FCM_CAPABILITIES=gpu,cuda,npu
+      - FCM_GEOHASH=u4pru
+      - FCM_REGISTRY_CONTRACT=${REGISTRY_CONTRACT}
+      - FCM_RPC_URL=${RPC_URL}
+      - FCM_PRIVATE_KEY=${PRIVATE_KEY}
+      - FCM_AGGREGATION_THRESHOLD=16
+    volumes:
+      - zk-circuits:/fcm/circuits
+      - ./config/zk-prover.yaml:/fcm/config/agent.yaml:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - fcm-mesh
+    restart: unless-stopped
+
+  game-host:
+    build: { context: ., dockerfile: docker/Dockerfile, target: production }
+    container_name: fcm-game-host
+    environment:
+      - FCM_AGENT_TYPE=game
+      - FCM_AGENT_ID=game-host-001
+      - FCM_DID=did:ipfs:QmGameHost
+      - FCM_STAKE=500
+      - FCM_CAPABILITIES=gpu,metal,avx2
+      - FCM_GEOHASH=u4pru
+      - FCM_REGISTRY_CONTRACT=${REGISTRY_CONTRACT}
+      - FCM_RPC_URL=${RPC_URL}
+      - FCM_PRIVATE_KEY=${PRIVATE_KEY}
+      - FCM_TICK_RATE=128
+      - FCM_MAX_PLAYERS=64
+    ports:
+      - "7777:7777/udp"
+    volumes:
+      - game-maps:/fcm/maps
+      - ./config/game-host.yaml:/fcm/config/agent.yaml:ro
+    depends_on:
+      fcm-bootstrap:
+        condition: service_healthy
+    networks:
+      - fcm-mesh
+    restart: unless-stopped
+
+  science-grid:
+    build: { context: ., dockerfile: docker/Dockerfile, target: production }
+    container_name: fcm-science-grid
+    environment:
+      - FCM_AGENT_TYPE=science
+      - FCM_AGENT_ID=sci-grid-001
+      - FCM_DID=did:ipfs:QmScienceGrid
+      - FCM_STAKE=500
+      - FCM_CAPABILITIES=avx512,mpi,openmp
+      - FCM_GEOHASH=u4pru
+      - FCM_REGISTRY_CONTRACT=${REGISTRY_CONTRACT}
+      - FCM_RPC_URL=${RPC_URL}
+      - FCM_PRIVATE_KEY=${PRIVATE_KEY}
+      - FCM_CHECKPOINT_INTERVAL=900
+      - FCM_REDUNDANCY_FACTOR=3
+    volumes:
+      - science-data:/fcm/science
+      - ./config/science-grid.yaml:/fcm/config/agent.yaml:ro
+    depends_on:
+      fcm-bootstrap:
+        condition: service_healthy
+    networks:
+      - fcm-mesh
+    restart: unless-stopped
+
+  privacy-mesh:
+    build: { context: ., dockerfile: docker/Dockerfile, target: production }
+    container_name: fcm-privacy-mesh
+    environment:
+      - FCM_AGENT_TYPE=privacy
+      - FCM_AGENT_ID=priv-mesh-001
+      - FCM_DID=did:ipfs:QmPrivacyMesh
+      - FCM_STAKE=1000
+      - FCM_CAPABILITIES=tee,sgx,neon
+      - FCM_GEOHASH=u4pru
+      - FCM_REGISTRY_CONTRACT=${REGISTRY_CONTRACT}
+      - FCM_RPC_URL=${RPC_URL}
+      - FCM_PRIVATE_KEY=${PRIVATE_KEY}
+      - FCM_MIN_HOPS=3
+      - FCM_COVER_TRAFFIC_RATIO=0.3
+    ports:
+      - "9001:9001"
+      - "9001:9001/udp"
+    volumes:
+      - relay-keys:/fcm/keys
+      - ./config/privacy-mesh.yaml:/fcm/config/agent.yaml:ro
+    depends_on:
+      fcm-bootstrap:
+        condition: service_healthy
+    networks:
+      - fcm-mesh
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: fcm-prometheus
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - fcm-mesh
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: fcm-grafana
+    volumes:
+      - ./config/grafana:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    networks:
+      - fcm-mesh
+
+volumes:
+  ipfs-data:
+  model-cache:
+  render-cache:
+  fl-models:
+  wasm-modules:
+  zk-circuits:
+  game-maps:
+  science-data:
+  relay-keys:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  fcm-mesh:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

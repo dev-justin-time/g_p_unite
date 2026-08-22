@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FCM Expert Agent Swarm</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --panel: #111827;
+      --panel-hover: #1a2332;
+      --border: #1f2937;
+      --text: #e5e7eb;
+      --text-dim: #9ca3af;
+      --accent: #3b82f6;
+      --accent-glow: rgba(59,130,246,0.3);
+      --green: #10b981;
+      --green-glow: rgba(16,185,129,0.3);
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --purple: #8b5cf6;
+      --cyan: #06b6d4;
+      --pink: #ec4899;
+      --orange: #f97316;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, -apple-system, sans-serif; min-height: 100vh; }
+    .app { padding: 24px; max-width: 1400px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 28px; }
+    .header h1 { font-size: 28px; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 6px; }
+    .header p { color: var(--text-dim); font-size: 14px; }
+    .stats-bar { display: flex; gap: 16px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap; }
+    .stat-pill { background: var(--panel); border: 1px solid var(--border); border-radius: 24px; padding: 8px 18px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+    .stat-pill .dot { width: 8px; height: 8px; border-radius: 50%; animation: pulse 2s infinite; }
+    .dot.green { background: var(--green); box-shadow: 0 0 8px var(--green-glow); }
+    .dot.blue { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .agents-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; }
+    .agent-card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 20px; transition: all 0.2s; position: relative; overflow: hidden; cursor: pointer; }
+    .agent-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+    .agent-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .agent-card.inf::before { background: linear-gradient(90deg, var(--accent), var(--cyan)); }
+    .agent-card.ren::before { background: linear-gradient(90deg, var(--purple), var(--pink)); }
+    .agent-card.fl::before { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+    .agent-card.edge::before { background: linear-gradient(90deg, var(--amber), var(--orange)); }
+    .agent-card.zk::before { background: linear-gradient(90deg, var(--purple), var(--accent)); }
+    .agent-card.game::before { background: linear-gradient(90deg, var(--red), var(--amber)); }
+    .agent-card.sci::before { background: linear-gradient(90deg, var(--cyan), var(--green)); }
+    .agent-card.priv::before { background: linear-gradient(90deg, var(--pink), var(--red)); }
+    .agent-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+    .agent-title { display: flex; align-items: center; gap: 10px; }
+    .agent-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .inf .agent-icon { background: rgba(59,130,246,0.15); }
+    .ren .agent-icon { background: rgba(139,92,246,0.15); }
+    .fl .agent-icon { background: rgba(16,185,129,0.15); }
+    .edge .agent-icon { background: rgba(245,158,11,0.15); }
+    .zk .agent-icon { background: rgba(139,92,246,0.15); }
+    .game .agent-icon { background: rgba(239,68,68,0.15); }
+    .sci .agent-icon { background: rgba(6,182,212,0.15); }
+    .priv .agent-icon { background: rgba(236,72,153,0.15); }
+    .agent-name { font-size: 15px; font-weight: 600; }
+    .agent-role { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+    .status-badge { font-size: 11px; padding: 4px 10px; border-radius: 12px; font-weight: 500; }
+    .status-active { background: rgba(16,185,129,0.15); color: var(--green); }
+    .status-standby { background: rgba(245,158,11,0.15); color: var(--amber); }
+    .logic-section { background: var(--bg); border-radius: 10px; padding: 12px; margin-bottom: 12px; border: 1px solid var(--border); }
+    .logic-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .logic-title::before { content: '⚡'; }
+    .logic-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+    .logic-item:last-child { border-bottom: none; }
+    .logic-key { color: var(--text-dim); }
+    .logic-val { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+    .logic-val.true { color: var(--green); }
+    .logic-val.false { color: var(--red); }
+    .metrics-row { display: flex; gap: 12px; margin-top: 12px; }
+    .metric { flex: 1; background: var(--bg); border-radius: 8px; padding: 10px; text-align: center; border: 1px solid var(--border); }
+    .metric-value { font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .metric-label { font-size: 10px; color: var(--text-dim); margin-top: 2px; text-transform: uppercase; }
+    .inf .metric-value { color: var(--accent); }
+    .ren .metric-value { color: var(--purple); }
+    .fl .metric-value { color: var(--green); }
+    .edge .metric-value { color: var(--amber); }
+    .zk .metric-value { color: var(--purple); }
+    .game .metric-value { color: var(--red); }
+    .sci .metric-value { color: var(--cyan); }
+    .priv .metric-value { color: var(--pink); }
+    .action-bar { display: flex; gap: 8px; margin-top: 14px; }
+    .btn { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 12px; cursor: pointer; transition: all 0.15s; font-weight: 500; text-decoration: none; text-align: center; }
+    .btn:hover { background: var(--panel-hover); border-color: var(--accent); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
+    .btn.primary:hover { background: #2563eb; }
+    .detail-panel { display: none; margin-top: 14px; padding: 14px; background: var(--bg); border-radius: 10px; border: 1px solid var(--border); font-size: 12px; }
+    .detail-panel.show { display: block; }
+    .detail-panel h4 { font-size: 12px; margin-bottom: 8px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+    .code-block { background: #000; border-radius: 6px; padding: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; color: #a5b4fc; border: 1px solid #1f2937; }
+    .code-block .kw { color: #c084fc; }
+    .code-block .fn { color: #60a5fa; }
+    .code-block .str { color: #4ade80; }
+    .code-block .num { color: #fbbf24; }
+    .code-block .cm { color: #6b7280; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 12px; }
+    .switch { position: relative; width: 36px; height: 20px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: var(--border); border-radius: 20px; transition: 0.2s; }
+    .slider::before { position: absolute; content: ''; height: 14px; width: 14px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+    input:checked + .slider { background: var(--accent); }
+    input:checked + .slider::before { transform: translateX(16px); }
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; width: 90%; max-width: 700px; max-height: 80vh; overflow: hidden; }
+    .modal-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h2 { font-size: 18px; }
+    .modal-close { background: none; border: none; color: var(--text-dim); font-size: 20px; cursor: pointer; }
+    .modal-body { padding: 20px; overflow-y: auto; max-height: 60vh; }
+    .modal-body pre { background: #000; border-radius: 8px; padding: 16px; overflow-x: auto; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; color: #a5b4fc; }
+    .modal-body code .comment { color: #6b7280; }
+    .modal-body code .keyword { color: #c084fc; }
+    .modal-body code .function { color: #60a5fa; }
+    .modal-body code .string { color: #4ade80; }
+    .modal-body code .number { color: #fbbf24; }
+    .modal-body code .type { color: #f472b6; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <h1>FCM Expert Agent Swarm</h1>
+      <p>Built-in logic engines — zero LLM calls required for hot paths</p>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat-pill"><span class="dot green"></span>8 Agents Online</div>
+      <div class="stat-pill"><span class="dot blue"></span>Logic Cache Hit: 99.7%</div>
+      <div class="stat-pill"><span class="dot green"></span>LLM Calls Saved: 2.4M/hr</div>
+      <div class="stat-pill"><span class="dot blue"></span>Avg Latency: 12ms</div>
+    </div>
+
+    <div class="agents-grid" id="agentsGrid"></div>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">Agent Source</h2>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -731,3 +731,44 @@ The Federated Compute Mesh represents a paradigm shift from centralized cloud co
 | **🕵️ Privacy Mesh** | Sphinx packet format + reputation-weighted path selection + cover traffic | Cryptographic routing, no path optimization LLM |
 
 **Key Design Principle:** Every agent uses **pre-programmed heuristics, cryptographic protocols, or mathematical decomposition** rather than LLM inference for decision-making. The only time an LLM might be invoked is for **cold-start configuration** or **anomaly investigation** — never on the request path. This achieves **99.7% logic cache hit rate** with **~12ms average latency** vs. 200-800ms for LLM-based orchestration.
+
+  
+     
+    
+       
+        
+       
+ Your **FCM → blocks.ai Network Deployment** package is ready. Here's the full stack:
+
+**Download the deployment package:**
+[FCM blocks.ai Deploy — Full Stack](sandbox:///mnt/agents/output/fcm-blocks-ai-deploy.zip)
+
+---
+
+### What's Inside
+
+| Layer | Files | Purpose |
+|-------|-------|---------|
+| **Smart Contracts** | `FCMToken.sol`, `FCMAgentRegistry.sol`, `FCMTaskMarketplace.sol` | On-chain staking, reputation, task marketplace with spot/reserved/auction pricing |
+| **Deployment Scripts** | `deploy.js`, `register-agents.js` | Hardhat scripts for EVM L2 deployment (Base, Arbitrum, Optimism) |
+| **CLI Tool** | `fcm-deploy.js` | One-command init → deploy → register → start → status |
+| **Docker** | `Dockerfile`, `docker-compose.yml` | Multi-stage build + 8 agent containers with GPU/TEE passthrough |
+| **Terraform** | `main.tf`, `variables.tf` | Multi-cloud: AWS GPU spot, Hetzner CPU, Azure SGX TEE |
+| **Config** | `agents.yaml`, `.env.example` | Per-agent resource limits, capabilities, privacy params |
+
+### Key Deployment Features
+
+- **Staking + Slashing**: 500-1000 FCM per agent, 30% slash for disputed tasks
+- **BME Tokenomics**: Burn-mint equilibrium — 1% burn, 2% treasury on every task payment
+- **Geo-Hash Registry**: Agents register with 5-char geohash for latency-optimized task routing
+- **TEE Attestation**: FL Coordinator & Privacy Mesh deploy on Azure Confidential Computing (Intel SGX)
+- **Spot GPU Savings**: Inference/Render/ZK agents on AWS p4d.24xlarge spot instances (60-80% cost reduction)
+
+### One-Command Deploy
+```bash
+npx fcm-deploy init
+npx fcm-deploy contract deploy --network baseSepolia
+npx fcm-deploy agent register
+npx fcm-deploy agent start
+npx fcm-deploy status
+```

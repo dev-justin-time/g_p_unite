@@ -1,0 +1,23 @@
+{
+  "name": "fcm-blocks-ai-deploy",
+  "version": "1.0.0",
+  "description": "FCM Expert Agent Swarm — blocks.ai Network Deployment",
+  "main": "cli/fcm-deploy.js",
+  "bin": { "fcm-deploy": "./cli/fcm-deploy.js" },
+  "scripts": {
+    "deploy:contracts": "hardhat run scripts/hardhat/deploy.js",
+    "deploy:agents": "hardhat run scripts/hardhat/register-agents.js",
+    "agent:start": "docker-compose -f docker/docker-compose.yml up -d",
+    "agent:stop": "docker-compose -f docker/docker-compose.yml down",
+    "test": "hardhat test"
+  },
+  "dependencies": {
+    "ethers": "^6.9.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.19.0",
+    "@openzeppelin/contracts": "^5.0.0"
+  }
+}
