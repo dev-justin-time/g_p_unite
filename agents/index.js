@@ -6,6 +6,10 @@ import { zkProver } from './zk-prover.js';
 import { gameHost } from './game-host.js';
 import { scienceGrid } from './science-grid.js';
 import { privacyMesh } from './privacy-mesh.js';
+import { nodeRunner } from './node-runner.js';
+import { storageProvider } from './storage-provider.js';
+import { fileServer } from './file-server.js';
+import { rewardedWorker } from './rewarded-worker.js';
 
 export const agents = [
   inferenceRouter,
@@ -15,5 +19,9 @@ export const agents = [
   zkProver,
   gameHost,
   scienceGrid,
-  privacyMesh
+  privacyMesh,
+  nodeRunner,
+  storageProvider,
+  fileServer,
+  rewardedWorker
 ];
