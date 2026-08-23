@@ -399,8 +399,9 @@ require((agent.capabilities & task.requirements) == task.requirements)
 
 ### Top 5 Actions for Next Session
 
-1. **Add TypeScript** — Convert core modules for type safety
+1.**Add TypeScript** — Convert core modules for type safety
 2. **Add ESLint + Prettier** — Enforce code consistency
 3. **Add health check endpoints** — HTTP `/health` for each agent container
 4. **Consolidate dashboard** — Merge `app.html` and `index.html`
 5. **Add Terraform modules** — Split `main.tf` into reusable modules
+ 
