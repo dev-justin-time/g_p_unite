@@ -43,7 +43,7 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
         bool rewardWithdrawn;
     }
 
-    enum TaskStatus { Open, Assigned, Completed, Disputed, Slashed }
+    enum TaskStatus { Open, Assigned, Completed, Disputed, Slashed, Resolved }
 
     mapping(bytes32 => Agent) public agents;
     mapping(bytes32 => Task) public tasks;
@@ -83,7 +83,7 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
         uint8 _agentType
     ) external nonReentrant {
         require(agents[_didHash].operator == address(0), "Agent exists");
-        require(_agentType <= 7, "Invalid agent type");
+        require(_agentType <= 11, "Invalid agent type");
         require(fcmToken.transferFrom(msg.sender, address(this), MIN_STAKE), "Stake required");
 
         agents[_didHash] = Agent({
@@ -122,6 +122,7 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
     }
 
     function createTask(bytes32 _taskId, bytes32 _requirements, bytes32 _inputCID, uint256 _deadline) external nonReentrant {
+        require(tasks[_taskId].requester == address(0), "Task ID already exists");
         require(_deadline > block.timestamp, "Invalid deadline");
         uint256 reward = calculateReward(_requirements);
         require(fcmToken.transferFrom(msg.sender, address(this), reward), "Reward escrow failed");
@@ -175,7 +176,10 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
 
     function withdrawReward(bytes32 _taskId) external nonReentrant {
         Task storage task = tasks[_taskId];
-        require(task.status == TaskStatus.Completed, "Not completed");
+        require(
+            task.status == TaskStatus.Completed || task.status == TaskStatus.Resolved,
+            "Not completed or resolved"
+        );
         require(!task.rewardWithdrawn, "Reward already withdrawn");
         require(block.timestamp > task.deadline + DISPUTE_WINDOW, "Dispute window active");
         require(task.assignedAgent == msg.sender, "Not assignee");
@@ -212,7 +216,7 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
             emit AgentSlashed(didHash, slashAmount, _resolution);
         } else {
             require(fcmToken.transfer(task.assignedAgent, task.reward), "Transfer failed");
-            task.status = TaskStatus.Completed;
+            task.status = TaskStatus.Resolved; // Terminal state — prevents re-dispute, allows withdrawal
         }
     }
 

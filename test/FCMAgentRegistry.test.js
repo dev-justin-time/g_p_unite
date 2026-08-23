@@ -96,7 +96,7 @@ describe("FCMAgentRegistry", function () {
             await token.connect(operator1).approve(await registry.getAddress(), MIN_STAKE);
             await expect(
                 registry.connect(operator1).registerAgent(
-                    didHash, "/ipns/test", capabilities, geohash, 8 // Invalid type
+                    didHash, "/ipns/test", capabilities, geohash, 12 // Invalid type (>11)
                 )
             ).to.be.revertedWith("Invalid agent type");
         });

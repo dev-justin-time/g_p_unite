@@ -16,6 +16,7 @@ contract FCMTaskMarketplace is ReentrancyGuard, AccessControl {
 
     struct Bid {
         bytes32 agentDid;
+        address bidder;
         uint256 price;
         uint256 timestamp;
         bool withdrawn;
@@ -35,11 +36,30 @@ contract FCMTaskMarketplace is ReentrancyGuard, AccessControl {
     mapping(bytes32 => AuctionTask) public auctionTasks;
     mapping(address => uint256) public escrowedBids;
 
+    // Spot task tracking for refunds
+    mapping(bytes32 => address) public spotTaskListers;
+    mapping(bytes32 => uint256) public spotTaskAmounts;
+    mapping(bytes32 => bool) public spotTaskCancelled;
+
     event SpotTaskListed(bytes32 indexed taskId, address indexed lister, uint256 maxPrice, TaskPriority priority);
+    event SpotTaskCancelled(bytes32 indexed taskId, address indexed lister, uint256 refund);
     event AuctionListed(bytes32 indexed taskId, address indexed lister, uint256 minPrice, uint256 maxPrice, uint256 duration);
     event BidPlaced(bytes32 indexed taskId, bytes32 indexed agentDid, uint256 price);
     event AuctionSettled(bytes32 indexed taskId, bytes32 indexed winningAgent, uint256 price);
     event BidRefunded(bytes32 indexed taskId, address indexed agent, uint256 amount);
+
+    function cancelSpotTask(bytes32 _taskId) external nonReentrant {
+        require(spotTaskListers[_taskId] == msg.sender, "Not lister");
+        require(!spotTaskCancelled[_taskId], "Already cancelled");
+        require(spotTaskAmounts[_taskId] > 0, "No escrow");
+
+        spotTaskCancelled[_taskId] = true;
+        uint256 refund = spotTaskAmounts[_taskId];
+        spotTaskAmounts[_taskId] = 0;
+
+        require(fcmToken.transfer(msg.sender, refund), "Refund failed");
+        emit SpotTaskCancelled(_taskId, msg.sender, refund);
+    }
 
     constructor(address _registry, address _fcmToken) {
         registry = FCMAgentRegistry(_registry);
@@ -60,6 +80,9 @@ contract FCMTaskMarketplace is ReentrancyGuard, AccessControl {
 
         // Escrow the max price from the lister
         require(fcmToken.transferFrom(msg.sender, address(this), _maxPrice), "Escrow failed");
+
+        spotTaskListers[_taskId] = msg.sender;
+        spotTaskAmounts[_taskId] = _maxPrice;
 
         emit SpotTaskListed(_taskId, msg.sender, _maxPrice, _priority);
     }
@@ -109,6 +132,7 @@ contract FCMTaskMarketplace is ReentrancyGuard, AccessControl {
 
         auction.bids.push(Bid({
             agentDid: _agentDid,
+            bidder: msg.sender,
             price: _price,
             timestamp: block.timestamp,
             withdrawn: false
@@ -135,19 +159,15 @@ contract FCMTaskMarketplace is ReentrancyGuard, AccessControl {
 
         auction.settled = true;
 
-        // Refund all non-winning bids
+        // Refund all non-winning bids using stored bidder address
         for (uint i = 0; i < auction.bids.length; i++) {
             if (i != bestIdx && !auction.bids[i].withdrawn) {
-                // Find the bid's agent address from registry
-                bytes32 did = auction.bids[i].agentDid;
-                address agentAddr = registry.getAgentOperator(did);
-                if (agentAddr != address(0)) {
-                    uint256 refundAmount = auction.bids[i].price;
-                    if (refundAmount > 0) {
-                        fcmToken.transfer(agentAddr, refundAmount);
-                        escrowedBids[agentAddr] -= refundAmount;
-                        emit BidRefunded(_taskId, agentAddr, refundAmount);
-                    }
+                address bidderAddr = auction.bids[i].bidder;
+                uint256 refundAmount = auction.bids[i].price;
+                if (bidderAddr != address(0) && refundAmount > 0) {
+                    fcmToken.transfer(bidderAddr, refundAmount);
+                    escrowedBids[bidderAddr] -= refundAmount;
+                    emit BidRefunded(_taskId, bidderAddr, refundAmount);
                 }
                 auction.bids[i].withdrawn = true;
             }
@@ -169,7 +189,7 @@ contract FCMTaskMarketplace is ReentrancyGuard, AccessControl {
         require(!bid.withdrawn, "Already withdrawn");
 
         bytes32 did = bid.agentDid;
-        require(registry.getAgentOperator(did) == msg.sender, "Not bid owner");
+        require(bid.bidder == msg.sender || registry.getAgentOperator(did) == msg.sender, "Not bid owner");
 
         bid.withdrawn = true;
         uint256 amount = bid.price;

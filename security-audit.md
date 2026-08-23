@@ -9,13 +9,13 @@
 
 ## Executive Summary
 
-| Severity | Found | Fixed | Remaining |
-|----------|-------|-------|-----------|
-| 🔴 **Critical** | 6 | 0 | **6** |
-| 🟠 **High** | 11 | 0 | **11** |
-| 🟡 **Medium** | 14 | 0 | **14** |
-| 🟢 **Low** | 10 | 0 | **10** |
-| **Total** | **41** | **0** | **41** |
+| Severity         | Found | Fixed  | Remaining |
+|--------------- --|-------|-------=|-----------|
+| 🔴 **Critical**  | 6     | 0      | **6**    |
+| 🟠 **High**      | 11    | 0      | **11**   |
+| 🟡 **Medium**    | 14    | 0      | **14**   |
+| 🟢 **Low**       | 10    | 0      | **10**   |
+| **Total**         | *41* | **0**   | **41**   |  
 
 **The codebase has 6 critical vulnerabilities that could lead to permanent fund loss. Immediate action required before any mainnet deployment.**
 

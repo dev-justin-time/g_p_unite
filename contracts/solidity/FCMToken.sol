@@ -37,6 +37,7 @@ contract FCMToken is ERC20, ERC20Burnable, AccessControl {
     }
 
     function mintRewards(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
+        require(to != address(0), "Cannot mint to zero address");
         require(amount > 0, "Amount must be > 0");
         require(totalMintedRewards + amount <= MAX_SUPPLY - INITIAL_SUPPLY, "Mintable supply exceeded");
         totalMintedRewards += amount;
