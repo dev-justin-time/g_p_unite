@@ -22,11 +22,21 @@ describe("FCMTaskMarketplace", function () {
 
         // Deploy marketplace
         const FCMTaskMarketplace = await ethers.getContractFactory("FCMTaskMarketplace");
-        marketplace = await FCMTaskMarketplace.deploy(await registry.getAddress());
+        marketplace = await FCMTaskMarketplace.deploy(await registry.getAddress(), await token.getAddress());
         await marketplace.waitForDeployment();
 
         // Exempt marketplace from transfer fees
         await token.setFeeExempt(await marketplace.getAddress(), true);
+
+        // Approve marketplace to spend tokens for all signers (for escrow)
+        const maxApprove = ethers.parseEther("1000000000");
+        await token.approve(await marketplace.getAddress(), maxApprove);
+        await token.connect(bidder1).approve(await marketplace.getAddress(), maxApprove);
+        await token.connect(bidder2).approve(await marketplace.getAddress(), maxApprove);
+
+        // Transfer tokens to bidders for auction tests
+        await token.transfer(bidder1.address, ethers.parseEther("100"));
+        await token.transfer(bidder2.address, ethers.parseEther("100"));
     });
 
     describe("Spot Tasks", function () {
@@ -38,7 +48,7 @@ describe("FCMTaskMarketplace", function () {
 
             await expect(
                 marketplace.listSpotTask(taskId, requirements, maxPrice, deadline, 1)
-            ).to.emit(marketplace, "SpotTaskListed").withArgs(taskId, maxPrice, 1);
+            ).to.emit(marketplace, "SpotTaskListed").withArgs(taskId, admin.address, maxPrice, 1);
         });
     });
 

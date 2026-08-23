@@ -228,6 +228,16 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
         require(fcmToken.transfer(msg.sender, amount), "Unstake failed");
     }
 
+    // Public getter for marketplace compatibility
+    function getAgentOperator(bytes32 _didHash) external view returns (address) {
+        return agents[_didHash].operator;
+    }
+
+    function getAgentStatus(bytes32 _didHash) external view returns (bool isActive, address operator) {
+        Agent storage a = agents[_didHash];
+        return (a.isActive, a.operator);
+    }
+
     function cancelTask(bytes32 _taskId) external nonReentrant {
         Task storage task = tasks[_taskId];
         require(task.requester == msg.sender, "Not requester");

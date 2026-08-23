@@ -4,8 +4,8 @@ const { ethers } = require("hardhat");
 describe("FCMToken", function () {
     let token, treasury, admin, user1, user2;
     const INITIAL_SUPPLY_ADMIN = ethers.parseEther("200000000");
-    const INITIAL_SUPPLY_TREASURY = ethers.parseEther("300000000");
-    const INITIAL_SUPPLY_CONTRACT = ethers.parseEther("500000000");
+    const INITIAL_SUPPLY_TREASURY = ethers.parseEther("200000000");
+    const INITIAL_SUPPLY_CONTRACT = ethers.parseEther("100000000");
     const MAX_SUPPLY = ethers.parseEther("1000000000");
 
     beforeEach(async function () {
@@ -44,11 +44,20 @@ describe("FCMToken", function () {
     });
 
     describe("Minting", function () {
-        it("should reject minting above MAX_SUPPLY (already at max)", async function () {
-            // Constructor mints 1B = MAX_SUPPLY, so any mint should fail
+        it("should allow minting within reserve, reject exceeding MAX_SUPPLY", async function () {
+            // Constructor mints 500M, 500M reserved for rewards
+            const mintable = await token.getMintableSupply();
+            expect(mintable).to.be.gt(0);
+
+            // Minting within reserve should succeed
             await expect(
-                token.mintRewards(user1.address, ethers.parseEther("1"))
-            ).to.be.revertedWith("Max supply exceeded");
+                token.mintRewards(user1.address, ethers.parseEther("100"))
+            ).to.not.be.reverted;
+
+            // Minting beyond reserve should fail
+            await expect(
+                token.mintRewards(user1.address, mintable + 1n)
+            ).to.be.revertedWith("Mintable supply exceeded");
         });
 
         it("should reject non-minter from minting", async function () {
@@ -73,7 +82,9 @@ describe("FCMToken", function () {
             const treasuryAfter = await token.balanceOf(treasury.address);
 
             // User1 receives transfer minus burn and treasury fees
-            expect(user1After - user1Before).to.equal(transferAmount - burnAmount - treasuryAmount);
+            // Admin is not fee-exempt, so fees apply
+            const expectedReceived = transferAmount - burnAmount - treasuryAmount;
+            expect(user1After - user1Before).to.equal(expectedReceived);
             // Treasury receives its cut
             expect(treasuryAfter - treasuryBefore).to.equal(treasuryAmount);
         });
@@ -149,8 +160,10 @@ describe("FCMToken", function () {
     });
 
     describe("Token Supply", function () {
-        it("should have correct MAX_SUPPLY", async function () {
+        it("should have correct MAX_SUPPLY and mintable supply", async function () {
             expect(await token.MAX_SUPPLY()).to.equal(MAX_SUPPLY);
+            // 500M initial, 500M reserved for rewards
+            expect(await token.getMintableSupply()).to.equal(ethers.parseEther("500000000"));
         });
     });
 });

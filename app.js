@@ -44,8 +44,8 @@ function renderAgents() {
         `).join('')}
       </div>
       <div class="action-bar">
-        <button class="btn" onclick="viewSource('${escapeHtml(agent.id)}')">View Source</button>
-        <button class="btn primary" onclick="simulate('${escapeHtml(agent.id)}')">Simulate</button>
+        <button class="btn" onclick="viewSource('${escapeHtml(agent.id)}')" aria-label="View source code for ${escapeHtml(agent.name)}">View Source</button>
+        <button class="btn primary" onclick="simulate('${escapeHtml(agent.id)}')" aria-label="Simulate ${escapeHtml(agent.name)} agent">Simulate</button>
       </div>
     </div>
   `).join('');

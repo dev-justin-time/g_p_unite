@@ -83,21 +83,22 @@
     .code-block .num { color:#fbbf24; }
     .code-block .cm { color:#6b7280; }
   </style>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self';">
 <base target="_blank">
 </head>
 <body>
   <div class="app">
-    <div class="header">
+    <div class="header" role="banner">
       <h1>FCM Expert Agent Swarm</h1>
       <p>Built-in logic engines — zero LLM calls required for hot paths</p>
     </div>
-    <div class="stats-bar">
+    <div class="stats-bar" role="status" aria-label="System statistics">
       <div class="stat-pill"><span class="dot green"></span>8 Agents Online</div>
       <div class="stat-pill"><span class="dot blue"></span>Logic Cache Hit: 99.7%</div>
       <div class="stat-pill"><span class="dot green"></span>LLM Calls Saved: 2.4M/hr</div>
       <div class="stat-pill"><span class="dot blue"></span>Avg Latency: 12ms</div>
     </div>
-    <div class="agents-grid" id="grid"></div>
+    <div class="agents-grid" id="grid" role="main" aria-label="Agent dashboard"></div>
   </div>
 
 <script>
@@ -227,8 +228,8 @@ function render() {
         ${a.metrics.map(m=>`<div class="metric"><div class="metric-value" id="${escapeHtml(a.id)}-${escapeHtml(m.k)}">${escapeHtml(m.v)}</div><div class="metric-label">${escapeHtml(m.l)}</div></div>`).join('')}
       </div>
       <div class="action-bar">
-        <button class="btn" onclick="toggleSrc('${escapeHtml(a.id)}')">View Logic</button>
-        <button class="btn primary" onclick="sim('${escapeHtml(a.id)}')">Simulate</button>
+        <button class="btn" onclick="toggleSrc('${escapeHtml(a.id)}')" aria-label="View logic source for ${escapeHtml(a.name)}">View Logic</button>
+        <button class="btn primary" onclick="sim('${escapeHtml(a.id)}')" aria-label="Simulate ${escapeHtml(a.name)} agent">Simulate</button>
       </div>
       <div class="detail-panel" id="d-${escapeHtml(a.id)}">
         <h4>Hard-Coded Decision Tree</h4>

@@ -17,7 +17,7 @@ async function main() {
     console.log("FCMAgentRegistry deployed to:", registryAddress);
 
     const FCMTaskMarketplace = await ethers.getContractFactory("FCMTaskMarketplace");
-    const marketplace = await FCMTaskMarketplace.deploy(registryAddress);
+    const marketplace = await FCMTaskMarketplace.deploy(registryAddress, tokenAddress);
     await marketplace.waitForDeployment();
     const marketplaceAddress = await marketplace.getAddress();
     console.log("FCMTaskMarketplace deployed to:", marketplaceAddress);

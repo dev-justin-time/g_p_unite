@@ -16,32 +16,32 @@ FCM sells compute power to consumers and businesses at **50–80% lower cost** t
 
 ### Tier 1 — Primary (Highest Revenue)
 
-| Market | Size | Buyer | Pain Point | FCM Solution |
-|--------|------|-------|------------|--------------|
-| **AI Startups** | $50B+ | CTOs, ML Engineers | GPU costs kill margins | 78% cheaper inference |
-| **VFX Studios** | $30B+ | Production Directors | Render farms too expensive | 80% cheaper rendering |
-| **SaaS Companies** | $200B+ | Backend Engineers | Lambda/Edge too pricey | 80% cheaper edge functions |
-| **Game Studios** | $200B+ | Technical Directors | Server hosting costs | 70% cheaper multiplayer |
-| **Research Labs** | $50B+ | Principal Investigators | HPC budget cuts | 84% cheaper scientific compute |
+| Market            | Size  | Buyer               | Pain Point                 | FCM Solution           |
+|-------------------|-------|---------------------|----------------------------|------------------------|
+| **AI Startups**   | $50B+ | CTOs, ML Engineers  | GPU costs kill margins     | 78% cheaper inference  |
+| **VFX Studios**   | $30B+ |Production Directors | Render farms too expensive | 80% cheaper rendering  |
+| **SaaS Companies**| $200B+| Backend Engineers   | Lambda/Edge too pricey     | 80% less edge functions|
+| **Game Studios**  | $200B+| Technical Directors | Server hosting costs       | 70% cheaper multiplayer|
+| **Research Labs** | $50B+ |Principal Investigate| HPC budget cuts            | 84% scientific compute |
 
 ### Tier 2 — Secondary (Volume Growth)
 
-| Market | Size | Buyer | Use Case |
-|--------|------|-------|----------|
-| **Web3 Projects** | $10B+ | Protocol Devs | ZK proving, chain validation |
-| **Crypto Exchanges** | $20B+ | Engineering | Real-time trade matching |
-| **EdTech Platforms** | $15B+ | CTOs | Student ML training environments |
-| **Healthcare Tech** | $30B+ | Data Officers | Federated learning, privacy |
-| **IoT Companies** | $100B+ | Platform Leads | Edge compute, data processing |
+| Market               | Size   | Buyer          | Use Case                         |
+|----------------------|--------|----------------|----------------------------------|
+| **Web3 Projects**    | $10B+  | Protocol Devs  | ZK proving, chain validation     |
+| **Crypto Exchanges** | $20B+  | Engineering    | Real-time trade matching         |
+| **EdTech Platforms** | $15B+  | CTOs           | Student ML training environments |
+| **Healthcare Tech**  | $30B+  | Data Officers  | Federated learning, privacy      |
+| **IoT Companies**    | $100B+ | Platform Leads | Edge compute, data processing    |
 
 ### Tier 3 — Emerging (Long-Term)
 
-| Market | Buyer | Opportunity |
-|--------|-------|-------------|
-| **DAOs** | Governance | Decentralized infrastructure |
-| **Governments** | Procurement | Sovereign compute, privacy |
-| **Space Tech** | Mission Control | Edge compute, relay networks |
-| **Metaverse** | Platform Devs | Real-time world rendering |
+| Market          | Buyer           | Opportunity                  |
+|-----------------|-----------------|------------------------------|
+| **DAOs**        | Governance      | Decentralized infrastructure |
+| **Governments** | Procurement     | Sovereign compute, privacy   |
+| **Space Tech**  | Mission Control | Edge compute, relay networks |
+| **Metaverse**   | Platform Devs   | Real-time world rendering    |
 
 ---
 
@@ -139,18 +139,18 @@ Quote:  "We wait 3 weeks for a 4-hour GPU allocation."
 
 For customers who don't want a subscription.
 
-| Service | FCM Price | AWS Equivalent | Savings |
-|---------|-----------|----------------|---------|
-| **GPU Inference** (per hour) | $0.80 | $3.67 (A100) | 78% |
-| **CPU Compute** (per hour) | $0.02 | $0.05 (c6i.xlarge) | 60% |
-| **Edge Functions** (per 1M) | $0.40 | $2.00 (Lambda) | 80% |
-| **Object Storage** (per GB/mo) | $0.01 | $0.023 (S3) | 57% |
-| **CDN Bandwidth** (per GB) | $0.02 | $0.08 (CloudFront) | 75% |
-| **Render** (per frame) | $0.50 | $2.50 (AWS Deadline) | 80% |
-| **ZK Proofs** (per proof) | $0.04 | $0.20 (centralized) | 80% |
-| **Game Server** (per hour) | $0.50 | $2.00 (Multiplay) | 75% |
-| **Scientific** (per TFLOP-hr) | $0.01 | $0.05 (HPC) | 80% |
-| **Storage Pin** (per GB) | $0.01 | $0.05 (Pinata) | 80% |
+| Service                        | FCM Price | AWS Equivalentnnnnnn | Savings |
+|--------------------------------|-----------|----------------------|---------|
+| **GPU Inference** (per hour)   | $0.80     | $3.67 (A100)         | 78%     |
+| **CPU Compute** (per hour)     | $0.02     | $0.05 (c6i.xlarge)   | 60%     |
+| **Edge Functions** (per 1M)    | $0.40     | $2.00 (Lambda)       | 80%     |
+| **Object Storage** (per GB/mo) | $0.01     | $0.023 (S3)          | 57%     |
+| **CDN Bandwidth** (per GB)     | $0.02     | $0.08 (CloudFront)   | 75%     |
+| **Render** (per frame)         | $0.50     | $2.50 (AWS Deadline) | 80%     |
+| **ZK Proofs** (per proof)      | $0.04     | $0.20 (centralized)  | 80%     |
+| **Game Server** (per hour)     | $0.50     | $2.00 (Multiplay)    | 75%     |
+| **Scientific** (per TFLOP-hr)  | $0.01     | $0.05 (HPC)          | 80%     |
+| **Storage Pin** (per GB)       | $0.01     | $0.05 (Pinata)       | 80%     |
 
 ---
 
@@ -160,14 +160,14 @@ For customers who don't want a subscription.
 
 **Target:** Individual developers, small teams, startups
 
-| Step | Action | Tool |
-|------|--------|------|
-| 1 | Land on fcm.network | Website |
-| 2 | Sign up (email or wallet) | Auth |
-| 3 | Free trial (10 GPU-hrs, 30 days) | Trial |
-| 4 | Dashboard shows usage + costs | Dashboard |
-| 5 | Auto-upgrade prompt at 80% usage | Automation |
-| 6 | Credit card or crypto payment | Stripe + on-chain |
+| Step | Action                           | Tool              |
+|------|----------------------------------|-------------------|
+| 1    | Land on fcm.network              | Website           |
+| 2    | Sign up (email or wallet)        | Auth              |
+| 3    | Free trial (10 GPU-hrs, 30 days) | Trial             |
+| 4    | Dashboard shows usage + costs    | Dashboard         |
+| 5    | Auto-upgrade prompt at 80% usage | Automation        |
+| 6    | Credit card or crypto payment    | Stripe + on-chain |
 
 **Conversion funnel:**
 ```
@@ -178,14 +178,14 @@ Landing page → Sign up (30%) → Free trial (60%) → Paid (25%) → Retained 
 
 **Target:** Mid-market companies, agencies, studios
 
-| Step | Action | Tool |
-|------|--------|------|
-| 1 | Inbound lead (demo request, contact) | HubSpot |
-| 2 | SDR qualification (15 min call) | Calendly |
-| 3 | AE demo (45 min, custom use case) | Zoom + slides |
-| 4 | POC (2 weeks free, dedicated support) | White-glove |
-| 5 | Proposal (custom pricing) | PandaDoc |
-| 6 | Close (annual contract, discount) | Contract |
+| Step | Action                                | Tool           |
+|------|---------------------------------------|---------------|
+| 1    | Inbound lead (demo request, contact)  | HubSpot       |
+| 2    | SDR qualification (15 min call)       | Calendly      |
+| 3    | AE demo (45 min, custom use case)     | Zoom + slides |
+| 4    | POC (2 weeks free, dedicated support) | White-glove   |
+| 5    | Proposal (custom pricing)             | PandaDoc      |
+| 6    | Close (annual contract, discount)     | Contract      |
 
 **Sales cycle:** 2–6 weeks average
 
@@ -193,13 +193,13 @@ Landing page → Sign up (30%) → Free trial (60%) → Paid (25%) → Retained 
 
 **Target:** System integrators, consultancies, cloud brokers
 
-| Partner Type | Model | Commission |
-|-------------|-------|------------|
-| Cloud consultancies | Referral | 15% recurring |
-| System integrators | Reseller | 25% margin |
-| Technology partners | Integration | Revenue share |
-| Academic institutions | Volume license | 30% discount |
-| Web3 protocols | Protocol integration | Token partnership |
+| Partner Type           | Model                | Commission        |
+|------------------------|----------------------|-------------------|
+| Cloud consultancies    | Referral             | 15% recurring     |
+| System integrators     | Reseller             | 25% margin        |
+| Technology partners    | Integration          | Revenue share     |
+| Academic institutions  | Volume license       | 30% discount      |
+| Web3 protocols         | Protocol integration | Token partnership |
 
 ---
 
@@ -209,40 +209,40 @@ Landing page → Sign up (30%) → Free trial (60%) → Paid (25%) → Retained 
 
 **Goal:** 1,000 signups, 100 paying customers
 
-| Tactic | Action | Budget |
-|--------|--------|--------|
-| **Content** | Blog: "How we cut inference costs 78%" | $2K/mo |
-| **Developer docs** | API reference, quickstart guides | $5K |
-| **Open source** | CLI tool, SDKs (JS, Python, Go) | $10K |
-| **Hackathons** | Sponsor 3 ML/AI hackathons | $15K |
-| **Community** | Discord, Twitter/X, dev forums | $1K/mo |
-| **Free tier** | 10 GPU-hrs/month forever | Lost revenue |
+| Tactic             | Action                                 | Budget       |
+|--------------------|----------------------------------------|--------------|
+| **Content**        | Blog: "How we cut inference costs 78%" | $2K/mo       |
+| **Developer docs** | API reference, quickstart guides       | $5K          |
+| **Open source**    | CLI tool, SDKs (JS, Python, Go)        | $10K         |
+| **Hackathons**     | Sponsor 3 ML/AI hackathons             | $15K         |
+| **Community**      | Discord, Twitter/X, dev forums         | $1K/mo       |
+| **Free tier**      | 10 GPU-hrs/month forever               | Lost revenue |
 
 ### Phase 2: Business Customers (Months 4–9)
 
 **Goal:** 50 paying businesses, $50K MRR
 
-| Tactic | Action | Budget |
-|--------|--------|--------|
-| **Case studies** | 3 published success stories | $5K |
-| **Webinars** | Monthly "Reduce Your Cloud Bill" webinar | $2K/mo |
-| **Outbound** | SDR team (2 people) targeting AI startups | $20K/mo |
-| **Events** | Attend NeurIPS, GDC, Web Summit | $30K |
-| **Partnerships** | Integrate with Hugging Face, Replicate | $10K |
-| **Enterprise trial** | 30-day POC with dedicated support | $5K/customer |
+| Tactic               | Action                                    | Budget       |
+|----------------------|-------------------------------------------|--------------|
+| **Case studies**     | 3 published success stories               | $5K          |
+| **Webinars**         | Monthly "Reduce Your Cloud Bill" webinar  | $2K/mo       |
+| **Outbound**         | SDR team (2 people) targeting AI startups | $20K/mo      |
+| **Events**           | Attend NeurIPS, GDC, Web Summit           | $30K         |
+| **Partnerships**     | Integrate with Hugging Face, Replicate    | $10K         |
+| **Enterprise trial** | 30-day POC with dedicated support         | $5K/customer |
 
 ### Phase 3: Enterprise Scale (Months 10–18)
 
 **Goal:** 20 enterprise contracts, $500K MRR
 
-| Tactic | Action | Budget |
-|--------|--------|--------|
-| **Enterprise sales** | 2 AEs + 1 SE (solutions engineer) | $60K/mo |
-| **SOC 2 compliance** | Security audit + certification | $50K |
-| **SLA guarantees** | 99.99% uptime with financial penalties | Infrastructure |
-| **Custom contracts** | Annual commits, volume pricing | Legal |
-| **Industry verticals** | Healthcare (HIPAA), Finance (PCI) | $20K |
-| **Regional expansion** | EU (GDPR), Asia-Pacific | $30K |
+| Tactic                  | Action                                 | Budget         |
+|-------------------------|----------------------------------------|----------------|
+| **Enterprise sales**    | 2 AEs + 1 SE (solutions engineer)      | $60K/mo        |
+| **SOC 2 compliance**    | Security audit + certification         | $50K           |
+| **SLA guarantees**      | 99.99% uptime with financial penalties | Infrastructure |
+| **Custom contracts**    | Annual commits, volume pricing         | Legal          |
+| **Industry verticals**  | Healthcare (HIPAA), Finance (PCI)      | $20K           |
+| **Regional expansion**  | EU (GDPR), Asia-Pacific                | $30K           |
 
 ---
 
@@ -279,18 +279,18 @@ Try free: fcm.network/trial
 
 ### 3. Competitive Comparison
 
-| Feature | FCM | AWS | GCP | Azure |
-|---------|-----|-----|-----|-------|
-| GPU Inference $/hr | $0.80 | $3.67 | $3.50 | $3.40 |
-| Edge Functions $/M | $0.40 | $2.00 | $0.40 | $0.20 |
-| Object Storage $/GB | $0.01 | $0.023 | $0.020 | $0.018 |
-| CDN $/GB | $0.02 | $0.08 | $0.08 | $0.081 |
-| Min Commitment | None | 1yr reserved | None | 1yr reserved |
-| Crypto Payments | ✅ | ❌ | ❌ | ❌ |
-| Decentralized | ✅ | ❌ | ❌ | ❌ |
-| Data Sovereignty | User chooses | AWS regions | GCP regions | Azure regions |
-| Open Source CLI | ✅ | ❌ | ❌ | ❌ |
-| Free Tier | 10 GPU-hrs/mo | 12mo free tier | $300 credit | $200 credit |
+| Feature             | FCM          | AWS              | GCP         | Azure         |
+|---------------------|--------------|------------------|-------------|---------------|
+| GPU Inference $/hr  | $0.80        | $3.67            | $3.50       | $3.40         |
+| Edge Functions $/M  | $0.40        | $2.00            | $0.40       | $0.20         |
+| Object Storage $/GB | $0.01        | $0.023           | $0.020      | $0.018        |
+| CDN $/GB            | $0.02        | $0.08            | $0.08       | $0.081        |
+| Min Commitment      | None         | 1yr reserved     | None        | 1yr reserved  |
+| Crypto Payments     | ✅           | ❌              | ❌          | ❌           |
+| Decentralized       | ✅           | ❌              | ❌          | ❌           |
+| Data Sovereignty    | User chooses | AWS regions      | GCP regions |  Azure region |
+| Open Source CLI     | ✅           | ❌              | ❌          | ❌           |
+| Free Tier           | 10 GPU-hrs/mo| 12mo free tier   | $300 credit |  $200 credit  |
 
 ---
 
@@ -347,35 +347,35 @@ You're overpaying by $1.44M/year."
 
 ### Revenue Streams
 
-| Stream | Model | % of Revenue |
-|--------|-------|-------------|
-| **Subscriptions** | Monthly/annual plans | 40% |
-| **Pay-as-you-go** | Per-use billing | 35% |
-| **Enterprise** | Custom contracts | 20% |
-| **Partnerships** | Referral fees, reseller margin | 5% |
+| Stream            | Model                          | % of Revenue|
+|-------------------|--------------------------------|-------------|
+| **Subscriptions** | Monthly/annual plans           | 40%         |
+| **Pay-as-you-go** | Per-use billing                | 35%         |
+| **Enterprise**    | Custom contracts               | 20%         |
+| **Partnerships**  | Referral fees, reseller margin | 5%          |
 
 ### Unit Economics
 
-| Metric | Target |
-|--------|--------|
+| Metric                              | Target                                     |
+|-------------------------------------|--------------------------------------------|
 | **CAC** (Customer Acquisition Cost) | $200 (self-serve), $2,000 (sales-assisted) |
-| **LTV** (Lifetime Value) | $2,400 (self-serve), $24,000 (enterprise) |
-| **LTV:CAC Ratio** | 12:1 (self-serve), 12:1 (enterprise) |
-| **Payback Period** | 1 month (self-serve), 3 months (enterprise) |
-| **Gross Margin** | 65% (compute costs + provider payouts) |
-| **Net Revenue Retention** | 120% (upsell + expansion) |
-| **Churn Rate** | < 5% monthly (self-serve), < 2% (enterprise) |
+| **LTV** (Lifetime Value)            | $2,400 (self-serve), $24,000 (enterprise)  |
+| **LTV:CAC Ratio**                   | 12:1 (self-serve), 12:1 (enterprise)       |
+| **Payback Period**                  | 1 month (self-serve), 3 months (enterprise)|
+| **Gross Margin**                    | 65% (compute costs + provider payouts)     |
+| **Net Revenue Retention**           | 120% (upsell + expansion)                  |
+| **Churn Rate**                      | < 5% monthly (self-serve), < 2%(enterprise)|
 
 ### Revenue Projections
 
-| Month | Customers | MRR | ARR |
-|-------|-----------|-----|-----|
-| 3 | 100 | $15K | $180K |
-| 6 | 500 | $75K | $900K |
-| 9 | 1,500 | $225K | $2.7M |
-| 12 | 5,000 | $750K | $9M |
-| 18 | 15,000 | $2.25M | $27M |
-| 24 | 40,000 | $6M | $72M |
+| Month | Customers | MRR   | ARR   |
+|-------|-----------|-------|-------|
+| 3     | 100       | $15K  | $180K |
+| 6     | 500       | $75K  | $900K |
+| 9     | 1,500     | $225K | $2.7M |
+| 12    | 5,000     | $750K | $9M   |
+| 18    | 15,000    | $2.25M| $27M  |
+| 24    | 40,000    | $6M   | $72M  |
 
 ---
 

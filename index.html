@@ -122,29 +122,30 @@
     .modal-body code .number { color: #fbbf24; }
     .modal-body code .type { color: #f472b6; }
   </style>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self';">
 </head>
 <body>
   <div class="app">
-    <div class="header">
+    <div class="header" role="banner">
       <h1>FCM Expert Agent Swarm</h1>
       <p>Built-in logic engines — zero LLM calls required for hot paths</p>
     </div>
 
-    <div class="stats-bar">
+    <div class="stats-bar" role="status" aria-label="System statistics">
       <div class="stat-pill"><span class="dot green"></span>8 Agents Online</div>
       <div class="stat-pill"><span class="dot blue"></span>Logic Cache Hit: 99.7%</div>
       <div class="stat-pill"><span class="dot green"></span>LLM Calls Saved: 2.4M/hr</div>
       <div class="stat-pill"><span class="dot blue"></span>Avg Latency: 12ms</div>
     </div>
 
-    <div class="agents-grid" id="agentsGrid"></div>
+    <div class="agents-grid" id="agentsGrid" role="main" aria-label="Agent dashboard"></div>
   </div>
 
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
       <div class="modal-header">
         <h2 id="modalTitle">Agent Source</h2>
-        <button class="modal-close" onclick="closeModal()">&times;</button>
+        <button class="modal-close" onclick="closeModal()" aria-label="Close modal">&times;</button>
       </div>
       <div class="modal-body" id="modalBody"></div>
     </div>
