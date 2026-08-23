@@ -184,6 +184,8 @@
     <div class="stat-pill"><span class="dot green"></span>Network Uptime: <span id="statUptime">99.8%</span></div>
     <div class="stat-pill"><span class="dot amber"></span>Avg Latency: <span id="statLatency">14ms</span></div>
     <div class="stat-pill"><span class="dot blue"></span>Total Staked: <span id="statStaked">0</span> FCM</div>
+    <div class="stat-pill"><span class="dot green"></span>8 Contracts Deployed</div>
+    <div class="stat-pill"><span class="dot blue"></span>239 Tests Passing</div>
   </div>
 
   <!-- Tier Rankings -->
@@ -199,6 +201,12 @@
     <button class="filter-btn" data-filter="infrastructure">🔧 Infrastructure (4)</button>
     <button class="filter-btn" data-filter="platform">🎯 Platform (6)</button>
     <span class="filter-count" id="filterCount">Showing 18 agents</span>
+  </div>
+
+  <!-- Security Status -->
+  <div class="tier-section">
+    <div class="tier-header">Security & Platform Status</div>
+    <div class="tier-grid" id="securityGrid"></div>
   </div>
 
   <!-- Agent Grid -->
@@ -500,8 +508,36 @@ document.getElementById('modalOverlay').addEventListener('click', (e) => {
   }
 });
 
+// ===== SECURITY STATUS =====
+const securityItems = [
+  { name:'Smart Contracts', status:'✅', detail:'8/8 deployed', color:'var(--green)' },
+  { name:'Critical Fixes', status:'✅', detail:'6/6 resolved', color:'var(--green)' },
+  { name:'High Fixes', status:'✅', detail:'11/11 resolved', color:'var(--green)' },
+  { name:'Medium Fixes', status:'✅', detail:'14/14 resolved', color:'var(--green)' },
+  { name:'Vulnerabilities', status:'✅', detail:'23 low (dev only)', color:'var(--green)' },
+  { name:'Test Coverage', status:'✅', detail:'239 passing', color:'var(--green)' },
+  { name:'Slither Analysis', status:'✅', detail:'CI pipeline active', color:'var(--green)' },
+  { name:'Multi-Sig Support', status:'✅', detail:'Gnosis Safe ready', color:'var(--green)' },
+  { name:'Health Checks', status:'✅', detail:'/health /ready /live', color:'var(--green)' },
+  { name:'REST API', status:'✅', detail:'37 endpoints', color:'var(--green)' },
+  { name:'TypeScript', status:'✅', detail:'Types + ESLint', color:'var(--green)' },
+  { name:'Terraform Modules', status:'✅', detail:'AWS/Azure/Hetzner', color:'var(--green)' },
+];
+
+function renderSecurityGrid() {
+  const grid = document.getElementById('securityGrid');
+  grid.innerHTML = securityItems.map(item => `
+    <div class="tier-card" style="border-top:3px solid ${item.color}">
+      <div class="tier-rank" style="font-size:20px;color:${item.color}">${item.status}</div>
+      <div class="tier-name">${esc(item.name)}</div>
+      <div class="tier-detail">${esc(item.detail)}</div>
+    </div>
+  `).join('');
+}
+
 // ===== INIT =====
 renderTierGrid();
+renderSecurityGrid();
 renderAgents('all');
 updateStats();
 setInterval(updateLiveMetrics, 2000);

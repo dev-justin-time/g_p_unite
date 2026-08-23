@@ -19,6 +19,14 @@ const { ethers, run, network } = require("hardhat");
 const fs = require("fs");
 const path = require("path");
 
+// Gnosis Safe manager (optional)
+let GnosisSafeManager;
+try {
+    ({ GnosisSafeManager } = require("../../lib/modules/gnosis-safe"));
+} catch (e) {
+    // Module not available, Safe support disabled
+}
+
 // ── Helpers ──────────────────────────────────────────────────────
 
 function log(msg) { console.log(`  ${msg}`); }
@@ -50,6 +58,32 @@ async function main() {
     log(`Deployer: ${deployerAddr}`);
     log(`Balance:  ${ethers.formatEther(await ethers.provider.getBalance(deployerAddr))} ETH`);
     log(`Time:     ${new Date().toISOString()}`);
+
+    // ── Safe Configuration ──────────────────────────────────────
+    const safeAddress = process.env.FCM_SAFE_ADDRESS || "";
+    let safeManager = null;
+    let roleGrantee = deployerAddr;
+
+    if (safeAddress && GnosisSafeManager) {
+        log(`\n  🔐 Gnosis Safe: ${safeAddress}`);
+        safeManager = new GnosisSafeManager(signer, safeAddress, networkName);
+        const safeInfo = await safeManager.validate();
+        if (safeInfo.valid) {
+            roleGrantee = safeAddress;
+            log(`  ✅ Safe is valid: ${safeInfo.threshold}-of-${safeInfo.ownerCount} multisig`);
+            log(`  Owner check: deployer is Safe owner: ${safeInfo.isOwner}`);
+        } else {
+            log(`  ⚠️  Safe validation failed, falling back to deployer for roles`);
+            if (!safeInfo.hasCode) log(`     No code at ${safeAddress}`);
+            if (safeInfo.thresholdError) log(`     Threshold error: ${safeInfo.thresholdError}`);
+            if (!safeInfo.isOwner) log(`     Deployer is NOT a Safe owner`);
+        }
+    } else if (safeAddress) {
+        log(`  ⚠️  Safe address provided but GnosisSafeManager not available`);
+    } else {
+        log(`  ℹ️  No Safe configured — roles granted to deployer`);
+        log(`     Set FCM_SAFE_ADDRESS in .env to use a Gnosis Safe`);
+    }
 
     const deployed = {};
     const startTime = Date.now();
@@ -165,35 +199,38 @@ async function main() {
     await (await token.grantRole(MINTER_ROLE, deployed.FCMRewardsPool)).wait();
     log("  ✅ RewardsPool can mint rewards");
 
+    const granteeLabel = safeManager ? "Safe" : "Deployer";
+    log(`\n  Roles will be granted to: ${granteeLabel} (${roleGrantee})\n`);
+
     // Deployer gets LISTING_ROLE for marketplace
-    log("Granting LISTING_ROLE → Deployer...");
-    await (await marketplace.grantRole(LISTING_ROLE, deployerAddr)).wait();
-    log("  ✅ Deployer can list tasks");
+    log(`Granting LISTING_ROLE → ${granteeLabel}...`);
+    await (await marketplace.grantRole(LISTING_ROLE, roleGrantee)).wait();
+    log(`  ✅ ${granteeLabel} can list tasks`);
 
     // Deployer gets VALIDATOR_ROLE for dispute resolution
-    log("Granting VALIDATOR_ROLE → Deployer...");
-    await (await registry.grantRole(VALIDATOR_ROLE, deployerAddr)).wait();
-    log("  ✅ Deployer can resolve disputes");
+    log(`Granting VALIDATOR_ROLE → ${granteeLabel}...`);
+    await (await registry.grantRole(VALIDATOR_ROLE, roleGrantee)).wait();
+    log(`  ✅ ${granteeLabel} can resolve disputes`);
 
     // Deployer gets ORACLE_ROLE on TierStaking (HW score updates)
-    log("Granting ORACLE_ROLE → Deployer (TierStaking)...");
-    await (await tierStaking.grantRole(ORACLE_ROLE_TIER, deployerAddr)).wait();
-    log("  ✅ Deployer can update HW scores");
+    log(`Granting ORACLE_ROLE → ${granteeLabel} (TierStaking)...`);
+    await (await tierStaking.grantRole(ORACLE_ROLE_TIER, roleGrantee)).wait();
+    log(`  ✅ ${granteeLabel} can update HW scores`);
 
     // Deployer gets ORACLE_ROLE on ReputationNFT (badge updates)
-    log("Granting ORACLE_ROLE → Deployer (ReputationNFT)...");
-    await (await reputationNFT.grantRole(ORACLE_ROLE_REP, deployerAddr)).wait();
-    log("  ✅ Deployer can update badges");
+    log(`Granting ORACLE_ROLE → ${granteeLabel} (ReputationNFT)...`);
+    await (await reputationNFT.grantRole(ORACLE_ROLE_REP, roleGrantee)).wait();
+    log(`  ✅ ${granteeLabel} can update badges`);
 
     // Deployer gets ORACLE_ROLE on RewardsPool (work recording)
-    log("Granting ORACLE_ROLE → Deployer (RewardsPool)...");
-    await (await rewardsPool.grantRole(ORACLE_ROLE_REWARDS, deployerAddr)).wait();
-    log("  ✅ Deployer can record work");
+    log(`Granting ORACLE_ROLE → ${granteeLabel} (RewardsPool)...`);
+    await (await rewardsPool.grantRole(ORACLE_ROLE_REWARDS, roleGrantee)).wait();
+    log(`  ✅ ${granteeLabel} can record work`);
 
     // Deployer gets ARBITRATOR_ROLE on Escrow (dispute resolution)
-    log("Granting ARBITRATOR_ROLE → Deployer...");
-    await (await escrow.grantRole(ARBITRATOR_ROLE, deployerAddr)).wait();
-    log("  ✅ Deployer can resolve escrow disputes");
+    log(`Granting ARBITRATOR_ROLE → ${granteeLabel}...`);
+    await (await escrow.grantRole(ARBITRATOR_ROLE, roleGrantee)).wait();
+    log(`  ✅ ${granteeLabel} can resolve escrow disputes`);
 
     // ══════════════════════════════════════════════════════════════
     // SAVE DEPLOYMENT
@@ -204,6 +241,8 @@ async function main() {
         network: networkName,
         chainId,
         deployer: deployerAddr,
+        safe: safeAddress || null,
+        roleGrantee: roleGrantee,
         timestamp: new Date().toISOString(),
         deploymentTime: `${elapsed}s`,
         contracts: deployed,

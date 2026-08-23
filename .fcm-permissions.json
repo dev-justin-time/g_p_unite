@@ -1899,6 +1899,329 @@
       "metadata": {
         "onboardedAt": "2026-08-23T04:45:57.622Z"
       }
+    },
+    {
+      "address": "0x5901d4bc9e037cad00de0879ebd72010ddae670a",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-23T04:50:36.133Z",
+      "lastActive": "2026-08-23T04:50:36.133Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-23T04:50:36.133Z"
+      }
+    },
+    {
+      "address": "0x342b224d447f53d4553b46d37e1ffc9ef4d2bbae",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-23T04:50:42.826Z",
+      "lastActive": "2026-08-23T04:50:42.826Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-23T04:50:42.826Z"
+      }
+    },
+    {
+      "address": "0x7f0c0ff72311407f28fd5a1abfaa9025ed184488",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-23T04:50:43.194Z",
+      "lastActive": "2026-08-23T04:50:43.194Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-23T04:50:43.194Z"
+      }
+    },
+    {
+      "address": "0xdde894ea5c1c561ed7950c47e58549c726f186f4",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-23T04:55:05.622Z",
+      "lastActive": "2026-08-23T04:55:05.622Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-23T04:55:05.622Z"
+      }
+    },
+    {
+      "address": "0x3f55423ebd397f3e602586c5e4efdad99da8dffe",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-23T04:55:13.105Z",
+      "lastActive": "2026-08-23T04:55:13.105Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-23T04:55:13.105Z"
+      }
+    },
+    {
+      "address": "0x0756a39f62ad7dc24cc45cf2f483fe67b51cd41a",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-23T04:55:13.322Z",
+      "lastActive": "2026-08-23T04:55:13.322Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-23T04:55:13.322Z"
+      }
+    },
+    {
+      "address": "0xfccc3b0dc6b5604313cc09e00a541d78330a5eff",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-23T05:03:45.657Z",
+      "lastActive": "2026-08-23T05:03:45.657Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-23T05:03:45.657Z"
+      }
+    },
+    {
+      "address": "0xa8ca6ef2175fa398a8dcfae83eb0cce123ad45da",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-23T05:03:51.608Z",
+      "lastActive": "2026-08-23T05:03:51.608Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-23T05:03:51.607Z"
+      }
+    },
+    {
+      "address": "0x0e979b3f0e22dc1ff3d6915d74cfcb6ccf039fc5",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-23T05:04:08.922Z",
+      "lastActive": "2026-08-23T05:04:08.922Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-23T05:04:08.922Z"
+      }
+    },
+    {
+      "address": "0x3768147ec433d44a4a9a8e49d3bb0fd3b976e665",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-23T05:04:15.861Z",
+      "lastActive": "2026-08-23T05:04:15.861Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-23T05:04:15.861Z"
+      }
+    },
+    {
+      "address": "0x032df0a75ff951a88ec82284be1d419afba047ed",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-23T05:04:16.154Z",
+      "lastActive": "2026-08-23T05:04:16.154Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-23T05:04:16.154Z"
+      }
+    },
+    {
+      "address": "0xf135c49885ba149a6d210536685444504c5ee2c5",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-23T05:37:46.685Z",
+      "lastActive": "2026-08-23T05:37:46.685Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-23T05:37:46.685Z"
+      }
+    },
+    {
+      "address": "0x318e3a8af003602d15490b9d3aecfd732d4a46f1",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-23T05:37:52.988Z",
+      "lastActive": "2026-08-23T05:37:52.988Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-23T05:37:52.988Z"
+      }
+    },
+    {
+      "address": "0x92f49aed6f7f1ed90a08be4e3cd667a626a027e7",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-23T05:37:53.527Z",
+      "lastActive": "2026-08-23T05:37:53.527Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-23T05:37:53.527Z"
+      }
+    },
+    {
+      "address": "0x478b017a9ac8cd7edbc0dcdeefde547d43e143bd",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-23T05:39:41.329Z",
+      "lastActive": "2026-08-23T05:39:41.329Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-23T05:39:41.329Z"
+      }
+    },
+    {
+      "address": "0x2d944b7efec7becaed3c2de629eb889fff006a77",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-23T05:39:47.278Z",
+      "lastActive": "2026-08-23T05:39:47.278Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-23T05:39:47.278Z"
+      }
+    },
+    {
+      "address": "0xd04dfc48e8c54781dbfc34b5d644dba72843634f",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-23T05:39:47.413Z",
+      "lastActive": "2026-08-23T05:39:47.413Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-23T05:39:47.413Z"
+      }
     }
   ],
   "agents": [],

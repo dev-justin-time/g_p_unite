@@ -340,12 +340,33 @@ task("deploy:rewards-pool", "Deploy FCMRewardsPool")
 // ══════════════════════════════════════════════════════════════════
 
 task("deploy:all", "Deploy all 8 FCM contracts in dependency order")
+    .addOptionalParam("safe", "Gnosis Safe address to grant roles to (overrides deployer)")
     .setAction(async (args, hre) => {
         const { ethers } = hre;
         const [deployer] = await ethers.getSigners();
 
+        // Resolve Safe
+        let roleGrantee = deployer.address;
+        let safeInfo = null;
+        if (args.safe) {
+            try {
+                const { GnosisSafeManager } = require("../../lib/modules/gnosis-safe");
+                const safeMgr = new GnosisSafeManager(deployer, args.safe, hre.network.name);
+                safeInfo = await safeMgr.validate();
+                if (safeInfo.valid) {
+                    roleGrantee = args.safe;
+                } else {
+                    log(`  ⚠️  Safe validation failed, falling back to deployer`);
+                }
+            } catch (e) {
+                log(`  ⚠️  Could not load GnosisSafeManager: ${e.message.slice(0, 60)}`);
+            }
+        }
+
         logHeader(`DEPLOY ALL — ${hre.network.name}`);
         log(`Deployer: ${deployer.address}`);
+        if (args.safe) log(`Safe:     ${args.safe} ${safeInfo?.valid ? '(✅ valid)' : '(⚠️ validation failed)'}`);
+        log(`Role grantee: ${roleGrantee === deployer.address ? 'Deployer' : 'Safe'}`);
 
         const deployed = {};
         const startTime = Date.now();
@@ -428,18 +449,21 @@ task("deploy:all", "Deploy all 8 FCM contracts in dependency order")
         log("  ✅ Registry → MINTER_ROLE on Token");
         await (await token.grantRole(MINTER, deployed.FCMRewardsPool)).wait();
         log("  ✅ RewardsPool → MINTER_ROLE on Token");
-        await (await marketplace.grantRole(LISTING, deployer.address)).wait();
-        log("  ✅ Deployer → LISTING_ROLE on Marketplace");
-        await (await registry.grantRole(VALIDATOR, deployer.address)).wait();
-        log("  ✅ Deployer → VALIDATOR_ROLE on Registry");
-        await (await tierStaking.grantRole(ORACLE_TIER, deployer.address)).wait();
-        log("  ✅ Deployer → ORACLE_ROLE on TierStaking");
-        await (await reputationNFT.grantRole(ORACLE_REP, deployer.address)).wait();
-        log("  ✅ Deployer → ORACLE_ROLE on ReputationNFT");
-        await (await rewardsPool.grantRole(ORACLE_POOL, deployer.address)).wait();
-        log("  ✅ Deployer → ORACLE_ROLE on RewardsPool");
-        await (await escrow.grantRole(ARBITRATOR, deployer.address)).wait();
-        log("  ✅ Deployer → ARBITRATOR_ROLE on Escrow");
+        const granteeLabel = roleGrantee === deployer.address ? "Deployer" : "Safe";
+        log(`\n  Roles → ${granteeLabel} (${roleGrantee})\n`);
+
+        await (await marketplace.grantRole(LISTING, roleGrantee)).wait();
+        log(`  ✅ ${granteeLabel} → LISTING_ROLE on Marketplace`);
+        await (await registry.grantRole(VALIDATOR, roleGrantee)).wait();
+        log(`  ✅ ${granteeLabel} → VALIDATOR_ROLE on Registry`);
+        await (await tierStaking.grantRole(ORACLE_TIER, roleGrantee)).wait();
+        log(`  ✅ ${granteeLabel} → ORACLE_ROLE on TierStaking`);
+        await (await reputationNFT.grantRole(ORACLE_REP, roleGrantee)).wait();
+        log(`  ✅ ${granteeLabel} → ORACLE_ROLE on ReputationNFT`);
+        await (await rewardsPool.grantRole(ORACLE_POOL, roleGrantee)).wait();
+        log(`  ✅ ${granteeLabel} → ORACLE_ROLE on RewardsPool`);
+        await (await escrow.grantRole(ARBITRATOR, roleGrantee)).wait();
+        log(`  ✅ ${granteeLabel} → ARBITRATOR_ROLE on Escrow`);
 
         // ── Save ──
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -447,6 +471,8 @@ task("deploy:all", "Deploy all 8 FCM contracts in dependency order")
             network: hre.network.name,
             chainId: hre.network.config.chainId,
             deployer: deployer.address,
+            safe: args.safe || null,
+            roleGrantee,
             timestamp: new Date().toISOString(),
             deploymentTime: `${elapsed}s`,
             contracts: deployed,
@@ -505,6 +531,7 @@ task("deploy:grant-role", "Grant a role on a deployed contract")
     .addParam("contract", "Contract name (e.g., FCMToken, FCMAgentRegistry)")
     .addParam("role", "Role name (e.g., MINTER_ROLE, VALIDATOR_ROLE)")
     .addParam("account", "Address to grant the role to")
+    .addOptionalParam("safe", "Gnosis Safe to execute via (creates multi-sig tx)")
     .setAction(async (args, hre) => {
         const { ethers } = hre;
         const data = loadDeployment(hre.network.name);
@@ -534,6 +561,45 @@ task("deploy:grant-role", "Grant a role on a deployed contract")
             return;
         }
 
+        // If Safe is specified, create a multi-sig transaction
+        if (args.safe) {
+            try {
+                const { GnosisSafeManager } = require("../../lib/modules/gnosis-safe");
+                const [signer] = await ethers.getSigners();
+                const safeMgr = new GnosisSafeManager(signer, args.safe, hre.network.name);
+
+                const safeInfo = await safeMgr.validate();
+                if (!safeInfo.valid) {
+                    log(`  ❌ Safe validation failed`);
+                    return;
+                }
+
+                log(`\n  🔐 Creating Safe transaction...`);
+                log(`  Threshold: ${safeInfo.threshold}-of-${safeInfo.ownerCount}`);
+                log(`  Nonce: ${safeInfo.nonce}`);
+
+                // Encode the grantRole call
+                const calldata = contract.interface.encodeFunctionData("grantRole", [roleHash, args.account]);
+                const txHash = await safeMgr.getTransactionHash(addr, 0, calldata);
+
+                // Sign the transaction
+                const signature = await signer.signMessage(ethers.getBytes(txHash));
+
+                log(`\n  ✅ Transaction prepared!`);
+                log(`  TX Hash: ${txHash}`);
+                log(`  Signer:  ${signer.address}`);
+                log(`  Signatures: 1/${safeInfo.threshold}`);
+                log(`\n  To execute: need ${safeInfo.threshold - 1} more owner(s) to sign`);
+                log(`  Submit via Safe UI: https://app.safe.global/`);
+
+                return { txHash, signer: signer.address, threshold: safeInfo.threshold, status: "pending" };
+            } catch (e) {
+                log(`  ❌ Safe transaction failed: ${e.message.slice(0, 80)}`);
+                return;
+            }
+        }
+
+        // Direct grant (no Safe)
         await (await contract.grantRole(roleHash, args.account)).wait();
         log(`  ✅ Granted ${args.role} to ${args.account}`);
     });
