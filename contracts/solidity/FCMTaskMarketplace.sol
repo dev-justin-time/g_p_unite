@@ -165,7 +165,7 @@ contract FCMTaskMarketplace is ReentrancyGuard, AccessControl {
                 address bidderAddr = auction.bids[i].bidder;
                 uint256 refundAmount = auction.bids[i].price;
                 if (bidderAddr != address(0) && refundAmount > 0) {
-                    fcmToken.transfer(bidderAddr, refundAmount);
+                    require(fcmToken.transfer(bidderAddr, refundAmount), "Refund failed");
                     escrowedBids[bidderAddr] -= refundAmount;
                     emit BidRefunded(_taskId, bidderAddr, refundAmount);
                 }
@@ -195,7 +195,7 @@ contract FCMTaskMarketplace is ReentrancyGuard, AccessControl {
         uint256 amount = bid.price;
         if (amount > 0) {
             escrowedBids[msg.sender] -= amount;
-            fcmToken.transfer(msg.sender, amount);
+            require(fcmToken.transfer(msg.sender, amount), "Refund failed");
         }
 
         emit BidRefunded(_taskId, msg.sender, amount);

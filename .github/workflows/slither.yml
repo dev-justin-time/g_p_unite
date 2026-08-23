@@ -1,0 +1,57 @@
+name: Slither Static Analysis
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "contracts/**"
+      - "slither.config.json"
+  pull_request:
+    branches: [main]
+    paths:
+      - "contracts/**"
+      - "slither.config.json"
+  workflow_dispatch:
+
+jobs:
+  slither:
+    name: Slither Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Run Slither
+        uses: crytic/slither-action@v0.4.0
+        id: slither
+        with:
+          fail-on: medium
+          sarif: slither-report.sarif
+          slither-config: slither.config.json
+
+      - name: Upload SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: slither-report.sarif
+
+      - name: Upload JSON report as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: slither-report
+          path: slither-report.json
+          retention-days: 30

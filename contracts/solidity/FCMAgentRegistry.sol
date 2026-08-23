@@ -3,10 +3,11 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
+contract FCMAgentRegistry is AccessControl, ReentrancyGuard, Pausable {
     using ECDSA for bytes32;
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
@@ -27,6 +28,7 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
         bytes32 geohash;
         bool isActive;
         uint8 agentType;
+        uint256 heartbeatNonce; // M-2: monotonic nonce prevents heartbeat prediction
     }
 
     struct Task {
@@ -41,9 +43,11 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
         TaskStatus status;
         bytes32 proofHash;
         bool rewardWithdrawn;
+        uint256 disputedAt;
     }
 
-    enum TaskStatus { Open, Assigned, Completed, Disputed, Slashed, Resolved }
+    // M-6: Added Cancelled status for semantic clarity
+    enum TaskStatus { Open, Assigned, Completed, Disputed, Slashed, Resolved, Cancelled }
 
     mapping(bytes32 => Agent) public agents;
     mapping(bytes32 => Task) public tasks;
@@ -56,11 +60,15 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
 
     uint256 public constant MIN_STAKE = 500 * 10**18;
     uint256 public constant HEARTBEAT_INTERVAL = 300;
-    uint256 public constant DISPUTE_WINDOW = 86400;
     uint256 public constant SLASH_PERCENT = 3000;
+
+    // L-5: Configurable dispute windows (admin-adjustable)
+    uint256 public disputeWindow = 86400;            // 1 day default
+    uint256 public disputeResolutionDeadline = 7 days; // 7 days default
 
     event AgentRegistered(bytes32 indexed didHash, address operator, uint8 agentType, bytes32 geohash);
     event AgentUpdated(bytes32 indexed didHash, uint256 reputation, bool isActive);
+    event AgentReregistered(bytes32 indexed didHash, address operator, uint8 agentType);
     event TaskCreated(bytes32 indexed taskId, address requester, uint256 reward);
     event TaskAssigned(bytes32 indexed taskId, bytes32 indexed agentDid);
     event TaskCompleted(bytes32 indexed taskId, bytes32 outputCID, bytes32 proofHash);
@@ -68,6 +76,8 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
     event AgentSlashed(bytes32 indexed didHash, uint256 amount, string reason);
     event Heartbeat(bytes32 indexed didHash, uint256 timestamp, bytes32 geohash);
     event TaskCancelled(bytes32 indexed taskId, address requester, uint256 refund);
+    event DisputeExpired(bytes32 indexed taskId, address claimant, uint256 refund);
+    event DisputeWindowUpdated(uint256 oldWindow, uint256 newWindow);
 
     constructor(address _fcmToken) {
         fcmToken = IERC20(_fcmToken);
@@ -75,13 +85,37 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
         _grantRole(ADMIN_ROLE, msg.sender);
     }
 
+    // ── L-1: Emergency pause ──
+    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _unpause();
+    }
+
+    // ── L-5: Governance for dispute parameters ──
+    function setDisputeWindow(uint256 _window) external onlyRole(ADMIN_ROLE) {
+        require(_window >= 3600 && _window <= 604800, "Window must be 1h-7d");
+        uint256 old = disputeWindow;
+        disputeWindow = _window;
+        emit DisputeWindowUpdated(old, _window);
+    }
+
+    function setDisputeResolutionDeadline(uint256 _deadline) external onlyRole(ADMIN_ROLE) {
+        require(_deadline >= 86400 && _deadline <= 2592000, "Deadline must be 1d-30d");
+        disputeResolutionDeadline = _deadline;
+    }
+
+    // ── Agent Registration ──
+    // M-4: Allow re-registration after unstake (operator can register new DID)
     function registerAgent(
         bytes32 _didHash,
         string calldata _ipnsRecord,
         bytes32 _capabilities,
         bytes32 _geohash,
         uint8 _agentType
-    ) external nonReentrant {
+    ) external nonReentrant whenNotPaused {
         require(agents[_didHash].operator == address(0), "Agent exists");
         require(_agentType <= 11, "Invalid agent type");
         require(fcmToken.transferFrom(msg.sender, address(this), MIN_STAKE), "Stake required");
@@ -97,7 +131,8 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
             capabilities: _capabilities,
             geohash: _geohash,
             isActive: true,
-            agentType: _agentType
+            agentType: _agentType,
+            heartbeatNonce: 0
         });
 
         operatorAgents[msg.sender].push(_didHash);
@@ -107,21 +142,25 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
         emit AgentRegistered(_didHash, msg.sender, _agentType, _geohash);
     }
 
-    function heartbeat(bytes32 _didHash, bytes32 _geohash, bytes calldata _signature) external {
+    // ── M-2: Heartbeat with monotonic nonce ──
+    function heartbeat(bytes32 _didHash, bytes32 _geohash, uint256 _nonce, bytes calldata _signature) external {
         Agent storage agent = agents[_didHash];
         require(agent.isActive, "Agent inactive");
         require(block.timestamp - agent.lastHeartbeat < HEARTBEAT_INTERVAL * 2, "Heartbeat expired");
+        require(_nonce == agent.heartbeatNonce + 1, "Invalid nonce");
 
-        bytes32 message = keccak256(abi.encodePacked(_didHash, _geohash, block.timestamp));
+        bytes32 message = keccak256(abi.encodePacked(_didHash, _geohash, _nonce, block.timestamp));
         address signer = message.toEthSignedMessageHash().recover(_signature);
         require(signer == agent.operator, "Invalid signature");
 
         agent.lastHeartbeat = block.timestamp;
         agent.geohash = _geohash;
+        agent.heartbeatNonce = _nonce;
         emit Heartbeat(_didHash, block.timestamp, _geohash);
     }
 
-    function createTask(bytes32 _taskId, bytes32 _requirements, bytes32 _inputCID, uint256 _deadline) external nonReentrant {
+    // ── Task Lifecycle ──
+    function createTask(bytes32 _taskId, bytes32 _requirements, bytes32 _inputCID, uint256 _deadline) external nonReentrant whenNotPaused {
         require(tasks[_taskId].requester == address(0), "Task ID already exists");
         require(_deadline > block.timestamp, "Invalid deadline");
         uint256 reward = calculateReward(_requirements);
@@ -138,14 +177,15 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
             assignedAgent: address(0),
             status: TaskStatus.Open,
             proofHash: bytes32(0),
-            rewardWithdrawn: false
+            rewardWithdrawn: false,
+            disputedAt: 0
         });
 
         taskList.push(_taskId);
         emit TaskCreated(_taskId, msg.sender, reward);
     }
 
-    function claimTask(bytes32 _taskId, bytes32 _didHash) external nonReentrant {
+    function claimTask(bytes32 _taskId, bytes32 _didHash) external nonReentrant whenNotPaused {
         Task storage task = tasks[_taskId];
         Agent storage agent = agents[_didHash];
 
@@ -161,11 +201,12 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
         emit TaskAssigned(_taskId, _didHash);
     }
 
-    function submitResult(bytes32 _taskId, bytes32 _outputCID, bytes32 _proofHash) external nonReentrant {
+    function submitResult(bytes32 _taskId, bytes32 _outputCID, bytes32 _proofHash) external nonReentrant whenNotPaused {
         Task storage task = tasks[_taskId];
         require(task.assignedAgent == msg.sender, "Not assigned");
         require(task.status == TaskStatus.Assigned, "Not assigned");
         require(block.timestamp <= task.deadline, "Deadline passed");
+        require(operatorActiveTasks[msg.sender] > 0, "No active tasks to submit");
 
         task.outputCID = _outputCID;
         task.proofHash = _proofHash;
@@ -181,7 +222,7 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
             "Not completed or resolved"
         );
         require(!task.rewardWithdrawn, "Reward already withdrawn");
-        require(block.timestamp > task.deadline + DISPUTE_WINDOW, "Dispute window active");
+        require(block.timestamp > task.deadline + disputeWindow, "Dispute window active");
         require(task.assignedAgent == msg.sender, "Not assignee");
 
         task.rewardWithdrawn = true;
@@ -191,19 +232,22 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
         agents[didHash].reputation = min(agents[didHash].reputation + 100, 10000);
     }
 
+    // ── Disputes ──
     function disputeTask(bytes32 _taskId, string calldata _reason) external {
         Task storage task = tasks[_taskId];
         require(task.requester == msg.sender, "Not requester");
         require(task.status == TaskStatus.Completed, "Not completed");
-        require(block.timestamp <= task.deadline + DISPUTE_WINDOW, "Dispute window closed");
+        require(block.timestamp <= task.deadline + disputeWindow, "Dispute window closed");
 
         task.status = TaskStatus.Disputed;
+        task.disputedAt = block.timestamp;
         emit TaskDisputed(_taskId, msg.sender, _reason);
     }
 
     function resolveDispute(bytes32 _taskId, bool _agentFault, string calldata _resolution) external onlyRole(VALIDATOR_ROLE) {
         Task storage task = tasks[_taskId];
         require(task.status == TaskStatus.Disputed, "Not disputed");
+        require(block.timestamp <= task.disputedAt + disputeResolutionDeadline, "Dispute deadline exceeded");
 
         if (_agentFault) {
             bytes32 didHash = findDidByOperator(task.assignedAgent);
@@ -216,10 +260,11 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
             emit AgentSlashed(didHash, slashAmount, _resolution);
         } else {
             require(fcmToken.transfer(task.assignedAgent, task.reward), "Transfer failed");
-            task.status = TaskStatus.Resolved; // Terminal state — prevents re-dispute, allows withdrawal
+            task.status = TaskStatus.Resolved;
         }
     }
 
+    // ── Staking ──
     function unstake(bytes32 _didHash) external nonReentrant {
         Agent storage agent = agents[_didHash];
         require(agent.operator == msg.sender, "Not operator");
@@ -232,7 +277,34 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
         require(fcmToken.transfer(msg.sender, amount), "Unstake failed");
     }
 
-    // Public getter for marketplace compatibility
+    // ── M-6: Dedicated Cancelled status ──
+    function cancelTask(bytes32 _taskId) external nonReentrant {
+        Task storage task = tasks[_taskId];
+        require(task.requester == msg.sender, "Not requester");
+        require(task.status == TaskStatus.Open, "Task not open");
+        require(block.timestamp < task.deadline, "Deadline passed");
+
+        task.status = TaskStatus.Cancelled;
+        require(fcmToken.transfer(msg.sender, task.reward), "Refund failed");
+        emit TaskCancelled(_taskId, msg.sender, task.reward);
+    }
+
+    function claimExpiredDispute(bytes32 _taskId) external nonReentrant {
+        Task storage task = tasks[_taskId];
+        require(task.status == TaskStatus.Disputed, "Not disputed");
+        require(task.disputedAt > 0, "No dispute timestamp");
+        require(block.timestamp > task.disputedAt + disputeResolutionDeadline, "Dispute not expired");
+        require(
+            task.requester == msg.sender || task.assignedAgent == msg.sender,
+            "Not party to dispute"
+        );
+
+        task.status = TaskStatus.Slashed;
+        require(fcmToken.transfer(task.requester, task.reward), "Refund failed");
+        emit DisputeExpired(_taskId, msg.sender, task.reward);
+    }
+
+    // ── View Functions ──
     function getAgentOperator(bytes32 _didHash) external view returns (address) {
         return agents[_didHash].operator;
     }
@@ -242,26 +314,23 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
         return (a.isActive, a.operator);
     }
 
-    function cancelTask(bytes32 _taskId) external nonReentrant {
-        Task storage task = tasks[_taskId];
-        require(task.requester == msg.sender, "Not requester");
-        require(task.status == TaskStatus.Open, "Task not open");
-        require(block.timestamp < task.deadline, "Deadline passed");
-
-        task.status = TaskStatus.Slashed;
-        require(fcmToken.transfer(msg.sender, task.reward), "Refund failed");
-        emit TaskCancelled(_taskId, msg.sender, task.reward);
-    }
-
+    // M-5: Gas-safe two-pass getAgentsByType
     function getAgentsByType(uint8 _agentType) external view returns (bytes32[] memory) {
-        bytes32[] memory result = new bytes32[](agentList.length);
+        // Pass 1: count matches
         uint256 count = 0;
         for (uint i = 0; i < agentList.length; i++) {
             if (agents[agentList[i]].agentType == _agentType && agents[agentList[i]].isActive) {
-                result[count++] = agentList[i];
+                count++;
             }
         }
-        assembly { mstore(result, count) }
+        // Pass 2: fill exact-size array
+        bytes32[] memory result = new bytes32[](count);
+        uint256 idx = 0;
+        for (uint i = 0; i < agentList.length; i++) {
+            if (agents[agentList[i]].agentType == _agentType && agents[agentList[i]].isActive) {
+                result[idx++] = agentList[i];
+            }
+        }
         return result;
     }
 
@@ -274,7 +343,6 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard {
     function findDidByOperator(address _operator) internal view returns (bytes32) {
         bytes32[] memory ops = operatorAgents[_operator];
         require(ops.length > 0, "No agent");
-        // Find the active agent, or fall back to last registered
         for (uint i = ops.length; i > 0; i--) {
             if (agents[ops[i - 1]].isActive) return ops[i - 1];
         }

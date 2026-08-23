@@ -50,7 +50,7 @@ describe("Audit Fixes", function () {
             expect(balAfter - balBefore).to.equal(reward);
 
             const task = await registry.tasks(taskId);
-            expect(task.status).to.equal(4); // Slashed (reused as cancelled)
+            expect(task.status).to.equal(6); // Cancelled (dedicated status)
         });
 
         it("should reject cancellation by non-requester", async function () {

@@ -25,3 +25,8 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Slither reports
+slither-report.*
+slither-report.json
+slither-report.sarif

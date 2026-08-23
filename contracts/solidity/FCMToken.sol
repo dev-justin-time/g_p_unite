@@ -85,6 +85,4 @@ contract FCMToken is ERC20, ERC20Burnable, AccessControl {
     function getMintableSupply() external view returns (uint256) {
         return MAX_SUPPLY - INITIAL_SUPPLY - totalMintedRewards;
     }
-
-    receive() external payable {}
 }

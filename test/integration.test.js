@@ -166,7 +166,7 @@ describe("Full On-Chain Integration Flow", function () {
             expect(balanceAfter).to.be.gt(balanceBefore);
 
             const task = await registry.tasks(taskId);
-            expect(task.status).to.equal(4); // Slashed (used for cancelled)
+            expect(task.status).to.equal(6); // Cancelled (dedicated status)
         });
 
         it("should reject cancellation by non-requester", async function () {
