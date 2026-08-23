@@ -11,6 +11,8 @@
     "deploy:baseSepolia": "hardhat run scripts/hardhat/deploy.js --network baseSepolia",
     "deploy:arbitrumSepolia": "hardhat run scripts/hardhat/deploy.js --network arbitrumSepolia",
     "deploy:local": "hardhat run scripts/hardhat/deploy.js --network localhost",
+    "verify:sepolia": "hardhat run scripts/hardhat/verify-deployment.js --network sepolia",
+    "verify:local": "hardhat run scripts/hardhat/verify-deployment.js --network localhost",
     "deploy:agents": "hardhat run scripts/hardhat/register-agents.js",
     "agent:start": "docker-compose -f docker/docker-compose.yml up -d",
     "agent:stop": "docker-compose -f docker/docker-compose.yml down",

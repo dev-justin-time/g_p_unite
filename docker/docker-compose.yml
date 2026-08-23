@@ -40,6 +40,8 @@ services:
               capabilities: [gpu]
     mem_limit: 8g
     cpus: 4
+    ports:
+      - "8081:8081"
     environment:
       - FCM_AGENT_TYPE=inference
       - FCM_AGENT_ID=inf-router-001
@@ -51,12 +53,19 @@ services:
       - FCM_RPC_URL=${RPC_URL}
       - FCM_PRIVATE_KEY=${INFERENCE_ROUTER_KEY:-${PRIVATE_KEY}}
       - NVIDIA_VISIBLE_DEVICES=all
+      - HEALTH_PORT=8081
     volumes:
       - model-cache:/fcm/models
       - ./config/inference-router.yaml:/fcm/config/agent.yaml:ro
     depends_on:
       fcm-bootstrap:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     networks:
       - fcm-mesh
     restart: unless-stopped
@@ -79,6 +88,8 @@ services:
               capabilities: [gpu]
     mem_limit: 8g
     cpus: 4
+    ports:
+      - "8082:8081"
     environment:
       - FCM_AGENT_TYPE=render
       - FCM_AGENT_ID=render-split-001
@@ -89,12 +100,19 @@ services:
       - FCM_REGISTRY_CONTRACT=${REGISTRY_CONTRACT}
       - FCM_RPC_URL=${RPC_URL}
       - FCM_PRIVATE_KEY=${RENDER_SPLITTER_KEY:-${PRIVATE_KEY}}
+      - HEALTH_PORT=8081
     volumes:
       - render-cache:/fcm/renders
       - ./config/render-splitter.yaml:/fcm/config/agent.yaml:ro
     depends_on:
       fcm-bootstrap:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     networks:
       - fcm-mesh
     restart: unless-stopped
