@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FCM Agent Swarm — Live Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self';">
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --bg2: #0d1117;
+      --panel: #111827;
+      --panel-hover: #1a2332;
+      --border: #1f2937;
+      --text: #e5e7eb;
+      --text-dim: #9ca3af;
+      --accent: #3b82f6;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --purple: #8b5cf6;
+      --cyan: #06b6d4;
+      --pink: #ec4899;
+      --orange: #f97316;
+      --gold: #fbbf24;
+      --silver: #94a3b8;
+      --bronze: #d97706;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; }
+
+    /* ===== HEADER ===== */
+    .header { padding: 24px 32px 0; text-align: center; }
+    .header h1 { font-size: 32px; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--cyan), var(--green)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header p { color: var(--text-dim); font-size: 14px; margin-top: 4px; }
+
+    /* ===== STATS BAR ===== */
+    .stats-bar { display: flex; gap: 12px; justify-content: center; padding: 20px 32px; flex-wrap: wrap; }
+    .stat-pill { background: var(--panel); border: 1px solid var(--border); border-radius: 24px; padding: 8px 20px; font-size: 13px; display: flex; align-items: center; gap: 8px; font-weight: 500; }
+    .stat-pill .dot { width: 8px; height: 8px; border-radius: 50%; animation: pulse 2s infinite; }
+    .dot.green { background: var(--green); box-shadow: 0 0 8px rgba(16,185,129,0.4); }
+    .dot.blue { background: var(--accent); box-shadow: 0 0 8px rgba(59,130,246,0.4); }
+    .dot.amber { background: var(--amber); box-shadow: 0 0 8px rgba(245,158,11,0.4); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ===== TIER RANKINGS ===== */
+    .tier-section { padding: 0 32px 20px; }
+    .tier-header { font-size: 14px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .tier-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+    .tier-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; text-align: center; position: relative; overflow: hidden; transition: all 0.2s; }
+    .tier-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .tier-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .tier-card[data-tier="0"]::before { background: #6b7280; }
+    .tier-card[data-tier="1"]::before { background: linear-gradient(90deg, #6b7280, #9ca3af); }
+    .tier-card[data-tier="2"]::before { background: linear-gradient(90deg, #9ca3af, #cbd5e1); }
+    .tier-card[data-tier="3"]::before { background: linear-gradient(90deg, #d97706, #fbbf24); }
+    .tier-card[data-tier="4"]::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+    .tier-card[data-tier="5"]::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .tier-rank { font-size: 28px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
+    .tier-card[data-tier="0"] .tier-rank { color: #6b7280; }
+    .tier-card[data-tier="1"] .tier-rank { color: var(--silver); }
+    .tier-card[data-tier="2"] .tier-rank { color: #cbd5e1; }
+    .tier-card[data-tier="3"] .tier-rank { color: var(--bronze); }
+    .tier-card[data-tier="4"] .tier-rank { color: var(--purple); }
+    .tier-card[data-tier="5"] .tier-rank { color: var(--gold); }
+    .tier-name { font-size: 12px; font-weight: 600; margin-top: 4px; }
+    .tier-detail { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+    .tier-agents { display: flex; gap: 4px; justify-content: center; margin-top: 8px; flex-wrap: wrap; }
+    .tier-agent-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+    /* ===== FILTERS ===== */
+    .filter-bar { padding: 0 32px 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .filter-btn { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border); background: var(--panel); color: var(--text-dim); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+    .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+    .filter-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+    .filter-count { margin-left: auto; font-size: 12px; color: var(--text-dim); }
+
+    /* ===== AGENT GRID ===== */
+    .agents-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 14px; padding: 0 32px 32px; }
+    .agent-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px; transition: all 0.2s; position: relative; overflow: hidden; }
+    .agent-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+    .agent-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+
+    /* Category accent bars */
+    .agent-card.compute::before { background: linear-gradient(90deg, var(--accent), var(--cyan)); }
+    .agent-card.infrastructure::before { background: linear-gradient(90deg, var(--green), var(--amber)); }
+    .agent-card.platform::before { background: linear-gradient(90deg, var(--purple), var(--pink)); }
+
+    /* Category icon backgrounds */
+    .agent-card.compute .agent-icon { background: rgba(59,130,246,0.12); }
+    .agent-card.infrastructure .agent-icon { background: rgba(16,185,129,0.12); }
+    .agent-card.platform .agent-icon { background: rgba(139,92,246,0.12); }
+
+    .agent-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .agent-title { display: flex; align-items: center; gap: 10px; }
+    .agent-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .agent-name { font-size: 15px; font-weight: 600; }
+    .agent-role { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+    .agent-badges { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+    .status-badge { font-size: 10px; padding: 3px 8px; border-radius: 10px; font-weight: 600; }
+    .status-active { background: rgba(16,185,129,0.15); color: var(--green); }
+    .status-standby { background: rgba(245,158,11,0.15); color: var(--amber); }
+    .tier-badge { font-size: 10px; padding: 3px 8px; border-radius: 10px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+    .tier-badge[data-tier="0"] { background: rgba(107,114,128,0.15); color: #9ca3af; }
+    .tier-badge[data-tier="1"] { background: rgba(148,163,184,0.15); color: var(--silver); }
+    .tier-badge[data-tier="2"] { background: rgba(203,213,225,0.15); color: #e2e8f0; }
+    .tier-badge[data-tier="3"] { background: rgba(217,119,6,0.15); color: var(--bronze); }
+    .tier-badge[data-tier="4"] { background: rgba(139,92,246,0.15); color: var(--purple); }
+    .tier-badge[data-tier="5"] { background: rgba(251,191,36,0.15); color: var(--gold); }
+
+    .logic-section { background: var(--bg); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; border: 1px solid var(--border); }
+    .logic-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .logic-title::before { content: '⚡'; }
+    .logic-item { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(31,41,55,0.5); font-size: 11px; }
+    .logic-item:last-child { border-bottom: none; }
+    .logic-key { color: var(--text-dim); }
+    .logic-val { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+    .logic-val.on { color: var(--green); }
+    .logic-val.off { color: var(--red); }
+
+    .metrics-row { display: flex; gap: 8px; margin-top: 10px; }
+    .metric { flex: 1; background: var(--bg); border-radius: 8px; padding: 8px; text-align: center; border: 1px solid var(--border); }
+    .metric-value { font-size: 16px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .metric-label { font-size: 9px; color: var(--text-dim); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .agent-card.compute .metric-value { color: var(--accent); }
+    .agent-card.infrastructure .metric-value { color: var(--green); }
+    .agent-card.platform .metric-value { color: var(--purple); }
+
+    /* Tier ranking in metrics */
+    .tier-metric { position: relative; }
+    .tier-bar { height: 3px; border-radius: 2px; margin-top: 4px; background: var(--border); overflow: hidden; }
+    .tier-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+
+    .action-bar { display: flex; gap: 8px; margin-top: 12px; }
+    .btn { flex: 1; padding: 7px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 11px; cursor: pointer; transition: all 0.15s; font-weight: 500; }
+    .btn:hover { background: var(--panel-hover); border-color: var(--accent); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
+    .btn.primary:hover { background: #2563eb; }
+
+    /* ===== SOURCE MODAL ===== */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 100; align-items: center; justify-content: center; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; width: 90%; max-width: 720px; max-height: 80vh; overflow: hidden; }
+    .modal-header { padding: 18px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h2 { font-size: 16px; }
+    .modal-close { background: none; border: none; color: var(--text-dim); font-size: 22px; cursor: pointer; padding: 4px 8px; }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { padding: 20px; overflow-y: auto; max-height: 60vh; }
+    .modal-body pre { background: #000; border-radius: 8px; padding: 16px; overflow-x: auto; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; color: #a5b4fc; }
+
+    /* ===== CATEGORY SECTION HEADERS ===== */
+    .category-section { padding: 0 32px; }
+    .category-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .category-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+    .category-header h2 { font-size: 15px; font-weight: 700; }
+    .category-count { font-size: 11px; color: var(--text-dim); background: var(--panel); padding: 2px 8px; border-radius: 10px; border: 1px solid var(--border); }
+    .category-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 14px; margin-bottom: 24px; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 900px) {
+      .tier-grid { grid-template-columns: repeat(3, 1fr); }
+      .agents-grid, .category-grid { grid-template-columns: 1fr; }
+      .header h1 { font-size: 24px; }
+      .stats-bar { gap: 8px; padding: 16px; }
+    }
+    @media (max-width: 600px) {
+      .tier-grid { grid-template-columns: repeat(2, 1fr); }
+      .filter-bar { padding: 0 16px 12px; }
+      .category-section, .agents-grid, .tier-section { padding-left: 16px; padding-right: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header" role="banner">
+    <h1>FCM Agent Swarm Dashboard</h1>
+    <p>18 agents · Live metrics · Tier rankings · Real-time monitoring</p>
+  </div>
+
+  <div class="stats-bar" role="status" aria-label="System statistics">
+    <div class="stat-pill"><span class="dot green"></span><span id="statOnline">18</span> Agents Online</div>
+    <div class="stat-pill"><span class="dot blue"></span>Tasks Completed: <span id="statTasks">0</span></div>
+    <div class="stat-pill"><span class="dot green"></span>Network Uptime: <span id="statUptime">99.8%</span></div>
+    <div class="stat-pill"><span class="dot amber"></span>Avg Latency: <span id="statLatency">14ms</span></div>
+    <div class="stat-pill"><span class="dot blue"></span>Total Staked: <span id="statStaked">0</span> FCM</div>
+  </div>
+
+  <!-- Tier Rankings -->
+  <div class="tier-section" id="tierSection">
+    <div class="tier-header">Tier Rankings</div>
+    <div class="tier-grid" id="tierGrid"></div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="filter-bar" id="filterBar">
+    <button class="filter-btn active" data-filter="all">All (18)</button>
+    <button class="filter-btn" data-filter="compute">⚡ Compute (8)</button>
+    <button class="filter-btn" data-filter="infrastructure">🔧 Infrastructure (4)</button>
+    <button class="filter-btn" data-filter="platform">🎯 Platform (6)</button>
+    <span class="filter-count" id="filterCount">Showing 18 agents</span>
+  </div>
+
+  <!-- Agent Grid -->
+  <div class="agents-grid" id="agentsGrid" role="main" aria-label="All agents"></div>
+
+  <!-- Source Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">Agent Source</h2>
+        <button class="modal-close" id="modalClose" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+<script>
+// ===== AGENT DATA =====
+const agents = [
+  // ── Compute (types 0-7) ──
+  { id:'inf', name:'Inference Router', icon:'🧠', role:'Model scheduling & batching', category:'compute', tier:4, status:'active',
+    rules:[{name:'Batch Coalescing',on:true},{name:'KV-Cache Routing',on:true},{name:'VRAM Overflow Guard',on:true},{name:'Quantization Auto-Select',on:true},{name:'Speculative Decoding',on:true}],
+    metrics:[{key:'tps',label:'Tok/sec',value:4821},{key:'queue',label:'Queue',value:3},{key:'batch',label:'Batch Size',value:12}],
+    source:'fn route(req, pool) {\n  if req.model_size > node.vram * 0.85\n    return find_larger_node(req);\n  if req.max_latency < 50ms\n    return geo_nearest(req, radius=100km);\n  if req.tokens > 2048\n    return batch_coalesce(req, window=10ms);\n  return least_loaded(req);\n}',
+    tick(v){ v.tps = 4800 + Math.floor(Math.random()*200); v.queue = Math.max(0, v.queue + Math.floor(Math.random()*3)-1); }
+  },
+  { id:'ren', name:'Render Splitter', icon:'🎬', role:'Frame distribution & dependency graph', category:'compute', tier:3, status:'active',
+    rules:[{name:'Tile-based Splitting',on:true},{name:'Dependency DAG Solver',on:true},{name:'Preview Stream Encoding',on:true},{name:'GPU Memory Predictor',on:true},{name:'Denoise Pass Merge',on:true}],
+    metrics:[{key:'fps',label:'FPS Output',value:24},{key:'nodes',label:'Nodes',value:18},{key:'progress',label:'Complete',value:'67%'}],
+    source:'fn split_job(job, pool) {\n  let tiles = calculate_tiles(\n    job.resolution, job.samples, pool.avg_vram()\n  );\n  let dag = build_dependency_graph(job.scene);\n  return topological_schedule(tiles, dag);\n}',
+    tick(v){ v.fps = 22 + Math.floor(Math.random()*6); }
+  },
+  { id:'fl', name:'FL Coordinator', icon:'🔒', role:'Secure aggregation & privacy', category:'compute', tier:5, status:'active',
+    rules:[{name:'Differential Privacy (ε=1.0)',on:true},{name:'Secure Aggregation (MPC)',on:true},{name:'Gradient Clipping (L2=1.0)',on:true},{name:'Byzantine Fault Tolerance',on:true},{name:'Model Poisoning Detection',on:true}],
+    metrics:[{key:'rounds',label:'Rounds',value:42},{key:'hospitals',label:'Hospitals',value:156},{key:'accuracy',label:'Accuracy',value:'94.2%'}],
+    source:'fn aggregate(gradients) {\n  let clipped = gradients.map(g => l2_clip(g, 1.0));\n  let noised = clipped.map(g => add_gaussian_noise(g, 1.0));\n  return mpc_sum(noised, threshold=t+1);\n}',
+    tick(v){ v.rounds = v.rounds + (Math.random()>0.9?1:0); v.accuracy = (94 + Math.random()*1).toFixed(1)+'%'; }
+  },
+  { id:'edge', name:'Edge Runner', icon:'⚡', role:'WASM cold-start & routing', category:'compute', tier:3, status:'active',
+    rules:[{name:'WASM Module Cache',on:true},{name:'Pre-warm Pools',on:true},{name:'HTTP Route Trie Match',on:true},{name:'Memory Limiter (128MB)',on:true},{name:'CPU Throttle (100ms)',on:true}],
+    metrics:[{key:'cold',label:'Cold Start',value:'8ms'},{key:'rps',label:'RPS',value:'12.4k'},{key:'funcs',label:'Functions',value:892}],
+    source:'fn handle_request(req) {\n  let route = trie_match(ROUTER, req.path);\n  let module = cache_get(route.wasm_cid)\n    .unwrap_or(precompile(route.wasm_cid));\n  let instance = pool_checkout(module);\n  return instance.call(req);\n}',
+    tick(v){ v.rps = (12 + Math.random()*1).toFixed(1)+'k'; }
+  },
+  { id:'zk', name:'ZK Prover', icon:'🛡️', role:'Circuit compilation & witness gen', category:'compute', tier:4, status:'standby',
+    rules:[{name:'Circuit Pre-compilation',on:true},{name:'Witness Parallelization',on:true},{name:'Proof Aggregation (BLS)',on:true},{name:'GPU Acceleration (CUDA)',on:true},{name:'Verification Cache',on:true}],
+    metrics:[{key:'time',label:'Proof Time',value:'2.4s'},{key:'agg',label:'Agg Batch',value:16},{key:'cost',label:'Cost',value:'$0.04'}],
+    source:'fn generate_proof(circuit, witness) {\n  let pk = cache_get(circuit.hash)\n    .unwrap_or(gpu_setup(circuit));\n  let proof = gpu_prove(pk, witness);\n  if batch.len >= 16\n    return aggregate_proofs(batch);\n  return proof;\n}',
+    tick(v){ v.time = (2 + Math.random()*0.8).toFixed(1)+'s'; }
+  },
+  { id:'game', name:'Game Host', icon:'🎮', role:'Tick sync & matchmaking', category:'compute', tier:2, status:'active',
+    rules:[{name:'Deterministic Lockstep',on:true},{name:'Latency-Compensated Hitreg',on:true},{name:'Geo-Balanced Matchmaking',on:true},{name:'State Delta Compression',on:true},{name:'Anti-Cheat Heuristics',on:true}],
+    metrics:[{key:'tick',label:'Tick/s',value:128},{key:'players',label:'Players',value:64},{key:'latency',label:'Latency',value:'18ms'}],
+    source:'fn game_tick(state, inputs) {\n  let validated = inputs\n    .filter(i => validate_timestamp(i, 200ms))\n    .filter(i => speed_check(i, 500u/s));\n  return deterministic_simulate(state, validated);\n}',
+    tick(v){ v.latency = (14+Math.floor(Math.random()*8))+'ms'; v.players = Math.max(10, v.players + Math.floor(Math.random()*7)-3); }
+  },
+  { id:'sci', name:'Science Grid', icon:'🔬', role:'Job splitting & validation', category:'compute', tier:3, status:'standby',
+    rules:[{name:'Domain Decomposition',on:true},{name:'Checkpoint Every 15min',on:true},{name:'Result Cross-Validation',on:true},{name:'BOINC Credit System',on:true},{name:'Fault-Tolerant Redundancy',on:true}],
+    metrics:[{key:'tflops',label:'TFLOPS',value:847},{key:'jobs',label:'Active',value:23},{key:'valid',label:'Valid',value:'100%'}],
+    source:'fn decompose_simulation(sim, pool) {\n  let grid = cartesian_split(sim.domain, pool.size());\n  let halo = calculate_ghost_zones(\n    sim.pde_order, sim.stencil_width\n  );\n  return assign_with_affinity(grid, halo);\n}',
+    tick(v){ v.tflops = 800 + Math.floor(Math.random()*100); v.jobs = Math.max(5, v.jobs + Math.floor(Math.random()*5)-2); }
+  },
+  { id:'priv', name:'Privacy Mesh', icon:'🕵️', role:'Mixnet routing & relay selection', category:'compute', tier:4, status:'active',
+    rules:[{name:'Onion Layer Encryption',on:true},{name:'Sphinx Packet Format',on:true},{name:'Cover Traffic Generation',on:true},{name:'Reputation-Weighted Path',on:true},{name:'Exit Policy Enforcement',on:true}],
+    metrics:[{key:'relays',label:'Relays',value:'1,247'},{key:'hoplat',label:'Hop Latency',value:'145ms'},{key:'throughput',label:'Aggregate',value:'2.1Gbps'}],
+    source:'fn build_circuit(exit, pool) {\n  let candidates = filter_by_policy(pool, exit);\n  let path = weighted_sample(candidates,\n    weight = r => r.bandwidth * r.reputation\n  );\n  return ensure_geo_diversity(path, min_hops=3);\n}',
+    tick(v){ v.relays = (1240+Math.floor(Math.random()*20)).toLocaleString(); v.throughput = (2+Math.random()*0.4).toFixed(1)+'Gbps'; }
+  },
+
+  // ── Infrastructure (types 8-11) ──
+  { id:'node', name:'Node Runner', icon:'🖥️', role:'Blockchain node operations', category:'infrastructure', tier:2, status:'active',
+    rules:[{name:'Block Validation',on:true},{name:'Mempool Management',on:true},{name:'Peer Discovery',on:true},{name:'State Pruning',on:true},{name:'RPC Load Balancing',on:true}],
+    metrics:[{key:'blocks',label:'Blocks/hr',value:360},{key:'peers',label:'Peers',value:48},{key:'sync',label:'Sync',value:'99.9%'}],
+    source:'fn validate_block(block, prev) {\n  if block.timestamp <= prev.timestamp\n    return Err(TimestampError);\n  if block.gas_used > block.gas_limit\n    return Err(GasOverflow);\n  verify_signature(block.validator, block.hash);\n  return Ok(Valid);\n}',
+    tick(v){ v.blocks = 355 + Math.floor(Math.random()*10); v.peers = Math.max(30, v.peers + Math.floor(Math.random()*5)-2); }
+  },
+  { id:'stor', name:'Storage Provider', icon:'💾', role:'Distributed file storage', category:'infrastructure', tier:3, status:'active',
+    rules:[{name:'Erasure Coding (4/8)',on:true},{name:'Replication Factor 3x',on:true},{name:'Cold Storage Tiering',on:true},{name:'Pin Verification',on:true},{name:'Bandwidth Throttling',on:true}],
+    metrics:[{key:'stored',label:'Stored',value:'2.4TB'},{key:'files',label:'Files',value:'18.2k'},{key:'retrievals',label:'Retrievals/hr',value:847}],
+    source:'fn store_piece(piece, config) {\n  let shards = erasure_encode(piece, 4, 8);\n  let nodes = select_by_reputation(pool, 8);\n  for (shard, node) in zip(shards, nodes) {\n    node.store(shard, piece.cid);\n  }\n  return Receipt { cid: piece.cid, nodes: 8 };\n}',
+    tick(v){ v.retrievals = 800 + Math.floor(Math.random()*100); v.stored = (2.3+Math.random()*0.3).toFixed(1)+'TB'; }
+  },
+  { id:'fsrv', name:'File Server', icon:'📁', role:'Content delivery & streaming', category:'infrastructure', tier:1, status:'active',
+    rules:[{name:'CDN Edge Caching',on:true},{name:'Range Request Support',on:true},{name:'Gzip/Brotli Compression',on:true},{name:'ETag Validation',on:true},{name:'Rate Limiting',on:true}],
+    metrics:[{key:'bandwidth',label:'Bandwidth',value:'4.2Gbps'},{key:'cached',label:'Cache Hit',value:'94%'},{key:'connections',label:'Connections',value:1247}],
+    source:'fn serve_request(req) {\n  let key = cache_key(req.path, req.headers);\n  if let Some(cached) = cache.get(&key) {\n    if cached.etag == req.if_none_match {\n      return Response::not_modified();\n    }\n    return Response::from_cache(cached);\n  }\n  let file = fs::read(req.path)?;\n  cache.put(key, file.clone());\n  Response::stream(file)\n}',
+    tick(v){ v.bandwidth = (4+Math.random()*0.5).toFixed(1)+'Gbps'; v.connections = 1200+Math.floor(Math.random()*100); }
+  },
+  { id:'rwrd', name:'Rewarded Worker', icon:'🎁', role:'Task completion for rewards', category:'infrastructure', tier:1, status:'active',
+    rules:[{name:'Auto-Task Selection',on:true},{name:'Reward Optimization',on:true},{name:'Stake-weighted Priority',on:true},{name:'Daily Claim Limit',on:true},{name:'Anti-Sybil Check',on:true}],
+    metrics:[{key:'tasks',label:'Tasks Done',value:342},{key:'earned',label:'Earned',value:'1.2k'},{key:'streak',label:'Streak',value:'12d'}],
+    source:'fn select_task(agent, pool) {\n  let ranked = pool.tasks.iter()\n    .map(|t| (t, estimate_reward(t, agent.tier)))\n    .filter(|(_, r)| *r > agent.min_reward)\n    .sorted_by(|a, b| b.1.cmp(&a.1));\n  ranked.first().map(|(t, _)| t.clone())\n}',
+    tick(v){ v.tasks = v.tasks + (Math.random()>0.7?1:0); v.earned = (1.1+Math.random()*0.3).toFixed(1)+'k'; }
+  },
+
+  // ── Platform Services ──
+  { id:'tier', name:'Tier Manager', icon:'📊', role:'Staking tiers & hardware verification', category:'platform', tier:5, status:'active',
+    rules:[{name:'Auto-Tier Upgrade',on:true},{name:'Grace Period Enforcement',on:true},{name:'Hardware Score Validation',on:true},{name:'Anti-Gaming Detection',on:true},{name:'Stake Threshold Monitoring',on:true}],
+    metrics:[{key:'tiers',label:'Active Tiers',value:6},{key:'upgrades',label:'Upgrades/hr',value:12},{key:'downgrades',label:'Downgrades/hr',value:3}],
+    source:'fn compute_tier(stake: u128, hw_score: u32) -> u8 {\n  for tier in (1..=5).rev() {\n    let cfg = &tier_configs[tier];\n    if stake >= cfg.min_stake && hw_score >= cfg.min_score {\n      return tier as u8;\n    }\n  }\n  0 // Free tier\n}',
+    tick(v){ v.upgrades = 10+Math.floor(Math.random()*6); v.downgrades = 1+Math.floor(Math.random()*4); }
+  },
+  { id:'reward', name:'Rewards Distributor', icon:'💰', role:'Epoch funding & distribution', category:'platform', tier:5, status:'active',
+    rules:[{name:'Epoch Lifecycle',on:true},{name:'Fair Market Value Pricing',on:true},{name:'Sybil Detection',on:true},{name:'Dynamic Pricing',on:true},{name:'Tier Multiplier Apply',on:true}],
+    metrics:[{key:'pool',label:'Pool Balance',value:'5.2M'},{key:'epoch',label:'Epoch',value:24},{key:'distributed',label:'Distributed',value:'847k'}],
+    source:'fn calculate_reward(agent, total_work, pool_balance) {\n  let share = (agent.work as u128) * pool_balance\n    / (total_work as u128);\n  let tier_mult = tier_multiplier(agent.tier);\n  let fee = agent.fee_discount;\n  share * tier_mult / 10000 * (10000 - fee) / 10000\n}',
+    tick(v){ v.epoch = v.epoch + (Math.random()>0.95?1:0); v.distributed = (840+Math.floor(Math.random()*20))+'k'; }
+  },
+  { id:'gov', name:'Governance Agent', icon:'🏛️', role:'Proposal voting & governance', category:'platform', tier:4, status:'active',
+    rules:[{name:'Risk Assessment',on:true},{name:'Tier-weighted Voting',on:true},{name:'Quorum Monitoring',on:true},{name:'Timelock Execution',on:true},{name:'Rush Detection',on:true}],
+    metrics:[{key:'proposals',label:'Active',value:3},{key:'voters',label:'Voters',value:1247},{key:'quorum',label:'Quorum',value:'67%'}],
+    source:'fn assess_proposal(proposal, chain_history) {\n  let risk = 0;\n  if proposal.value_change > 100_000 { risk += 3; }\n  if proposal.timeframe < 86400 { risk += 2; }\n  if is_emergency(proposal) { risk += 1; }\n  // Auto-vote Against if risk >= 7\n  if risk >= 7 { Vote::Against }\n  else { Vote::Abstain }\n}',
+    tick(v){ v.quorum = (60+Math.floor(Math.random()*15))+'%'; }
+  },
+  { id:'escrow', name:'Escrow Manager', icon:'🔒', role:'Milestone payment escrow', category:'platform', tier:3, status:'active',
+    rules:[{name:'Milestone Validation',on:true},{name:'Multi-sig Enforcement',on:true},{name:'Deadline Monitoring',on:true},{name:'Dispute Routing',on:true},{name:'Partial Completion',on:true}],
+    metrics:[{key:'locked',label:'Locked',value:'124k'},{key:'milestones',label:'Milestones',value:48},{key:'released',label:'Released/hr',value:'12k'}],
+    source:'fn approve_milestone(escrow, milestone_id, sigs) {\n  let ms = &escrow.milestones[milestone_id];\n  require!(sigs.len() >= ms.required_sigs);\n  require!(ms.deliverable.len() > 0);\n  // CEI: update state before transfer\n  ms.approved = true;\n  escrow.released += ms.amount;\n  token.transfer(escrow.beneficiary, ms.amount);\n}',
+    tick(v){ v.milestones = v.milestones + (Math.random()>0.8?1:0); v.released = (10+Math.floor(Math.random()*5))+'k'; }
+  },
+  { id:'rep', name:'Reputation Oracle', icon:'🏅', role:'Badge updates & achievement tracking', category:'platform', tier:4, status:'active',
+    rules:[{name:'Soulbound Badge Updates',on:true},{name:'Achievement Detection',on:true},{name:'Streak Tracking',on:true},{name:'Dispute Recording',on:true},{name:'Reputation Decay',on:true}],
+    metrics:[{key:'badges',label:'Total Badges',value:'1,847'},{key:'achievements',label:'Achievements',value:342},{key:'streaks',label:'Active Streaks',value:89}],
+    source:'fn update_badge(badge, work, earnings, uptime) {\n  badge.total_work += work;\n  badge.total_earnings += earnings;\n  badge.uptime_score = uptime;\n  let new_achievements = check_achievements(badge);\n  if !new_achievements.is_empty() {\n    badge.achievements |= new_achievements.bitflag();\n  }\n}',
+    tick(v){ v.badges = (1840+Math.floor(Math.random()*15)).toLocaleString(); v.achievements = 340+Math.floor(Math.random()*5); }
+  },
+  { id:'coord', name:'Agent Coordinator', icon:'🤝', role:'Onboarding & inter-agent coordination', category:'platform', tier:5, status:'active',
+    rules:[{name:'New Agent Onboarding',on:true},{name:'Capability Matching',on:true},{name:'Load Balancing',on:true},{name:'Health Monitoring',on:true},{name:'Fallback Routing',on:true}],
+    metrics:[{key:'onboarded',label:'Onboarded',value:'1,247'},{key:'active',label:'Coordinated',value:89},{key:'uptime',label:'Network Uptime',value:'99.7%'}],
+    source:'fn match_task(task, agents) {\n  let candidates = agents.iter()\n    .filter(|a| a.is_active)\n    .filter(|a| a.caps & task.reqs == task.reqs)\n    .filter(|a| a.load < MAX_CONCURRENT)\n    .max_by_key(|a| a.reputation * tier_mult(a.tier));\n  candidates.cloned()\n}',
+    tick(v){ v.uptime = (99.5+Math.random()*0.5).toFixed(1)+'%'; v.active = Math.max(60, v.active + Math.floor(Math.random()*5)-2); }
+  }
+];
+
+// ===== TIER CONFIG =====
+const tierConfig = [
+  { name:'Free', min:'0 FCM', mult:'0.5x', color:'#6b7280' },
+  { name:'Starter', min:'100 FCM', mult:'1x', color:'#94a3b8' },
+  { name:'Standard', min:'500 FCM', mult:'1.5x', color:'#cbd5e1' },
+  { name:'Advanced', min:'2K FCM', mult:'2x', color:'#d97706' },
+  { name:'Pro', min:'10K FCM', mult:'3x', color:'#8b5cf6' },
+  { name:'Elite', min:'50K FCM', mult:'5x', color:'#fbbf24' }
+];
+
+// ===== RENDER FUNCTIONS =====
+function esc(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function renderTierGrid() {
+  const grid = document.getElementById('tierGrid');
+  grid.innerHTML = tierConfig.map((t, i) => {
+    const tierAgents = agents.filter(a => a.tier === i);
+    return `
+      <div class="tier-card" data-tier="${i}">
+        <div class="tier-rank">${i === 5 ? '👑' : 'T'+i}</div>
+        <div class="tier-name">${esc(t.name)}</div>
+        <div class="tier-detail">Min: ${esc(t.min)} · Mult: ${esc(t.mult)}</div>
+        <div class="tier-agents">
+          ${tierAgents.map(a => `<div class="tier-agent-dot" title="${esc(a.name)}" style="background:${t.color}"></div>`).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderAgentCard(agent) {
+  const metricHtml = agent.metrics.map(m => {
+    const val = typeof m.value === 'number' ? m.value.toLocaleString() : m.value;
+    const barPct = agent.tier * 20;
+    return `
+      <div class="metric">
+        <div class="metric-value" id="${esc(agent.id)}-${esc(m.key)}">${esc(String(val))}</div>
+        <div class="metric-label">${esc(m.label)}</div>
+        ${m.key === agent.metrics[0]?.key ? `
+        <div class="tier-bar">
+          <div class="tier-bar-fill" style="width:${barPct}%;background:${tierConfig[agent.tier]?.color || '#3b82f6'}"></div>
+        </div>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="agent-card ${esc(agent.category)}" data-category="${esc(agent.category)}" data-id="${esc(agent.id)}">
+      <div class="agent-header">
+        <div class="agent-title">
+          <div class="agent-icon">${agent.icon}</div>
+          <div>
+            <div class="agent-name">${esc(agent.name)}</div>
+            <div class="agent-role">${esc(agent.role)}</div>
+          </div>
+        </div>
+        <div class="agent-badges">
+          <span class="tier-badge" data-tier="${agent.tier}">T${agent.tier} ${esc(tierConfig[agent.tier]?.name || '')}</span>
+          <span class="status-badge ${agent.status==='active'?'status-active':'status-standby'}">${agent.status==='active'?'● ACTIVE':'○ STANDBY'}</span>
+        </div>
+      </div>
+      <div class="logic-section">
+        <div class="logic-title">Built-in Logic Rules</div>
+        ${agent.rules.map(r => `
+          <div class="logic-item">
+            <span class="logic-key">${esc(r.name)}</span>
+            <span class="logic-val ${r.on?'on':'off'}">${r.on?'ON':'OFF'}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="metrics-row">${metricHtml}</div>
+      <div class="action-bar">
+        <button class="btn" data-action="source" data-id="${esc(agent.id)}" aria-label="View source code for ${esc(agent.name)}">View Source</button>
+        <button class="btn primary" data-action="simulate" data-id="${esc(agent.id)}" aria-label="Simulate ${esc(agent.name)} agent">Simulate</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderAgents(filter) {
+  const grid = document.getElementById('agentsGrid');
+  const filtered = filter === 'all' ? agents : agents.filter(a => a.category === filter);
+  grid.innerHTML = filtered.map(renderAgentCard).join('');
+  document.getElementById('filterCount').textContent = `Showing ${filtered.length} agent${filtered.length !== 1 ? 's' : ''}`;
+}
+
+function updateStats() {
+  const totalTasks = agents.reduce((s, a) => s + (typeof a.metrics[0]?.value === 'number' ? a.metrics[0].value : 0), 0);
+  document.getElementById('statTasks').textContent = totalTasks.toLocaleString();
+  const totalStaked = agents.reduce((s, a) => {
+    const stakeMap = [0, 100, 500, 2000, 10000, 50000];
+    return s + (stakeMap[a.tier] || 0);
+  }, 0);
+  document.getElementById('statStaked').textContent = totalStaked.toLocaleString();
+  document.getElementById('statLatency').textContent = (12 + Math.floor(Math.random() * 6)) + 'ms';
+}
+
+function updateLiveMetrics() {
+  agents.forEach(agent => {
+    if (agent.tick) {
+      const values = {};
+      agent.metrics.forEach(m => { values[m.key] = m.value; });
+      agent.tick(values);
+      agent.metrics.forEach(m => {
+        m.value = values[m.key];
+        const el = document.getElementById(`${agent.id}-${m.key}`);
+        if (el) {
+          const newVal = typeof m.value === 'number' ? m.value.toLocaleString() : m.value;
+          if (el.textContent !== String(newVal)) {
+            el.style.transition = 'transform 0.15s';
+            el.style.transform = 'scale(1.1)';
+            el.textContent = newVal;
+            setTimeout(() => { el.style.transform = 'scale(1)'; }, 150);
+          }
+        }
+      });
+    }
+  });
+  updateStats();
+}
+
+// ===== EVENT HANDLERS =====
+document.getElementById('filterBar').addEventListener('click', (e) => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAgents(btn.dataset.filter);
+});
+
+document.getElementById('agentsGrid').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const agent = agents.find(a => a.id === id);
+  if (!agent) return;
+
+  if (btn.dataset.action === 'source') {
+    document.getElementById('modalTitle').textContent = `${agent.name} — Decision Logic`;
+    document.getElementById('modalBody').innerHTML = `<pre>${esc(agent.source)}</pre>`;
+    document.getElementById('modalOverlay').classList.add('show');
+  }
+
+  if (btn.dataset.action === 'simulate') {
+    const card = document.querySelector(`[data-id="${id}"]`);
+    if (card) {
+      card.style.borderColor = 'var(--green)';
+      card.style.boxShadow = '0 0 20px rgba(16,185,129,0.2)';
+      setTimeout(() => { card.style.borderColor = ''; card.style.boxShadow = ''; }, 600);
+    }
+    if (agent.tick) updateLiveMetrics();
+  }
+});
+
+document.getElementById('modalClose').addEventListener('click', () => {
+  document.getElementById('modalOverlay').classList.remove('show');
+});
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) {
+    e.currentTarget.classList.remove('show');
+  }
+});
+
+// ===== INIT =====
+renderTierGrid();
+renderAgents('all');
+updateStats();
+setInterval(updateLiveMetrics, 2000);
+</script>
+</body>
+</html>

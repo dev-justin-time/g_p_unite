@@ -12,6 +12,8 @@
     "agent:start": "docker-compose -f docker/docker-compose.yml up -d",
     "agent:stop": "docker-compose -f docker/docker-compose.yml down",
     "test": "hardhat test",
+    "dashboard": "node -e \"const {DashboardServer}=require('./lib/modules/dashboard-server');const d=new DashboardServer(null,{port:8080});d.start();\"",
+    "api": "node -e \"const {RestApiServer}=require('./lib/modules/rest-api');const s=new RestApiServer(null,{port:3000});s.start();\"",
     "slither": "slither . --config-file slither.config.json",
     "slither:json": "slither . --config-file slither.config.json --json slither-report.json",
     "slither:sarif": "slither . --config-file slither.config.json --sarif slither-report.sarif"

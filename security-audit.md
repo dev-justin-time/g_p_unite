@@ -12,10 +12,9 @@
 | Severity         | Found | Fixed  | Remaining |
 |--------------- --|-------|-------=|-----------|
 | 🔴 **Critical**  | 6     | **6**  | **0**    |
-| 🟠 **High**      | 11    | **11** | **0**   |
-| 🟡 **Medium**    | 14    | **14** | **0**   |
-| 🟢 **Low**       | 10    | **8**  | **2**   |
-| **Total**         | *41* | **39** | **2**   |  
+| 🟠 **High**      | 11    | **11** | **0**    |
+| 🟢 **Low**       | 10    | **8**  | **2**    |
+|  **Total**        | *41*  | **39** | **2**    |  
 
 **All critical, high, and medium vulnerabilities have been fixed. 39/41 issues resolved. 152 tests passing.**
 
