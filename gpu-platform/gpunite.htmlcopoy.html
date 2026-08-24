@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>G P Unite — GPU Sharing Platform</title>
+  <meta name="description" content="Decentralized GPU sharing platform with 18 AI agents, logic engines, tiered staking, governance, and real-time monitoring.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self';">
+  <link rel="stylesheet" href="css/gpu-styles.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link" id="skipLink">Skip to main content</a>
+  <div class="toast-container" id="toastContainer" role="alert" aria-live="polite"></div>
+
+  <div class="app-layout">
+    <!-- SIDEBAR -->
+    <nav class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+      <div class="sidebar-header">
+        <a href="#" class="sidebar-logo" aria-label="G P Unite Home">
+          <div class="sidebar-logo-icon" aria-hidden="true">G</div>
+          <div><div class="sidebar-logo-text">G P Unite</div><span class="sidebar-logo-sub">GPU Sharing Platform</span></div>
+        </a>
+      </div>
+      <div class="sidebar-nav" id="sidebarNav">
+        <div class="nav-section"><div class="nav-section-title">Getting Started</div>
+          <button class="nav-item active" data-page="onboarding" aria-current="page"><span class="nav-icon" aria-hidden="true">🚀</span>Onboarding</button>
+          <button class="nav-item" data-page="dashboard"><span class="nav-icon" aria-hidden="true">📊</span>Dashboard</button>
+        </div>
+        <div class="nav-section"><div class="nav-section-title">Compute</div>
+          <button class="nav-item" data-page="agents"><span class="nav-icon" aria-hidden="true">🤖</span>Agents<span class="nav-badge">18</span></button>
+          <button class="nav-item" data-page="marketplace"><span class="nav-icon" aria-hidden="true">🛒</span>Marketplace<span class="nav-badge green">12</span></button>
+        </div>
+        <div class="nav-section"><div class="nav-section-title">Staking & Finance</div>
+          <button class="nav-item" data-page="staking"><span class="nav-icon" aria-hidden="true">💎</span>Staking & Tiers</button>
+          <button class="nav-item" data-page="escrow"><span class="nav-icon" aria-hidden="true">🔒</span>Escrow<span class="nav-badge amber">3</span></button>
+        </div>
+        <div class="nav-section"><div class="nav-section-title">Governance</div>
+          <button class="nav-item" data-page="governance"><span class="nav-icon" aria-hidden="true">🏛️</span>Proposals<span class="nav-badge">3</span></button>
+          <button class="nav-item" data-page="reputation"><span class="nav-icon" aria-hidden="true">🏅</span>Reputation</button>
+        </div>
+        <div class="nav-section"><div class="nav-section-title">Communication</div>
+          <button class="nav-item" data-page="chat"><span class="nav-icon" aria-hidden="true">💬</span>Chat</button>
+        </div>
+        <div class="nav-section"><div class="nav-section-title">Automation</div>
+          <button class="nav-item" data-page="obscura"><span class="nav-icon" aria-hidden="true">🕸️</span>Obscura Browser<span class="nav-badge green">Live</span></button>
+        </div>
+        <div class="nav-section"><div class="nav-section-title">System</div>
+          <button class="nav-item" data-page="resources"><span class="nav-icon" aria-hidden="true">⚡</span>Resources</button>
+          <button class="nav-item" data-page="settings"><span class="nav-icon" aria-hidden="true">⚙️</span>Settings</button>
+          <button class="nav-item" data-page="admin" data-rbac="admin"><span class="nav-icon" aria-hidden="true">🛡️</span>Admin Panel<span class="nav-badge" style="background:var(--red);">Admin</span></button>
+        </div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" aria-hidden="true">G</div>
+          <div><div class="user-name">Operator</div><div class="user-tier">⭐ Tier 3 · Advanced</div></div>
+        </div>
+        <button class="role-switcher-btn" onclick="showModal('roleSwitcherModal')" aria-label="Switch role">
+          <span id="sidebarRoleBadge" class="role-badge operator">⚙ Operator</span>
+          <span style="margin-left:auto;color:var(--text-muted);font-size:var(--font-xs);">Switch Role</span>
+        </button>
+        <div style="display:flex;gap:6px;margin-top:8px;" id="authButtons">
+          <button class="btn btn-sm btn-primary" style="flex:1;" onclick="showLoginModal()" id="loginBtn">🔑 Login</button>
+          <button class="btn btn-sm btn-ghost" style="flex:1;display:none;" onclick="handleLogout()" id="logoutBtn">🚪 Logout</button>
+        </div>
+        <div id="authStatus" style="font-size:var(--font-xs);color:var(--text-muted);margin-top:4px;display:none;"></div>
+      </div>
+    </nav>
+
+    <!-- MAIN -->
+    <div class="main-content">
+      <header class="top-header" role="banner">
+        <div class="header-left">
+          <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+          <div class="breadcrumb" id="breadcrumb"><span>Home</span><span aria-hidden="true">/</span><span class="current" id="breadcrumbCurrent">Onboarding</span></div>
+        </div>
+        <div class="header-right">
+          <button class="header-btn" id="themeToggle" aria-label="Toggle theme"><span aria-hidden="true">🌙</span><span>Theme</span></button>
+          <button class="header-btn" id="contrastToggle" aria-label="Toggle high contrast"><span aria-hidden="true">◐</span><span>Contrast</span></button>
+          <button class="header-btn" id="fontToggle" aria-label="Change font size"><span aria-hidden="true">Aa</span><span>Font</span></button>
+          <button class="header-btn" id="motionToggle" aria-label="Toggle reduced motion"><span aria-hidden="true">✨</span><span>Motion</span></button>
+          <button class="header-btn" aria-label="Notifications"><span aria-hidden="true">🔔</span><span class="notification-dot"></span></button>
+          <div class="ws-status disconnected" id="wsStatus" role="status" aria-live="polite"><span class="ws-dot"></span><span id="wsStatusText">Disconnected</span></div>
+        </div>
+      </header>
+
+      <main class="page-content" id="main-content" role="main">
+
+        <!-- ONBOARDING -->
+        <section class="page-section active" id="page-onboarding">
+          <h1 class="page-title">Welcome to G P Unite</h1>
+          <p class="page-subtitle">Set up your GPU sharing node and join the mesh in 4 steps.</p>
+          <div class="onboarding-wizard">
+            <div class="wizard-steps" role="tablist">
+              <div class="wizard-step active" id="ws1"><div class="wizard-step-num">1</div><span class="wizard-step-label">Connect</span></div>
+              <div class="wizard-step-line"></div>
+              <div class="wizard-step" id="ws2"><div class="wizard-step-num">2</div><span class="wizard-step-label">Hardware</span></div>
+              <div class="wizard-step-line"></div>
+              <div class="wizard-step" id="ws3"><div class="wizard-step-num">3</div><span class="wizard-step-label">Capabilities</span></div>
+              <div class="wizard-step-line"></div>
+              <div class="wizard-step" id="ws4"><div class="wizard-step-num">4</div><span class="wizard-step-label">Launch</span></div>
+            </div>
+            <div class="wizard-panel active card" id="step1">
+              <h2 style="font-size:var(--font-xl);margin-bottom:16px;">🔗 Connect Your Wallet</h2>
+              <p style="color:var(--text-secondary);margin-bottom:20px;">Link your wallet to interact with the blockchain.</p>
+              <div class="form-group"><label class="form-label" for="walletAddress">Wallet Address</label><input class="form-input" id="walletAddress" placeholder="0x..." autocomplete="off"><div class="form-help">Enter your Ethereum wallet address or click Connect.</div></div>
+              <div style="display:flex;gap:12px;margin-top:20px;">
+                <button class="btn btn-primary btn-lg" onclick="connectWallet()">🔗 Connect MetaMask</button>
+                <button class="btn btn-secondary" onclick="showToast('Manual entry saved','success')">Manual Entry</button>
+              </div>
+              <div style="margin-top:16px;padding:12px;background:var(--bg-primary);border-radius:var(--radius-sm);border:1px solid var(--border-color);">
+                <div style="font-size:var(--font-xs);color:var(--text-muted);margin-bottom:8px;">SUPPORTED NETWORKS</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;"><span class="badge badge-blue">Ethereum Mainnet</span><span class="badge badge-blue">Sepolia Testnet</span><span class="badge badge-blue">Base Sepolia</span></div>
+              </div>
+            </div>
+            <div class="wizard-panel card" id="step2">
+              <h2 style="font-size:var(--font-xl);margin-bottom:16px;">🖥️ Hardware Profile</h2>
+              <p style="color:var(--text-secondary);margin-bottom:20px;">Tell us about your hardware to determine your tier.</p>
+              <div class="card-grid cols-2">
+                <div class="form-group"><label class="form-label" for="hwGpu">GPU Model</label><select class="form-select" id="hwGpu"><option value="">Select GPU...</option><option>NVIDIA RTX 4090 (24GB)</option><option>NVIDIA RTX 4080 (16GB)</option><option>NVIDIA RTX 3090 (24GB)</option><option>NVIDIA A100 (80GB)</option><option>NVIDIA H100 (80GB)</option><option>AMD RX 7900 XTX (24GB)</option><option>CPU Only</option></select></div>
+                <div class="form-group"><label class="form-label" for="hwRam">System RAM</label><select class="form-select" id="hwRam"><option value="">Select RAM...</option><option>16 GB</option><option>32 GB</option><option>64 GB</option><option>128 GB</option><option>256 GB+</option></select></div>
+                <div class="form-group"><label class="form-label" for="hwStorage">Storage</label><select class="form-select" id="hwStorage"><option value="">Select...</option><option>500 GB SSD</option><option>1 TB NVMe</option><option>2 TB NVMe</option><option>4 TB+ NVMe</option></select></div>
+                <div class="form-group"><label class="form-label" for="hwBandwidth">Internet</label><select class="form-select" id="hwBandwidth"><option value="">Select...</option><option>500 Mbps</option><option>1 Gbps</option><option>2.5 Gbps</option><option>10 Gbps</option></select></div>
+              </div>
+              <div style="margin-top:20px;"><button class="btn btn-primary" onclick="completeStep(2)">Continue →</button></div>
+            </div>
+            <div class="wizard-panel card" id="step3">
+              <h2 style="font-size:var(--font-xl);margin-bottom:16px;">⚡ Select Capabilities</h2>
+              <p style="color:var(--text-secondary);margin-bottom:20px;">Choose what your node can handle. More capabilities = more earnings.</p>
+              <div class="capability-grid">
+                <div class="capability-item" onclick="toggleCap(this)" tabindex="0" role="checkbox" aria-checked="false"><div class="cap-icon">🧠</div><div class="cap-name">AI Inference</div></div>
+                <div class="capability-item" onclick="toggleCap(this)" tabindex="0" role="checkbox" aria-checked="false"><div class="cap-icon">🎬</div><div class="cap-name">Rendering</div></div>
+                <div class="capability-item" onclick="toggleCap(this)" tabindex="0" role="checkbox" aria-checked="false"><div class="cap-icon">🔒</div><div class="cap-name">Federated Learning</div></div>
+                <div class="capability-item" onclick="toggleCap(this)" tabindex="0" role="checkbox" aria-checked="false"><div class="cap-icon">⚡</div><div class="cap-name">Edge Functions</div></div>
+                <div class="capability-item" onclick="toggleCap(this)" tabindex="0" role="checkbox" aria-checked="false"><div class="cap-icon">🛡️</div><div class="cap-name">ZK Proving</div></div>
+                <div class="capability-item" onclick="toggleCap(this)" tabindex="0" role="checkbox" aria-checked="false"><div class="cap-icon">🎮</div><div class="cap-name">Game Hosting</div></div>
+                <div class="capability-item" onclick="toggleCap(this)" tabindex="0" role="checkbox" aria-checked="false"><div class="cap-icon">🖥️</div><div class="cap-name">Node Operations</div></div>
+                <div class="capability-item" onclick="toggleCap(this)" tabindex="0" role="checkbox" aria-checked="false"><div class="cap-icon">💾</div><div class="cap-name">File Storage</div></div>
+              </div>
+              <div style="margin-top:20px;"><button class="btn btn-primary" onclick="completeStep(3)">Continue →</button></div>
+            </div>
+            <div class="wizard-panel card" id="step4">
+              <h2 style="font-size:var(--font-xl);margin-bottom:16px;">🚀 Launch Your Node</h2>
+              <p style="color:var(--text-secondary);margin-bottom:20px;">Review and launch into the mesh.</p>
+              <div style="background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:16px;margin-bottom:20px;">
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);"><span style="color:var(--text-muted);">Wallet</span><span id="sumWallet" style="font-family:'JetBrains Mono',monospace;font-size:var(--font-xs);">Not connected</span></div>
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);"><span style="color:var(--text-muted);">Hardware</span><span id="sumHardware">Not configured</span></div>
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);"><span style="color:var(--text-muted);">Capabilities</span><span id="sumCaps">0 selected</span></div>
+                <div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="color:var(--text-muted);">Estimated Tier</span><span id="sumTier" style="color:var(--gold);font-weight:700;">T0 — Free</span></div>
+              </div>
+              <div class="form-group"><label class="form-label" for="nodeName">Node Name</label><input class="form-input" id="nodeName" value="my-fcm-node"></div>
+              <div style="display:flex;gap:12px;"><button class="btn btn-success btn-lg" onclick="launchNode()" data-action="launch_node">🚀 Launch Node</button><button class="btn btn-secondary" onclick="completeStep(1)">← Back</button></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- DASHBOARD -->
+        <section class="page-section" id="page-dashboard">
+          <h1 class="page-title">Dashboard</h1><p class="page-subtitle">Real-time overview of the GPU Sharing Platform.</p>
+          <div class="card-grid cols-4" style="margin-bottom:24px;">
+            <div class="stat-card"><div class="stat-icon blue">🤖</div><div><div class="stat-value">18</div><div class="stat-label">Active Agents</div></div></div>
+            <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value" id="dashTasks">12,847</div><div class="stat-label">Tasks Completed</div></div></div>
+            <div class="stat-card"><div class="stat-icon amber">⏱️</div><div><div class="stat-value" id="dashLatency">14ms</div><div class="stat-label">Avg Latency</div></div></div>
+            <div class="stat-card"><div class="stat-icon purple">💎</div><div><div class="stat-value" id="dashStaked">62,800</div><div class="stat-label">Total Staked (FCM)</div></div></div>
+          </div>
+          <h2 style="font-size:var(--font-lg);font-weight:700;margin-bottom:12px;">Tier Rankings</h2>
+          <div class="card-grid cols-6" style="margin-bottom:24px;" id="dashTiers"></div>
+          <div class="charts-section">
+            <h2 style="font-size:var(--font-lg);font-weight:700;margin-bottom:12px;">📈 Performance Over Time</h2>
+            <div class="agent-selector-bar">
+              <label for="agentSelect">🔍 Focus Agent:</label>
+              <select id="agentSelect" onchange="selectAgent(this.value)">
+                <option value="">— All Agents —</option>
+                <optgroup label="⚡ Compute"><option value="inf">🧠 Inference Router</option><option value="ren">🎬 Render Splitter</option><option value="fl">🔒 FL Coordinator</option><option value="edge">⚡ Edge Runner</option><option value="zk">🛡️ ZK Prover</option><option value="game">🎮 Game Host</option><option value="sci">🔬 Science Grid</option><option value="priv">🕵️ Privacy Mesh</option></optgroup>
+                <optgroup label="🔧 Infrastructure"><option value="node">🖥️ Node Runner</option><option value="stor">💾 Storage Provider</option><option value="fsrv">📁 File Server</option><option value="rwrd">🎁 Rewarded Worker</option></optgroup>
+                <optgroup label="🎯 Platform"><option value="tier">📊 Tier Manager</option><option value="reward">💰 Rewards Distributor</option><option value="gov">🏛️ Governance Agent</option><option value="escrow">🔒 Escrow Manager</option><option value="rep">🏅 Reputation Oracle</option><option value="coord">🤝 Agent Coordinator</option></optgroup>
+              </select>
+              <div id="focusedAgentChip"></div>
+            </div>
+            <div id="focusedAgentSection" style="display:none;">
+              <div class="focused-agent-info" id="focusedAgentInfo"></div>
+              <div class="card" style="margin-bottom:16px;">
+                <div class="chart-header"><div><div class="chart-title" id="focusedChartTitle">Agent Metrics</div><div class="chart-subtitle" id="focusedChartSubtitle">Detailed performance</div></div>
+                  <div class="chart-range-btns"><button class="chart-range-btn" data-chart="focusedAgent" data-range="60">1H</button><button class="chart-range-btn" data-chart="focusedAgent" data-range="360">6H</button><button class="chart-range-btn active" data-chart="focusedAgent" data-range="1440">24H</button><button class="chart-range-btn" data-chart="focusedAgent" data-range="10080">7D</button></div></div>
+                <div class="chart-canvas-wrap"><canvas id="chartFocusedAgent"></canvas><div class="chart-tooltip" id="tooltipFocusedAgent"></div></div>
+                <div class="chart-legend" id="legendFocusedAgent"></div>
+              </div>
+            </div>
+            <div class="card-grid cols-2">
+              <div class="chart-container"><div class="chart-header"><div><div class="chart-title">Agent Reputation</div><div class="chart-subtitle">Top agents by score</div></div><div class="chart-range-btns"><button class="chart-range-btn" data-chart="reputation" data-range="60">1H</button><button class="chart-range-btn" data-chart="reputation" data-range="360">6H</button><button class="chart-range-btn active" data-chart="reputation" data-range="1440">24H</button><button class="chart-range-btn" data-chart="reputation" data-range="10080">7D</button></div></div><div class="chart-canvas-wrap"><canvas id="chartReputation"></canvas><div class="chart-tooltip" id="tooltipReputation"></div></div><div class="chart-legend" id="legendReputation"></div></div>
+              <div class="chart-container"><div class="chart-header"><div><div class="chart-title">Token Rewards</div><div class="chart-subtitle">FCM distributed per epoch</div></div><div class="chart-range-btns"><button class="chart-range-btn" data-chart="rewards" data-range="60">1H</button><button class="chart-range-btn" data-chart="rewards" data-range="360">6H</button><button class="chart-range-btn active" data-chart="rewards" data-range="1440">24H</button><button class="chart-range-btn" data-chart="rewards" data-range="10080">7D</button></div></div><div class="chart-canvas-wrap"><canvas id="chartRewards"></canvas><div class="chart-tooltip" id="tooltipRewards"></div></div><div class="chart-legend" id="legendRewards"></div></div>
+            </div>
+          </div>
+          <h2 style="font-size:var(--font-lg);font-weight:700;margin-bottom:12px;">Recent Activity</h2>
+          <div class="card" style="max-height:300px;overflow-y:auto;"><div id="activityLog"></div></div>
+        </section>
+
+        <!-- AGENTS -->
+        <section class="page-section" id="page-agents">
+          <h1 class="page-title">Agents</h1><p class="page-subtitle">18 autonomous agents with built-in logic engines — zero LLM calls for hot paths.</p>
+          <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+            <button class="btn btn-sm btn-primary agent-filter active" data-filter="all">All (18)</button>
+            <button class="btn btn-sm btn-secondary agent-filter" data-filter="compute">⚡ Compute (8)</button>
+            <button class="btn btn-sm btn-secondary agent-filter" data-filter="infrastructure">🔧 Infrastructure (4)</button>
+            <button class="btn btn-sm btn-secondary agent-filter" data-filter="platform">🎯 Platform (6)</button>
+          </div>
+          <div class="card-grid auto-fill" id="agentsGrid" role="list"></div>
+        </section>
+
+        <!-- MARKETPLACE -->
+        <section class="page-section" id="page-marketplace">
+          <h1 class="page-title">Marketplace</h1><p class="page-subtitle">Browse and claim compute tasks from the network.</p>
+          <div class="card-grid cols-4" style="margin-bottom:24px;">
+            <div class="stat-card"><div class="stat-icon blue">📋</div><div><div class="stat-value">12</div><div class="stat-label">Open Tasks</div></div></div>
+            <div class="stat-card"><div class="stat-icon amber">🔄</div><div><div class="stat-value">7</div><div class="stat-label">In Progress</div></div></div>
+            <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value">847</div><div class="stat-label">Completed</div></div></div>
+            <div class="stat-card"><div class="stat-icon purple">💰</div><div><div class="stat-value">42,100</div><div class="stat-label">FCM Earned</div></div></div>
+          </div>
+          <div class="table-wrapper"><table><thead><tr><th>Task</th><th>Type</th><th>Reward</th><th>Deadline</th><th>Min Tier</th><th>Action</th></tr></thead><tbody id="taskTableBody"></tbody></table></div>
+        </section>
+
+        <!-- STAKING -->
+        <section class="page-section" id="page-staking">
+          <h1 class="page-title">Staking & Tiers</h1><p class="page-subtitle">Stake FCM tokens to unlock higher tiers and better rewards.</p>
+          <div class="card" style="margin-bottom:24px;">
+            <h2 style="font-size:var(--font-lg);font-weight:700;margin-bottom:16px;">My Stake</h2>
+            <div class="card-grid cols-3">
+              <div><div style="color:var(--text-muted);font-size:var(--font-xs);text-transform:uppercase;">Staked</div><div style="font-size:var(--font-2xl);font-weight:800;font-family:'JetBrains Mono',monospace;">2,000 FCM</div></div>
+              <div><div style="color:var(--text-muted);font-size:var(--font-xs);text-transform:uppercase;">Tier</div><div style="font-size:var(--font-2xl);font-weight:800;color:#d97706;">T3 Advanced</div></div>
+              <div><div style="color:var(--text-muted);font-size:var(--font-xs);text-transform:uppercase;">Multiplier</div><div style="font-size:var(--font-2xl);font-weight:800;color:var(--green);">2x</div></div>
+            </div>
+            <div style="display:flex;gap:12px;margin-top:20px;"><button class="btn btn-primary" onclick="showModal('stakeModal')" data-action="stake">💎 Stake More</button><button class="btn btn-secondary" onclick="showToast('Unstake initiated — 7 day grace','info')" data-action="unstake">📤 Unstake</button></div>
+          </div>
+          <h2 style="font-size:var(--font-lg);font-weight:700;margin-bottom:12px;">All Tiers</h2>
+          <div class="card-grid cols-6" style="margin-bottom:24px;" id="stakingTiers"></div>
+        </section>
+
+        <!-- ESCROW -->
+        <section class="page-section" id="page-escrow">
+          <h1 class="page-title">Escrow</h1><p class="page-subtitle">Milestone-based payment protection for compute jobs.</p>
+          <div class="card-grid cols-3" style="margin-bottom:24px;">
+            <div class="stat-card"><div class="stat-icon blue">🔒</div><div><div class="stat-value">124,000</div><div class="stat-label">Total Locked (FCM)</div></div></div>
+            <div class="stat-card"><div class="stat-icon green">📤</div><div><div class="stat-value">3</div><div class="stat-label">Active Escrows</div></div></div>
+            <div class="stat-card"><div class="stat-icon amber">⚠️</div><div><div class="stat-value">1</div><div class="stat-label">In Dispute</div></div></div>
+          </div>
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+              <div><div style="font-size:var(--font-xs);color:var(--text-muted);font-family:'JetBrains Mono',monospace;">ESC-0042</div><h3 style="font-size:var(--font-lg);font-weight:700;margin-top:4px;">Distributed Model Training</h3><p style="font-size:var(--font-sm);color:var(--text-muted);margin-top:4px;">Client: 0x8a3f...c219 · Worker: 0x1b7e...d442</p></div>
+              <span class="badge badge-amber">In Progress</span>
+            </div>
+            <div class="progress" style="margin-bottom:16px;"><div class="progress-fill green" style="width:60%;"></div></div>
+            <div class="milestone"><div class="milestone-dot completed"></div><div style="flex:1;"><div style="font-weight:600;">Data Preprocessing</div><div style="font-size:var(--font-xs);color:var(--text-muted);">10,000 FCM · Released</div></div><span class="badge badge-green">✓ Done</span></div>
+            <div class="milestone"><div class="milestone-dot completed"></div><div style="flex:1;"><div style="font-weight:600;">Model Training — Round 1</div><div style="font-size:var(--font-xs);color:var(--text-muted);">15,000 FCM · Released</div></div><span class="badge badge-green">✓ Done</span></div>
+            <div class="milestone"><div class="milestone-dot active"></div><div style="flex:1;"><div style="font-weight:600;">Model Training — Round 2</div><div style="font-size:var(--font-xs);color:var(--text-muted);">15,000 FCM · Pending</div></div><button class="btn btn-sm btn-primary" data-action="approve_milestone" onclick="showToast('Milestone approved!','success')">Approve</button></div>
+            <div class="milestone"><div class="milestone-dot"></div><div style="flex:1;"><div style="font-weight:600;">Final Validation</div><div style="font-size:var(--font-xs);color:var(--text-muted);">10,000 FCM · Not started</div></div><span class="badge" style="background:var(--border-color);color:var(--text-muted);">Pending</span></div>
+          </div>
+        </section>
+
+        <!-- GOVERNANCE -->
+        <section class="page-section" id="page-governance">
+          <h1 class="page-title">Governance</h1><p class="page-subtitle">Vote on proposals that shape the platform.</p>
+          <div class="card-grid cols-3" style="margin-bottom:24px;">
+            <div class="stat-card"><div class="stat-icon blue">📋</div><div><div class="stat-value">3</div><div class="stat-label">Active Proposals</div></div></div>
+            <div class="stat-card"><div class="stat-icon green">👥</div><div><div class="stat-value">1,247</div><div class="stat-label">Voters</div></div></div>
+            <div class="stat-card"><div class="stat-icon amber">📊</div><div><div class="stat-value">67%</div><div class="stat-label">Quorum</div></div></div>
+          </div>
+          <div style="margin-bottom:16px;"><button class="btn btn-primary" onclick="showModal('proposalModal')" data-action="create_proposal">📝 Create Proposal</button></div>
+          <div id="proposalsList"></div>
+        </section>
+
+        <!-- REPUTATION -->
+        <section class="page-section" id="page-reputation">
+          <h1 class="page-title">Reputation</h1><p class="page-subtitle">Your soulbound reputation badges and achievements.</p>
+          <div class="card" style="margin-bottom:24px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><h2 style="font-size:var(--font-lg);font-weight:700;">Your Reputation</h2><span class="badge badge-purple" style="font-size:var(--font-sm);padding:6px 14px;">Score: 7,842</span></div>
+            <div class="card-grid cols-4">
+              <div style="text-align:center;"><div style="font-size:var(--font-2xl);font-weight:800;color:var(--green);">156</div><div style="font-size:var(--font-xs);color:var(--text-muted);">Tasks Done</div></div>
+              <div style="text-align:center;"><div style="font-size:var(--font-2xl);font-weight:800;color:var(--accent);">12</div><div style="font-size:var(--font-xs);color:var(--text-muted);">Achievements</div></div>
+              <div style="text-align:center;"><div style="font-size:var(--font-2xl);font-weight:800;color:var(--amber);">28</div><div style="font-size:var(--font-xs);color:var(--text-muted);">Day Streak</div></div>
+              <div style="text-align:center;"><div style="font-size:var(--font-2xl);font-weight:800;color:var(--purple);">99.2%</div><div style="font-size:var(--font-xs);color:var(--text-muted);">Uptime</div></div>
+            </div>
+          </div>
+          <h2 style="font-size:var(--font-lg);font-weight:700;margin-bottom:12px;">Badges</h2>
+          <div class="badge-grid" id="badgeGrid"></div>
+        </section>
+
+        <!-- CHAT -->
+        <section class="page-section" id="page-chat">
+          <h1 class="page-title">Chat</h1><p class="page-subtitle">Communicate with agents and the network.</p>
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div class="chat-container">
+              <div class="chat-messages" id="chatMessages" role="log" aria-live="polite"></div>
+              <div class="chat-input-row"><label for="chatInput" class="sr-only">Type a message</label><input type="text" id="chatInput" placeholder="Type a message to agents..." autocomplete="off"><button class="btn btn-primary" onclick="sendChat()" data-action="send_chat">Send</button></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- OBSCURA BROWSER -->
+        <section class="page-section" id="page-obscura">
+          <h1 class="page-title">🕸️ Obscura Browser</h1>
+          <p class="page-subtitle">Headless browser for web scraping, monitoring, and AI agent automation. Powered by <a href="https://github.com/h4ckf0r0day/obscura" target="_blank" style="color:var(--accent);">obscura</a> (Rust + V8).</p>
+          <div class="card-grid cols-4" style="margin-bottom:24px;">
+            <div class="stat-card"><div class="stat-icon blue">📄</div><div><div class="stat-value" id="obsPages">0</div><div class="stat-label">Pages Scraped</div></div></div>
+            <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value" id="obsSuccess">100%</div><div class="stat-label">Success Rate</div></div></div>
+            <div class="stat-card"><div class="stat-icon amber">⚡</div><div><div class="stat-value" id="obsLatency">85ms</div><div class="stat-label">Avg Latency</div></div></div>
+            <div class="stat-card"><div class="stat-icon purple">👁</div><div><div class="stat-value" id="obsMonitors">0</div><div class="stat-label">Active Monitors</div></div></div>
+          </div>
+          <div class="card-grid cols-2" style="margin-bottom:24px;">
+            <div class="card">
+              <h3 style="font-weight:700;margin-bottom:16px;">🔍 Quick Scrape</h3>
+              <div class="form-group"><label class="form-label" for="obsUrl">URL</label><input class="form-input" id="obsUrl" placeholder="https://example.com"></div>
+              <div class="form-group"><label class="form-label" for="obsEval">Eval JS (optional)</label><input class="form-input" id="obsEval" placeholder="document.title"></div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-primary" onclick="obscuraScrape()">🕸️ Scrape</button>
+                <button class="btn btn-secondary" onclick="obscuraScreenshot()">📸 Screenshot</button>
+              </div>
+              <div id="obsResult" style="margin-top:16px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:12px;font-family:'JetBrains Mono',monospace;font-size:11px;max-height:300px;overflow:auto;display:none;white-space:pre-wrap;color:var(--text-secondary);"></div>
+            </div>
+            <div class="card">
+              <h3 style="font-weight:700;margin-bottom:16px;">👁 Monitor URLs</h3>
+              <div class="form-group"><label class="form-label" for="obsMonUrl">URL to Monitor</label><input class="form-input" id="obsMonUrl" placeholder="https://example.com"></div>
+              <div class="form-group"><label class="form-label" for="obsMonInterval">Check Interval (ms)</label><input class="form-input" id="obsMonInterval" type="number" value="60000"></div>
+              <button class="btn btn-primary" onclick="obscuraMonitor()">👁 Start Monitoring</button>
+              <div id="obsMonList" style="margin-top:16px;"></div>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:24px;">
+            <h3 style="font-weight:700;margin-bottom:16px;">📊 Scraping History</h3>
+            <div class="table-wrapper"><table><thead><tr><th>URL</th><th>Status</th><th>Latency</th><th>Time</th></tr></thead><tbody id="obsHistoryBody"></tbody></table></div>
+          </div>
+          <div class="card">
+            <h3 style="font-weight:700;margin-bottom:16px;">⚙️ Obscura Config</h3>
+            <div class="card-grid cols-3">
+              <div class="setting-row"><div class="setting-info"><h4>Stealth Mode</h4><p>Anti-detection + tracker blocking</p></div><button class="toggle active" id="obsStealthToggle" onclick="this.classList.toggle('active')" role="switch" aria-checked="true"></button></div>
+              <div class="setting-row"><div class="setting-info"><h4>CDP Port</h4><p>Chrome DevTools Protocol port</p></div><input class="form-input" style="width:120px;" value="9222" id="obsPort"></div>
+              <div class="setting-row"><div class="setting-info"><h4>Proxy</h4><p>HTTP/SOCKS5 proxy URL</p></div><input class="form-input" style="width:200px;" placeholder="socks5://127.0.0.1:1080" id="obsProxy"></div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:16px;">
+              <button class="btn btn-primary" onclick="obscuraConnect()">🔌 Connect</button>
+              <button class="btn btn-danger" onclick="obscuraDisconnect()">⏹ Disconnect</button>
+              <button class="btn btn-secondary" onclick="obscuraInstall()">📥 Install Binary</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- RESOURCES -->
+        <section class="page-section" id="page-resources">
+          <h1 class="page-title">Resources</h1><p class="page-subtitle">Monitor system resources and node health.</p>
+          <div class="card-grid cols-4" style="margin-bottom:24px;">
+            <div class="card" style="text-align:center;"><div class="gauge"><svg width="120" height="120"><circle class="gauge-bg" cx="60" cy="60" r="50"/><circle class="gauge-fill" cx="60" cy="60" r="50" stroke="var(--accent)" stroke-dasharray="314" stroke-dashoffset="182"/></svg><div class="gauge-text"><div class="gauge-value" style="color:var(--accent);">42%</div><div class="gauge-label">CPU</div></div></div></div>
+            <div class="card" style="text-align:center;"><div class="gauge"><svg width="120" height="120"><circle class="gauge-bg" cx="60" cy="60" r="50"/><circle class="gauge-fill" cx="60" cy="60" r="50" stroke="var(--amber)" stroke-dasharray="314" stroke-dashoffset="104"/></svg><div class="gauge-text"><div class="gauge-value" style="color:var(--amber);">67%</div><div class="gauge-label">Memory</div></div></div></div>
+            <div class="card" style="text-align:center;"><div class="gauge"><svg width="120" height="120"><circle class="gauge-bg" cx="60" cy="60" r="50"/><circle class="gauge-fill" cx="60" cy="60" r="50" stroke="var(--green)" stroke-dasharray="314" stroke-dashoffset="69"/></svg><div class="gauge-text"><div class="gauge-value" style="color:var(--green);">78%</div><div class="gauge-label">GPU</div></div></div></div>
+            <div class="card" style="text-align:center;"><div class="gauge"><svg width="120" height="120"><circle class="gauge-bg" cx="60" cy="60" r="50"/><circle class="gauge-fill" cx="60" cy="60" r="50" stroke="var(--purple)" stroke-dasharray="314" stroke-dashoffset="207"/></svg><div class="gauge-text"><div class="gauge-value" style="color:var(--purple);">34%</div><div class="gauge-label">Network</div></div></div></div>
+          </div>
+          <div class="card-grid cols-2">
+            <div class="card"><h3 style="font-weight:700;margin-bottom:16px;">🖥️ Node Health</h3>
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <div style="display:flex;justify-content:space-between;"><span>Status</span><span class="badge badge-green">● Online</span></div>
+                <div style="display:flex;justify-content:space-between;"><span>Uptime</span><span style="font-family:'JetBrains Mono',monospace;">14d 6h 32m</span></div>
+                <div style="display:flex;justify-content:space-between;"><span>Peers</span><span style="font-family:'JetBrains Mono',monospace;">48</span></div>
+                <div style="display:flex;justify-content:space-between;"><span>Sync</span><span class="badge badge-green">99.9%</span></div>
+              </div>
+            </div>
+            <div class="card"><h3 style="font-weight:700;margin-bottom:16px;">💾 Storage</h3>
+              <div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:var(--font-sm);margin-bottom:4px;"><span>Used: 1.8 TB</span><span>Total: 4 TB</span></div><div class="progress"><div class="progress-fill blue" style="width:45%;"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;font-size:var(--font-sm);margin-bottom:4px;"><span>Pinned Files</span><span>2,847</span></div><div class="progress"><div class="progress-fill green" style="width:62%;"></div></div></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SETTINGS -->
+        <section class="page-section" id="page-settings">
+          <h1 class="page-title">Settings</h1><p class="page-subtitle">Configure your node, notifications, and accessibility.</p>
+          <div class="tabs" role="tablist"><button class="tab active" onclick="switchSettingsTab('general')">General</button><button class="tab" onclick="switchSettingsTab('notifications')">Notifications</button><button class="tab" onclick="switchSettingsTab('accessibility')">Accessibility</button><button class="tab" onclick="switchSettingsTab('security')">Security</button></div>
+          <div class="card settings-panel" id="settings-general">
+            <div class="setting-row"><div class="setting-info"><h4>Node Name</h4><p>Displayed on the network</p></div><input class="form-input" style="width:250px;" value="my-fcm-node"></div>
+            <div class="setting-row"><div class="setting-info"><h4>Auto-Claim Rewards</h4></div><button class="toggle active" onclick="this.classList.toggle('active')" role="switch" aria-checked="true"></button></div>
+            <div class="setting-row"><div class="setting-info"><h4>Auto-Task Selection</h4></div><button class="toggle active" onclick="this.classList.toggle('active')" role="switch" aria-checked="true"></button></div>
+            <div class="setting-row"><div class="setting-info"><h4>Dark Mode</h4></div><button class="toggle active" id="darkModeToggle" onclick="toggleTheme()" role="switch" aria-checked="true"></button></div>
+            <div class="setting-row"><div class="setting-info"><h4>Network</h4></div><select class="form-select" style="width:200px;"><option>Mainnet</option><option selected>Sepolia</option><option>Base Sepolia</option></select></div>
+          </div>
+          <div class="card settings-panel" id="settings-notifications" style="display:none;">
+            <div class="setting-row"><div class="setting-info"><h4>Task Assigned</h4></div><button class="toggle active" onclick="this.classList.toggle('active')" role="switch"></button></div>
+            <div class="setting-row"><div class="setting-info"><h4>Earnings Updates</h4></div><button class="toggle active" onclick="this.classList.toggle('active')" role="switch"></button></div>
+            <div class="setting-row"><div class="setting-info"><h4>Governance</h4></div><button class="toggle active" onclick="this.classList.toggle('active')" role="switch"></button></div>
+            <div class="setting-row"><div class="setting-info"><h4>Dispute Alerts</h4></div><button class="toggle active" onclick="this.classList.toggle('active')" role="switch"></button></div>
+          </div>
+          <div class="card settings-panel" id="settings-accessibility" style="display:none;">
+            <div class="setting-row"><div class="setting-info"><h4>Font Size</h4></div><div style="display:flex;gap:8px;"><button class="btn btn-sm btn-secondary" onclick="setFontSize('small')">Small</button><button class="btn btn-sm btn-primary" onclick="setFontSize('default')">Default</button><button class="btn btn-sm btn-secondary" onclick="setFontSize('large')">Large</button></div></div>
+            <div class="setting-row"><div class="setting-info"><h4>High Contrast</h4></div><button class="toggle" id="hcToggle" onclick="toggleHighContrast()" role="switch" aria-checked="false"></button></div>
+            <div class="setting-row"><div class="setting-info"><h4>Reduce Motion</h4></div><button class="toggle" id="motionToggle2" onclick="toggleMotion()" role="switch" aria-checked="false"></button></div>
+          </div>
+          <div class="card settings-panel" id="settings-themes" style="display:none;margin-top:16px;">
+            <h2 style="font-size:var(--font-lg);font-weight:700;margin-bottom:16px;">🎨 Theme Preview</h2>
+            <div class="theme-preview-grid">
+              <div class="theme-preview-card active" id="preview-dark" onclick="previewTheme('dark')" tabindex="0" role="radio" aria-checked="true">
+                <div class="preview-header" style="background:#0d1117;color:#e5e7eb;"><span class="preview-icon">🌙</span><span class="preview-label">Dark</span></div>
+                <div class="preview-body" style="background:#0a0e17;"><div class="preview-sidebar-mock" style="background:#111827;border:1px solid #1f2937;"><span style="background:#3b82f6;"></span><span style="background:#1f2937;"></span></div><div class="preview-card-mock" style="background:#111827;border:1px solid #1f2937;"><div class="mock-title" style="color:#e5e7eb;">Dashboard</div><div class="mock-line long" style="background:#1f2937;"></div></div></div>
+                <div class="theme-preview-label"><div class="label-name">🌙 Dark</div><div class="label-desc">Default</div></div>
+              </div>
+              <div class="theme-preview-card" id="preview-light" onclick="previewTheme('light')" tabindex="0" role="radio" aria-checked="false">
+                <div class="preview-header" style="background:#fff;color:#1e293b;border-bottom-color:#e2e8f0;"><span class="preview-icon">☀️</span><span class="preview-label">Light</span></div>
+                <div class="preview-body" style="background:#f8fafc;"><div class="preview-sidebar-mock" style="background:#fff;border:1px solid #e2e8f0;"><span style="background:#3b82f6;"></span><span style="background:#e2e8f0;"></span></div><div class="preview-card-mock" style="background:#fff;border:1px solid #e2e8f0;"><div class="mock-title" style="color:#1e293b;">Dashboard</div><div class="mock-line long" style="background:#e2e8f0;"></div></div></div>
+                <div class="theme-preview-label"><div class="label-name">☀️ Light</div><div class="label-desc">Clean</div></div>
+              </div>
+              <div class="theme-preview-card" id="preview-high-contrast" onclick="previewTheme('high-contrast')" tabindex="0" role="radio" aria-checked="false">
+                <div class="preview-header" style="background:#000;color:#fff;border-color:#444;"><span class="preview-icon">◐</span><span class="preview-label">High Contrast</span></div>
+                <div class="preview-body" style="background:#000;"><div class="preview-sidebar-mock" style="background:#111;border:1px solid #444;"><span style="background:#6699ff;"></span><span style="background:#444;"></span></div><div class="preview-card-mock" style="background:#111;border:1px solid #444;"><div class="mock-title" style="color:#fff;">Dashboard</div><div class="mock-line long" style="background:#444;"></div></div></div>
+                <div class="theme-preview-label"><div class="label-name">◐ High Contrast</div><div class="label-desc">A11y</div></div>
+              </div>
+            </div>
+            <div class="theme-preview-actions"><button class="btn btn-primary" onclick="applyPreviewedTheme()">Apply Theme</button><button class="btn btn-secondary" onclick="resetThemePreview()">Reset</button></div>
+          </div>
+          <div class="card settings-panel" id="settings-security" style="display:none;">
+            <div class="setting-row"><div class="setting-info"><h4>Two-Factor Auth</h4></div><button class="btn btn-sm btn-success">Enable 2FA</button></div>
+            <div class="setting-row"><div class="setting-info"><h4>Multi-Sig Wallet</h4></div><button class="btn btn-sm btn-secondary" data-action="configure_multi_sig">Configure</button></div>
+          </div>
+        </section>
+
+        <!-- ADMIN -->
+        <section class="page-section" id="page-admin">
+          <h1 class="page-title">🛡️ Admin Panel</h1><p class="page-subtitle">Manage users, roles, and platform settings.</p>
+          <div class="card-grid cols-4" style="margin-bottom:24px;">
+            <div class="stat-card"><div class="stat-icon red">👤</div><div><div class="stat-value">3</div><div class="stat-label">Admins</div></div></div>
+            <div class="stat-card"><div class="stat-icon blue">⚙</div><div><div class="stat-value">14</div><div class="stat-label">Operators</div></div></div>
+            <div class="stat-card"><div class="stat-icon green">👁</div><div><div class="stat-value">1,230</div><div class="stat-label">Viewers</div></div></div>
+            <div class="stat-card"><div class="stat-icon purple">🔒</div><div><div class="stat-value">8</div><div class="stat-label">Contracts</div></div></div>
+          </div>
+          <div class="tabs" role="tablist"><button class="tab active" onclick="switchAdminTab('users')">Users</button><button class="tab" onclick="switchAdminTab('roles')">Roles</button><button class="tab" onclick="switchAdminTab('contracts')">Contracts</button><button class="tab" onclick="switchAdminTab('audit')">Audit</button></div>
+          <div class="admin-panel" id="admin-users">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><h2 style="font-size:var(--font-lg);font-weight:700;">Users</h2><button class="btn btn-primary btn-sm" onclick="showModal('addUserModal')">+ Add</button></div>
+            <div class="table-wrapper"><table><thead><tr><th>Address</th><th>Role</th><th>Tier</th><th>Reputation</th><th>Status</th></tr></thead><tbody>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:var(--font-xs);">0x8a3f...c219</td><td><span class="role-badge admin">Admin</span></td><td><span class="badge badge-purple">T5</span></td><td>9,842</td><td><span class="badge badge-green">Active</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:var(--font-xs);">0x1b7e...d442</td><td><span class="role-badge operator">Operator</span></td><td><span class="badge badge-amber">T3</span></td><td>7,842</td><td><span class="badge badge-green">Active</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:var(--font-xs);">0x4c2a...e118</td><td><span class="role-badge viewer">Viewer</span></td><td><span class="badge" style="background:rgba(148,163,184,.15);color:#94a3b8">T1</span></td><td>2,340</td><td><span class="badge badge-green">Active</span></td></tr>
+            </tbody></table></div>
+          </div>
+          <div class="admin-panel" id="admin-roles" style="display:none;"><h2 style="font-size:var(--font-lg);font-weight:700;margin-bottom:16px;">Role Permissions</h2><div class="table-wrapper"><table class="role-perm-table"><thead><tr><th>Permission</th><th style="text-align:center;">🛡 Admin</th><th style="text-align:center;">⚙ Operator</th><th style="text-align:center;">👁 Viewer</th></tr></thead><tbody id="rolePermsBody"></tbody></table></div></div>
+          <div class="admin-panel" id="admin-contracts" style="display:none;"><h2 style="font-size:var(--font-lg);font-weight:700;margin-bottom:16px;">Smart Contracts</h2><div class="card-grid cols-2" id="contractAdminGrid"></div></div>
+          <div class="admin-panel" id="admin-audit" style="display:none;"><h2 style="font-size:var(--font-lg);font-weight:700;margin-bottom:16px;">Audit Log</h2>
+            <div class="table-wrapper"><table><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Result</th></tr></thead><tbody>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:var(--font-xs);">2026-08-23 14:32</td><td>0x8a3f...c219</td><td>role.assign</td><td><span class="badge badge-green">Success</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:var(--font-xs);">2026-08-23 14:18</td><td>0x8a3f...c219</td><td>contract.pause</td><td><span class="badge badge-red">Paused</span></td></tr>
+              <tr><td style="font-family:'JetBrains Mono',monospace;font-size:var(--font-xs);">2026-08-23 13:55</td><td>0x1b7e...d442</td><td>user.suspend</td><td><span class="badge badge-amber">Suspended</span></td></tr>
+            </tbody></table></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- MODALS -->
+  <div class="modal-overlay" id="loginModal" role="dialog" aria-modal="true"><div class="modal" style="max-width:420px;"><div class="modal-header"><h2>🔐 Connect</h2><button class="modal-close" onclick="closeModal('loginModal')">&times;</button></div><div class="modal-body"><div class="form-group"><label class="form-label" for="loginAddress">Wallet Address</label><input class="form-input" id="loginAddress" placeholder="0x..."></div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('loginModal')">Cancel</button><button class="btn btn-primary" onclick="handleLogin()">🔑 Connect</button></div></div></div>
+  <div class="modal-overlay" id="roleSwitcherModal" role="dialog" aria-modal="true"><div class="modal"><div class="modal-header"><h2>🔐 Switch Role</h2><button class="modal-close" onclick="closeModal('roleSwitcherModal')">&times;</button></div><div class="modal-body"><p style="color:var(--text-secondary);margin-bottom:16px;">Select your role to preview different access levels.</p>
+    <div class="role-select-grid">
+      <div class="role-option selected" onclick="switchRole('admin')" tabindex="0" role="radio" aria-checked="true"><div class="role-icon">🛡</div><div class="role-name">Admin</div><div class="role-desc">Full access</div></div>
+      <div class="role-option" onclick="switchRole('operator')" tabindex="0" role="radio" aria-checked="false"><div class="role-icon">⚙</div><div class="role-name">Operator</div><div class="role-desc">Manage agents & tasks</div></div>
+      <div class="role-option" onclick="switchRole('viewer')" tabindex="0" role="radio" aria-checked="false"><div class="role-icon">👁</div><div class="role-name">Viewer</div><div class="role-desc">Read-only</div></div>
+    </div>
+    <div id="roleDescription" style="background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:16px;margin-top:12px;"><div style="font-size:var(--font-sm);font-weight:600;margin-bottom:8px;">🛡 Admin Permissions</div><div style="font-size:var(--font-xs);color:var(--text-muted);line-height:1.8;">✅ Full access to all sections<br>✅ Manage roles and contracts<br>✅ Emergency actions</div></div>
+  </div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('roleSwitcherModal')">Cancel</button><button class="btn btn-primary" onclick="applyRole()">Apply</button></div></div></div>
+  <div class="modal-overlay" id="addUserModal" role="dialog" aria-modal="true"><div class="modal"><div class="modal-header"><h2>+ Add User</h2><button class="modal-close" onclick="closeModal('addUserModal')">&times;</button></div><div class="modal-body"><div class="form-group"><label class="form-label">Wallet</label><input class="form-input" id="newUserAddr" placeholder="0x..."></div><div class="form-group"><label class="form-label">Role</label><select class="form-select" id="newUserRole"><option value="viewer">Viewer</option><option value="operator" selected>Operator</option><option value="admin">Admin</option></select></div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('addUserModal')">Cancel</button><button class="btn btn-primary" onclick="addUser()">Add</button></div></div></div>
+  <div class="modal-overlay" id="stakeModal" role="dialog" aria-modal="true"><div class="modal"><div class="modal-header"><h2>💎 Stake FCM</h2><button class="modal-close" onclick="closeModal('stakeModal')">&times;</button></div><div class="modal-body"><div class="form-group"><label class="form-label">Amount (FCM)</label><input class="form-input" id="stakeAmount" type="number" placeholder="Enter amount..." min="1"><div class="form-help">Balance: 10,000 FCM.</div></div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('stakeModal')">Cancel</button><button class="btn btn-primary" onclick="executeStake()">💎 Stake</button></div></div></div>
+  <div class="modal-overlay" id="proposalModal" role="dialog" aria-modal="true"><div class="modal"><div class="modal-header"><h2>📝 Create Proposal</h2><button class="modal-close" onclick="closeModal('proposalModal')">&times;</button></div><div class="modal-body"><div class="form-group"><label class="form-label">Title</label><input class="form-input" id="propTitle" placeholder="Proposal title..."></div><div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="propDesc" placeholder="Describe..."></textarea></div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('proposalModal')">Cancel</button><button class="btn btn-primary" onclick="submitProposal()">Submit</button></div></div></div>
+  <div class="modal-overlay" id="sourceModal" role="dialog" aria-modal="true"><div class="modal" style="max-width:700px;"><div class="modal-header"><h2 id="sourceModalTitle">Source Code</h2><button class="modal-close" onclick="closeModal('sourceModal')">&times;</button></div><div class="modal-body"><div class="code-block" id="sourceModalBody" style="max-height:500px;overflow:auto;background:#000;border-radius:6px;padding:10px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.5;color:#a5b4fc;white-space:pre;"></div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('sourceModal')">Close</button></div></div></div>
+
+  <!-- EXTERNAL JS (order matters: data → engine → logic → init) -->
+  <script src="js/gpu-agents-data.js"></script>
+  <script src="js/gpu-chart-engine.js"></script>
+  <script src="js/gpu-rbac.js"></script>
+  <script src="js/gpu-ws-client.js"></script>
+  <script src="js/gpu-theme.js"></script>
+  <script src="js/gpu-platform.js"></script>
+
+  <script>
+    // ── KEYBOARD SHORTCUTS ──────────────────────
+    document.addEventListener('keydown', e => {
+      if (e.key === '/' && !e.target.matches('input,textarea,select')) {
+        e.preventDefault(); navigateTo('chat');
+        setTimeout(() => document.getElementById('chatInput')?.focus(), 100);
+      }
+      if (e.key >= '1' && e.key <= '9' && !e.target.matches('input,textarea,select')) {
+        const idx = parseInt(e.key) - 1;
+        if (NAV_ITEMS[idx]) navigateTo(NAV_ITEMS[idx]);
+      }
+    });
+
+    // ── EVENT LISTENERS ─────────────────────────
+    document.querySelectorAll('.nav-item[data-page]').forEach(btn =>
+      btn.addEventListener('click', () => navigateTo(btn.dataset.page))
+    );
+    document.getElementById('mobileToggle').addEventListener('click', () => {
+      const s = document.getElementById('sidebar');
+      s.classList.toggle('open');
+      document.getElementById('mobileToggle').setAttribute('aria-expanded', s.classList.contains('open'));
+    });
+    document.getElementById('contrastToggle').addEventListener('click', toggleHighContrast);
+    document.getElementById('motionToggle').addEventListener('click', toggleMotion);
+    document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+    document.getElementById('chatInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.show').forEach(m => { m.classList.remove('show'); document.body.style.overflow = ''; });
+    });
+    document.querySelectorAll('.modal-overlay').forEach(o =>
+      o.addEventListener('click', e => { if (e.target === o) { o.classList.remove('show'); document.body.style.overflow = ''; } })
+    );
+    window.addEventListener('resize', renderAllCharts);
+
+    // ── OBSCURA INTEGRATION ──────────────────────
+    let obscuraConnected = false;
+
+    async function obscuraScrape() {
+      const url = document.getElementById('obsUrl').value;
+      const evalExpr = document.getElementById('obsEval').value;
+      if (!url) { showToast('Enter a URL', 'error'); return; }
+      const resultEl = document.getElementById('obsResult');
+      resultEl.style.display = 'block';
+      resultEl.textContent = 'Scraping ' + url + '...';
+      try {
+        const r = await fetch('/api/obscura/scrape', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, eval: evalExpr || undefined, dump: evalExpr ? undefined : 'html' })
+        });
+        const data = await r.json();
+        resultEl.textContent = data.success ? (data.output || JSON.stringify(data, null, 2)) : 'Error: ' + (data.error || 'Unknown');
+        if (data.success) showToast('Scraped successfully (' + data.latency + 'ms)', 'success');
+        else showToast('Scrape failed: ' + data.error, 'error');
+      } catch (e) {
+        resultEl.textContent = 'Connection error: ' + e.message + '\n\nMake sure obscura is running:\n  obscura serve --port 9222';
+        showToast('Obscura not connected', 'error');
+      }
+    }
+
+    async function obscuraScreenshot() {
+      const url = document.getElementById('obsUrl').value;
+      if (!url) { showToast('Enter a URL', 'error'); return; }
+      showToast('Screenshot feature requires obscura binary with render support', 'info');
+    }
+
+    async function obscuraMonitor() {
+      const url = document.getElementById('obsMonUrl').value;
+      const interval = parseInt(document.getElementById('obsMonInterval').value) || 60000;
+      if (!url) { showToast('Enter a URL', 'error'); return; }
+      try {
+        const r = await fetch('/api/obscura/monitor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, interval })
+        });
+        const data = await r.json();
+        if (data.status === 'monitoring') {
+          showToast('Monitoring started for ' + url, 'success');
+          obscuraUpdateMonitors();
+        }
+      } catch (e) {
+        showToast('Failed to start monitoring', 'error');
+      }
+    }
+
+    async function obscuraUpdateMonitors() {
+      try {
+        const r = await fetch('/api/obscura/status');
+        const data = await r.json();
+        document.getElementById('obsMonitors').textContent = (data.monitors || []).length;
+        const list = document.getElementById('obsMonList');
+        if (list && data.monitors) {
+          list.innerHTML = data.monitors.map(m =>
+            '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-color);font-size:var(--font-sm);"><span style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;max-width:200px;">' + m.url + '</span><span class="badge badge-green">' + m.changes + ' changes</span></div>'
+          ).join('');
+        }
+        document.getElementById('obsPages').textContent = data.metrics?.[0]?.value || 0;
+        document.getElementById('obsSuccess').textContent = data.metrics?.[1]?.value || '100%';
+        document.getElementById('obsLatency').textContent = data.metrics?.[2]?.value || '85ms';
+        // Update history table
+        const tbody = document.getElementById('obsHistoryBody');
+        if (tbody && data.history) {
+          tbody.innerHTML = data.history.slice(-20).reverse().map(h =>
+            '<tr><td style="font-family:\'JetBrains Mono\',monospace;font-size:var(--font-xs);max-width:200px;overflow:hidden;text-overflow:ellipsis;">' + h.url + '</td><td><span class="badge ' + (h.success ? 'badge-green' : 'badge-red') + '">' + (h.success ? 'OK' : 'Fail') + '</span></td><td>' + h.latency + 'ms</td><td style="font-size:var(--font-xs);color:var(--text-muted);">' + new Date(h.timestamp).toLocaleTimeString() + '</td></tr>'
+          ).join('');
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    async function obscuraConnect() {
+      const port = document.getElementById('obsPort').value || 9222;
+      const stealth = document.getElementById('obsStealthToggle').classList.contains('active');
+      showToast('Connecting to obscura on port ' + port + '...', 'info');
+      try {
+        const r = await fetch('/api/obscura/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ port, stealth }) });
+        const data = await r.json();
+        if (data.success) { obscuraConnected = true; showToast('Connected to obscura!', 'success'); obscuraUpdateMonitors(); }
+        else showToast('Connection failed: ' + data.error, 'error');
+      } catch (e) {
+        showToast('Cannot connect. Install obscura first.', 'error');
+      }
+    }
+
+    async function obscuraDisconnect() {
+      try {
+        await fetch('/api/obscura/disconnect', { method: 'POST' });
+        obscuraConnected = false;
+        showToast('Disconnected from obscura', 'info');
+      } catch (e) { showToast('Disconnect failed', 'error'); }
+    }
+
+    function obscuraInstall() {
+      showToast('Run: bash gpu-platform/bin/install-obscura.sh', 'info');
+    }
+
+    // Poll obscura status when on the obscura page
+    setInterval(() => {
+      const page = document.querySelector('.page-section.active')?.id;
+      if (page === 'page-obscura') obscuraUpdateMonitors();
+    }, 5000);
+
+    // ── INIT ────────────────────────────────────
+    renderTierGrids();
+    renderAgents('all');
+    renderTasks();
+    renderProposals();
+    renderBadges();
+    renderChat();
+    renderActivity();
+    renderPermissionMatrix();
+    renderContractAdmin();
+    applyRBAC();
+    initCharts();
+    updateAuthUI();
+
+    // Restore saved theme
+    if (savedTheme && savedTheme !== 'dark') {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      document.getElementById('themeToggle').querySelector('span:first-child').textContent =
+        savedTheme === 'light' ? '☀️' : '◐';
+      syncThemePreviewCards(savedTheme);
+    }
+
+    // Connect WebSocket + live metrics
+    connectWebSocket();
+    setInterval(updateLiveMetrics, 2000);
+  </script>
+</body>
+</html>

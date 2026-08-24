@@ -63,7 +63,10 @@ RUN mkdir -p /var/log/nginx /var/cache/nginx /var/run /opt/gpu-platform/data && 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD curl -f http://localhost/health || exit 1
 
-# Environment defaults
+# Environment defaults (non-sensitive values only)
+# Secrets like GPU_AUTH_SECRET should be passed at runtime via:
+#   docker run -e GPU_AUTH_SECRET=<value> ...
+#   or docker-compose environment section
 ENV GPU_PORT=9091 \
     GPU_HOST=0.0.0.0 \
     GPU_WS_ENABLED=true \
@@ -72,8 +75,6 @@ ENV GPU_PORT=9091 \
     GPU_OBSURA_PORT=9222 \
     GPU_RPC_URL=http://localhost:8545 \
     GPU_REGISTRY_CONTRACT="" \
-    GPU_AUTH_SECRET="" \
-    GPU_AUTH_REQUIRED=false \
     NODE_ENV=production
 
 # Expose ports
