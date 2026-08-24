@@ -70,7 +70,6 @@ contract FCMTaskMarketplace is ReentrancyGuard, AccessControl {
 
     function listSpotTask(
         bytes32 _taskId,
-        bytes32 _requirements,
         uint256 _maxPrice,
         uint256 _deadline,
         TaskPriority _priority
@@ -90,7 +89,6 @@ contract FCMTaskMarketplace is ReentrancyGuard, AccessControl {
 
     function listAuctionTask(
         bytes32 _taskId,
-        bytes32 _requirements,
         uint256 _minPrice,
         uint256 _maxPrice,
         uint256 _auctionDuration

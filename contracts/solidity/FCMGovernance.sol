@@ -93,7 +93,7 @@ contract FCMGovernance is AccessControl, ReentrancyGuard, Pausable {
 
     // ── Voting ──────────────────────────────────────────────────
 
-    function castVote(uint256 proposalId, uint8 support) external whenNotPaused {
+    function castVote(uint256 proposalId, uint8 support) external nonReentrant whenNotPaused {
         Proposal storage p = proposals[proposalId];
         require(p.id != 0, "Unknown proposal");
         require(p.state == ProposalState.Active, "Not active");
@@ -118,7 +118,7 @@ contract FCMGovernance is AccessControl, ReentrancyGuard, Pausable {
 
     // ── Execution ───────────────────────────────────────────────
 
-    function queueProposal(uint256 proposalId) external {
+    function queueProposal(uint256 proposalId) external nonReentrant {
         Proposal storage p = proposals[proposalId];
         require(p.id != 0, "Unknown proposal");
         require(p.state == ProposalState.Active, "Not active");

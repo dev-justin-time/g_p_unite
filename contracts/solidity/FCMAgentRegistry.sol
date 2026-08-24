@@ -234,6 +234,7 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard, Pausable {
 
     // ── Disputes ──
     function disputeTask(bytes32 _taskId, string calldata _reason) external {
+        require(bytes(_reason).length > 0, "Reason required");
         Task storage task = tasks[_taskId];
         require(task.requester == msg.sender, "Not requester");
         require(task.status == TaskStatus.Completed, "Not completed");
@@ -254,13 +255,13 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard, Pausable {
             uint256 slashAmount = (agents[didHash].stake * SLASH_PERCENT) / 10000;
             agents[didHash].stake -= slashAmount;
             agents[didHash].reputation = max(agents[didHash].reputation - 500, 0);
-            require(fcmToken.transfer(task.requester, task.reward + slashAmount), "Transfer failed");
             task.status = TaskStatus.Slashed;
             slashHistory[didHash] += slashAmount;
             emit AgentSlashed(didHash, slashAmount, _resolution);
+            require(fcmToken.transfer(task.requester, task.reward + slashAmount), "Transfer failed");
         } else {
-            require(fcmToken.transfer(task.assignedAgent, task.reward), "Transfer failed");
             task.status = TaskStatus.Resolved;
+            require(fcmToken.transfer(task.assignedAgent, task.reward), "Transfer failed");
         }
     }
 
@@ -347,7 +348,7 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard, Pausable {
         for (uint i = ops.length; i > 0; i--) {
             if (agents[ops[i - 1]].isActive) return ops[i - 1];
         }
-        return ops[ops.length - 1];
+        revert("No active agent");
     }
 
     function min(uint256 a, uint256 b) internal pure returns (uint256) { return a < b ? a : b; }

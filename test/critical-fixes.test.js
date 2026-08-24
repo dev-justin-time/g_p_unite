@@ -113,7 +113,7 @@ describe("Critical Vulnerability Fixes", function () {
             const price = ethers.parseEther("50");
             const deadline = (await ethers.provider.getBlock("latest")).timestamp + 86400;
 
-            await marketplace.connect(requester).listSpotTask(taskId, caps, price, deadline, 0);
+            await marketplace.connect(requester).listSpotTask(taskId, price, deadline, 0);
 
             const balBefore = await token.balanceOf(requester.address);
             await expect(
@@ -130,7 +130,7 @@ describe("Critical Vulnerability Fixes", function () {
             const price = ethers.parseEther("50");
             const deadline = (await ethers.provider.getBlock("latest")).timestamp + 86400;
 
-            await marketplace.connect(requester).listSpotTask(taskId, caps, price, deadline, 0);
+            await marketplace.connect(requester).listSpotTask(taskId, price, deadline, 0);
 
             await expect(
                 marketplace.connect(agent1).cancelSpotTask(taskId)
@@ -143,7 +143,7 @@ describe("Critical Vulnerability Fixes", function () {
             const price = ethers.parseEther("50");
             const deadline = (await ethers.provider.getBlock("latest")).timestamp + 86400;
 
-            await marketplace.connect(requester).listSpotTask(taskId, caps, price, deadline, 0);
+            await marketplace.connect(requester).listSpotTask(taskId, price, deadline, 0);
             await marketplace.connect(requester).cancelSpotTask(taskId);
 
             await expect(
@@ -166,7 +166,7 @@ describe("Critical Vulnerability Fixes", function () {
 
             // Create auction
             const taskId = ethers.keccak256(ethers.toUtf8Bytes("auction-refund"));
-            await marketplace.connect(requester).listAuctionTask(taskId, caps, ethers.parseEther("10"), ethers.parseEther("100"), 3600);
+            await marketplace.connect(requester).listAuctionTask(taskId, ethers.parseEther("10"), ethers.parseEther("100"), 3600);
 
             // Agent2 places higher bid (will lose)
             await marketplace.connect(agent2).placeBid(taskId, did2, ethers.parseEther("80"));

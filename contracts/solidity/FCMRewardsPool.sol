@@ -156,7 +156,7 @@ contract FCMRewardsPool is AccessControl, ReentrancyGuard, Pausable {
 
     // ── Epoch Finalization ──────────────────────────────────────
 
-    function finalizeEpoch() external whenNotPaused {
+    function finalizeEpoch() external onlyRole(ADMIN_ROLE) whenNotPaused {
         require(block.timestamp >= epochStartTime + EPOCH_DURATION, "Epoch not ended");
 
         EpochReward storage epoch = epochs[currentEpoch];

@@ -47,7 +47,7 @@ describe("FCMTaskMarketplace", function () {
             const deadline = (await ethers.provider.getBlock("latest")).timestamp + 86400;
 
             await expect(
-                marketplace.listSpotTask(taskId, requirements, maxPrice, deadline, 1)
+                marketplace.listSpotTask(taskId, maxPrice, deadline, 1)
             ).to.emit(marketplace, "SpotTaskListed").withArgs(taskId, admin.address, maxPrice, 1);
         });
     });
@@ -60,7 +60,7 @@ describe("FCMTaskMarketplace", function () {
             const maxPrice = ethers.parseEther("10");
             const duration = 3600; // 1 hour
 
-            await marketplace.listAuctionTask(taskId, requirements, minPrice, maxPrice, duration);
+            await marketplace.listAuctionTask(taskId, minPrice, maxPrice, duration);
 
             const auction = await marketplace.auctionTasks(taskId);
             expect(auction.taskId).to.equal(taskId);
@@ -74,7 +74,7 @@ describe("FCMTaskMarketplace", function () {
             const maxPrice = ethers.parseEther("10");
             const duration = 3600;
 
-            await marketplace.listAuctionTask(taskId, ethers.ZeroHash, minPrice, maxPrice, duration);
+            await marketplace.listAuctionTask(taskId, minPrice, maxPrice, duration);
 
             // Price at start should be maxPrice
             const priceNow = await marketplace.getAuctionPrice(taskId);
@@ -95,7 +95,7 @@ describe("FCMTaskMarketplace", function () {
             const maxPrice = ethers.parseEther("10");
             const duration = 3600;
 
-            await marketplace.listAuctionTask(taskId, ethers.ZeroHash, minPrice, maxPrice, duration);
+            await marketplace.listAuctionTask(taskId, minPrice, maxPrice, duration);
 
             const bidPrice = ethers.parseEther("8");
             await expect(
@@ -109,7 +109,7 @@ describe("FCMTaskMarketplace", function () {
             const maxPrice = ethers.parseEther("10");
             const duration = 3600;
 
-            await marketplace.listAuctionTask(taskId, ethers.ZeroHash, minPrice, maxPrice, duration);
+            await marketplace.listAuctionTask(taskId, minPrice, maxPrice, duration);
 
             const bidPrice = ethers.parseEther("11"); // Above max
             await expect(
@@ -123,7 +123,7 @@ describe("FCMTaskMarketplace", function () {
             const maxPrice = ethers.parseEther("10");
             const duration = 60;
 
-            await marketplace.listAuctionTask(taskId, ethers.ZeroHash, minPrice, maxPrice, duration);
+            await marketplace.listAuctionTask(taskId, minPrice, maxPrice, duration);
 
             // Place bids
             await marketplace.placeBid(taskId, ethers.encodeBytes32String("agent-1"), ethers.parseEther("5"));

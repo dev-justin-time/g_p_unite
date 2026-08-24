@@ -254,8 +254,12 @@ contract FCMTierStaking is AccessControl, ReentrancyGuard, Pausable {
         require(info.exists && info.amount > 0, "No stake");
 
         uint256 amount = info.amount;
+        uint8 oldTier = info.currentTier;
         info.amount = 0;
         info.currentTier = 0;
+        if (oldTier > 0) {
+            tierStakeCount[oldTier]--;
+        }
         tierStakeCount[0]++;
 
         require(fcmToken.transfer(msg.sender, amount), "Transfer failed");

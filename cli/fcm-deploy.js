@@ -174,7 +174,7 @@ class FCMDeployer {
         const config = await this.loadConfig();
         const marketplace = new ethers.Contract(
             config.contracts.FCMTaskMarketplace,
-            ["function listSpotTask(bytes32,bytes32,uint256,uint256,uint8)"],
+            ["function listSpotTask(bytes32,uint256,uint256,uint8)"],
             this.wallet
         );
         const taskId = ethers.keccak256(ethers.toUtf8Bytes("task-" + Date.now()));
@@ -182,7 +182,7 @@ class FCMDeployer {
         const maxPrice = ethers.parseUnits("10", 18);
         const deadline = Math.floor(Date.now() / 1000) + 3600;
         console.log(`Creating task: ${taskId.slice(0, 20)}...`);
-        const tx = await marketplace.listSpotTask(taskId, requirements, maxPrice, deadline, 2);
+        const tx = await marketplace.listSpotTask(taskId, maxPrice, deadline, 2);
         await tx.wait();
         console.log("✅ Task listed on marketplace!");
     }
