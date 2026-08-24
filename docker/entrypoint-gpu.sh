@@ -3,7 +3,7 @@ set -e
 
 # ═══════════════════════════════════════════════════════════════
 # GPU Platform GUI — Entrypoint
-# Starts nginx + optional WebSocket server + obscura
+# Starts nginx + live API/WebSocket server + optional obscura
 # ═══════════════════════════════════════════════════════════════
 
 echo "╔══════════════════════════════════════════╗"
@@ -148,7 +148,8 @@ echo ""
 echo "╔══════════════════════════════════════════════════════════╗"
 echo "║   GPU Platform GUI — Ready!                            ║"
 echo "║                                                        ║"
-echo "║   🌐 GUI:    http://localhost:${GPU_PORT}/gpu_nited.html  ║"
+echo "║   🌐 GUI:    http://localhost:${GPU_PORT}/gpu_nited.html  ║
+║   🤖 LIVE:   http://localhost:${GPU_PORT}/gpuagent.html    ║"
 echo "║   🔌 WS:     ws://localhost:${GPU_WS_PORT}                ║"
 echo "║   📊 Health: http://localhost:${GPU_PORT}/health          ║"
 echo "╚══════════════════════════════════════════════════════════╝"

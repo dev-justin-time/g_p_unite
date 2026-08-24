@@ -1,6 +1,6 @@
 # ═══════════════════════════════════════════════════════════════
 # GPU Platform GUI — Dockerfile
-# Serves the unified platform GUI (gpu_nited.html) via nginx
+# Serves the unified and live GPU agent GUIs via nginx
 # with optional obscura headless browser integration
 # ═══════════════════════════════════════════════════════════════
 
@@ -42,6 +42,7 @@ COPY --from=builder /app/config /opt/gpu-platform/config
 
 # Copy GPU platform static files
 COPY gpu-platform/gpu_nited.html /usr/share/nginx/html/
+COPY gpu-platform/gpuagent.html /usr/share/nginx/html/
 COPY gpu-platform/css/ /usr/share/nginx/html/css/
 COPY gpu-platform/js/ /usr/share/nginx/html/js/
 COPY gpu-platform/config/ /usr/share/nginx/html/config/
@@ -75,6 +76,15 @@ ENV GPU_PORT=9091 \
     GPU_OBSURA_PORT=9222 \
     GPU_RPC_URL=http://localhost:8545 \
     GPU_REGISTRY_CONTRACT="" \
+    FCM_RPC_URL=http://localhost:8545 \
+    FCM_REGISTRY="" \
+    FCM_TOKEN="" \
+    FCM_TIER_STAKING="" \
+    FCM_GOVERNANCE="" \
+    FCM_ESCROW="" \
+    FCM_REPUTATION_NFT="" \
+    FCM_REWARDS_POOL="" \
+    FCM_AUTH_REQUIRED=true \
     NODE_ENV=production
 
 # Expose ports
