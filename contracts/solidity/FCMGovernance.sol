@@ -83,7 +83,8 @@ contract FCMGovernance is AccessControl, ReentrancyGuard, Pausable {
         p.target = target;
         p.callData = callData;
         p.startBlock = block.number + 1;
-        p.endBlock = block.number + 1 + (votingDuration / 12); // ~12s blocks
+        p.endBlock = p.startBlock + (votingDuration / 12); // ~12s blocks
+        p.totalStakedAtProposal = fcmToken.totalSupply();
         p.state = ProposalState.Active;
 
         emit ProposalCreated(proposalCount, msg.sender, description, target, p.endBlock);
@@ -94,7 +95,9 @@ contract FCMGovernance is AccessControl, ReentrancyGuard, Pausable {
 
     function castVote(uint256 proposalId, uint8 support) external whenNotPaused {
         Proposal storage p = proposals[proposalId];
+        require(p.id != 0, "Unknown proposal");
         require(p.state == ProposalState.Active, "Not active");
+        require(block.number >= p.startBlock, "Voting not started");
         require(block.number <= p.endBlock, "Voting ended");
         require(!p.hasVoted[msg.sender], "Already voted");
         require(support <= 2, "Invalid vote (0=against, 1=for, 2=abstain)");
@@ -117,6 +120,7 @@ contract FCMGovernance is AccessControl, ReentrancyGuard, Pausable {
 
     function queueProposal(uint256 proposalId) external {
         Proposal storage p = proposals[proposalId];
+        require(p.id != 0, "Unknown proposal");
         require(p.state == ProposalState.Active, "Not active");
         require(block.number > p.endBlock, "Voting not ended");
         require(_quorumReached(proposalId), "Quorum not reached");
@@ -129,6 +133,7 @@ contract FCMGovernance is AccessControl, ReentrancyGuard, Pausable {
 
     function executeProposal(uint256 proposalId) external nonReentrant whenNotPaused {
         Proposal storage p = proposals[proposalId];
+        require(p.id != 0, "Unknown proposal");
         require(p.state == ProposalState.Queued, "Not queued");
         require(block.timestamp >= p.eta, "Timelock active");
 
@@ -198,13 +203,14 @@ contract FCMGovernance is AccessControl, ReentrancyGuard, Pausable {
         uint8 tier = tierStaking.getTier(voter);
         // Tier 0=1x, 1=2x, 2=3x, 3=5x, 4=10x, 5=20x
         uint256[6] memory tierWeights = [uint256(1), uint256(2), uint256(3), uint256(5), uint256(10), uint256(20)];
+        if (tier >= tierWeights.length) tier = 0;
         return fcmToken.balanceOf(voter) * tierWeights[tier] / 100;
     }
 
     function _quorumReached(uint256 proposalId) internal view returns (bool) {
         Proposal storage p = proposals[proposalId];
         uint256 totalVotes = p.forVotes + p.againstVotes + p.abstainVotes;
-        uint256 quorum = (fcmToken.totalSupply() * quorumThreshold) / 10000;
+        uint256 quorum = (p.totalStakedAtProposal * quorumThreshold) / 10000;
         return totalVotes >= quorum;
     }
 

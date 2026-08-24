@@ -294,6 +294,7 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard, Pausable {
         require(task.status == TaskStatus.Disputed, "Not disputed");
         require(task.disputedAt > 0, "No dispute timestamp");
         require(block.timestamp > task.disputedAt + disputeResolutionDeadline, "Dispute not expired");
+        require(task.assignedAgent != address(0), "No assigned agent");
         require(
             task.requester == msg.sender || task.assignedAgent == msg.sender,
             "Not party to dispute"

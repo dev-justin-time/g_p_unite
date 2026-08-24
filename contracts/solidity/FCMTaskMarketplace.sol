@@ -75,6 +75,7 @@ contract FCMTaskMarketplace is ReentrancyGuard, AccessControl {
         uint256 _deadline,
         TaskPriority _priority
     ) external nonReentrant {
+        require(spotTaskListers[_taskId] == address(0), "Spot task exists");
         require(_maxPrice > 0, "Price must be > 0");
         require(_deadline > block.timestamp, "Invalid deadline");
 
@@ -94,6 +95,7 @@ contract FCMTaskMarketplace is ReentrancyGuard, AccessControl {
         uint256 _maxPrice,
         uint256 _auctionDuration
     ) external nonReentrant {
+        require(auctionTasks[_taskId].lister == address(0), "Auction exists");
         require(_minPrice > 0 && _maxPrice > _minPrice, "Invalid price range");
         require(_auctionDuration > 0 && _auctionDuration <= 86400, "Duration 1s-24h");
 
@@ -146,6 +148,7 @@ contract FCMTaskMarketplace is ReentrancyGuard, AccessControl {
         require(block.timestamp >= auction.auctionEnd, "Auction active");
         require(auction.bids.length > 0, "No bids");
         require(!auction.settled, "Already settled");
+        require(auction.lister != address(0), "Auction not found");
 
         // Find lowest bid
         Bid memory bestBid = auction.bids[0];
@@ -194,10 +197,10 @@ contract FCMTaskMarketplace is ReentrancyGuard, AccessControl {
         bid.withdrawn = true;
         uint256 amount = bid.price;
         if (amount > 0) {
-            escrowedBids[msg.sender] -= amount;
-            require(fcmToken.transfer(msg.sender, amount), "Refund failed");
+            escrowedBids[bid.bidder] -= amount;
+            require(fcmToken.transfer(bid.bidder, amount), "Refund failed");
         }
 
-        emit BidRefunded(_taskId, msg.sender, amount);
+        emit BidRefunded(_taskId, bid.bidder, amount);
     }
 }
