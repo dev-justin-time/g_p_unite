@@ -43,6 +43,9 @@
         <div class="nav-section"><div class="nav-section-title">Communication</div>
           <button class="nav-item" data-page="chat"><span class="nav-icon" aria-hidden="true">💬</span>Chat</button>
         </div>
+        <div class="nav-section"><div class="nav-section-title">Automation</div>
+          <button class="nav-item" data-page="obscura"><span class="nav-icon" aria-hidden="true">🕸️</span>Obscura Browser<span class="nav-badge green">Live</span></button>
+        </div>
         <div class="nav-section"><div class="nav-section-title">System</div>
           <button class="nav-item" data-page="resources"><span class="nav-icon" aria-hidden="true">⚡</span>Resources</button>
           <button class="nav-item" data-page="settings"><span class="nav-icon" aria-hidden="true">⚙️</span>Settings</button>
@@ -290,6 +293,54 @@
             <div class="chat-container">
               <div class="chat-messages" id="chatMessages" role="log" aria-live="polite"></div>
               <div class="chat-input-row"><label for="chatInput" class="sr-only">Type a message</label><input type="text" id="chatInput" placeholder="Type a message to agents..." autocomplete="off"><button class="btn btn-primary" onclick="sendChat()" data-action="send_chat">Send</button></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- OBSCURA BROWSER -->
+        <section class="page-section" id="page-obscura">
+          <h1 class="page-title">🕸️ Obscura Browser</h1>
+          <p class="page-subtitle">Headless browser for web scraping, monitoring, and AI agent automation. Powered by <a href="https://github.com/h4ckf0r0day/obscura" target="_blank" style="color:var(--accent);">obscura</a> (Rust + V8).</p>
+          <div class="card-grid cols-4" style="margin-bottom:24px;">
+            <div class="stat-card"><div class="stat-icon blue">📄</div><div><div class="stat-value" id="obsPages">0</div><div class="stat-label">Pages Scraped</div></div></div>
+            <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value" id="obsSuccess">100%</div><div class="stat-label">Success Rate</div></div></div>
+            <div class="stat-card"><div class="stat-icon amber">⚡</div><div><div class="stat-value" id="obsLatency">85ms</div><div class="stat-label">Avg Latency</div></div></div>
+            <div class="stat-card"><div class="stat-icon purple">👁</div><div><div class="stat-value" id="obsMonitors">0</div><div class="stat-label">Active Monitors</div></div></div>
+          </div>
+          <div class="card-grid cols-2" style="margin-bottom:24px;">
+            <div class="card">
+              <h3 style="font-weight:700;margin-bottom:16px;">🔍 Quick Scrape</h3>
+              <div class="form-group"><label class="form-label" for="obsUrl">URL</label><input class="form-input" id="obsUrl" placeholder="https://example.com"></div>
+              <div class="form-group"><label class="form-label" for="obsEval">Eval JS (optional)</label><input class="form-input" id="obsEval" placeholder="document.title"></div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-primary" onclick="obscuraScrape()">🕸️ Scrape</button>
+                <button class="btn btn-secondary" onclick="obscuraScreenshot()">📸 Screenshot</button>
+              </div>
+              <div id="obsResult" style="margin-top:16px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:12px;font-family:'JetBrains Mono',monospace;font-size:11px;max-height:300px;overflow:auto;display:none;white-space:pre-wrap;color:var(--text-secondary);"></div>
+            </div>
+            <div class="card">
+              <h3 style="font-weight:700;margin-bottom:16px;">👁 Monitor URLs</h3>
+              <div class="form-group"><label class="form-label" for="obsMonUrl">URL to Monitor</label><input class="form-input" id="obsMonUrl" placeholder="https://example.com"></div>
+              <div class="form-group"><label class="form-label" for="obsMonInterval">Check Interval (ms)</label><input class="form-input" id="obsMonInterval" type="number" value="60000"></div>
+              <button class="btn btn-primary" onclick="obscuraMonitor()">👁 Start Monitoring</button>
+              <div id="obsMonList" style="margin-top:16px;"></div>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:24px;">
+            <h3 style="font-weight:700;margin-bottom:16px;">📊 Scraping History</h3>
+            <div class="table-wrapper"><table><thead><tr><th>URL</th><th>Status</th><th>Latency</th><th>Time</th></tr></thead><tbody id="obsHistoryBody"></tbody></table></div>
+          </div>
+          <div class="card">
+            <h3 style="font-weight:700;margin-bottom:16px;">⚙️ Obscura Config</h3>
+            <div class="card-grid cols-3">
+              <div class="setting-row"><div class="setting-info"><h4>Stealth Mode</h4><p>Anti-detection + tracker blocking</p></div><button class="toggle active" id="obsStealthToggle" onclick="this.classList.toggle('active')" role="switch" aria-checked="true"></button></div>
+              <div class="setting-row"><div class="setting-info"><h4>CDP Port</h4><p>Chrome DevTools Protocol port</p></div><input class="form-input" style="width:120px;" value="9222" id="obsPort"></div>
+              <div class="setting-row"><div class="setting-info"><h4>Proxy</h4><p>HTTP/SOCKS5 proxy URL</p></div><input class="form-input" style="width:200px;" placeholder="socks5://127.0.0.1:1080" id="obsProxy"></div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:16px;">
+              <button class="btn btn-primary" onclick="obscuraConnect()">🔌 Connect</button>
+              <button class="btn btn-danger" onclick="obscuraDisconnect()">⏹ Disconnect</button>
+              <button class="btn btn-secondary" onclick="obscuraInstall()">📥 Install Binary</button>
             </div>
           </div>
         </section>
