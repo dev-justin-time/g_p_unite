@@ -1,0 +1,95 @@
+{
+  "platform": {
+    "name": "G P Unite",
+    "description": "Decentralized GPU Sharing Platform",
+    "version": "1.0.0",
+    "baseUrl": "http://127.0.0.1:9090"
+  },
+  "agents": {
+    "total": 18,
+    "categories": {
+      "compute": 8,
+      "infrastructure": 4,
+      "platform": 6
+    },
+    "heartbeatInterval": 3000,
+    "maxConcurrentTasks": 50
+  },
+  "tiers": [
+    { "level": 0, "name": "Free", "minStake": "0 FCM", "multiplier": "0.5x", "hwScore": 0, "maxTasks": 1 },
+    { "level": 1, "name": "Starter", "minStake": "100 FCM", "multiplier": "1x", "hwScore": 2000, "maxTasks": 3 },
+    { "level": 2, "name": "Standard", "minStake": "500 FCM", "multiplier": "1.5x", "hwScore": 4000, "maxTasks": 5 },
+    { "level": 3, "name": "Advanced", "minStake": "2,000 FCM", "multiplier": "2x", "hwScore": 6000, "maxTasks": 10 },
+    { "level": 4, "name": "Pro", "minStake": "10,000 FCM", "multiplier": "3x", "hwScore": 8000, "maxTasks": 20 },
+    { "level": 5, "name": "Elite", "minStake": "50,000 FCM", "multiplier": "5x", "hwScore": 9000, "maxTasks": 50 }
+  ],
+  "staking": {
+    "minStake": 0,
+    "unstakeGracePeriod": 604800,
+    "maxUnstakePerDay": 3
+  },
+  "governance": {
+    "quorumThreshold": 0.5,
+    "votingPeriod": 604800,
+    "timelock": 86400,
+    "emergencyVotingPeriod": 21600
+  },
+  "escrow": {
+    "disputeWindow": 604800,
+    "maxMilestones": 20,
+    "arbitrationFee": "100 FCM"
+  },
+  "reputation": {
+    "baseTaskScore": 10,
+    "tierBonusMultiplier": 1.5,
+    "decayFactor": 0.95,
+    "maxScore": 10000
+  },
+  "websocket": {
+    "reconnectBaseDelay": 1000,
+    "reconnectMaxDelay": 30000,
+    "heartbeatInterval": 5000,
+    "channels": ["agents", "tiers", "governance", "escrows", "reputation", "system", "rewards"]
+  },
+  "auth": {
+    "tokenTTL": 86400000,
+    "algorithm": "hmac-sha256",
+    "secretEnv": "FCM_AUTH_SECRET"
+  },
+  "theme": {
+    "default": "dark",
+    "options": ["dark", "light", "high-contrast"],
+    "localStorageKey": "fcm_theme"
+  },
+  "accessibility": {
+    "fontSizes": ["small", "default", "large", "xlarge"],
+    "reducedMotion": false,
+    "highContrast": false
+  },
+  "contracts": [
+    "FCMToken",
+    "FCMAgentRegistry",
+    "FCMTaskMarketplace",
+    "FCMTierStaking",
+    "FCMGovernance",
+    "FCMEscrow",
+    "FCMReputationNFT",
+    "FCMRewardsPool"
+  ],
+  "supportedNetworks": [
+    { "name": "Ethereum Mainnet", "chainId": 1 },
+    { "name": "Sepolia Testnet", "chainId": 11155111 },
+    { "name": "Base Sepolia", "chainId": 84532 },
+    { "name": "Arbitrum Sepolia", "chainId": 421614 }
+  ],
+  "menu": {
+    "sections": [
+      { "title": "Getting Started", "items": ["onboarding", "dashboard"] },
+      { "title": "Compute", "items": ["agents", "marketplace"] },
+      { "title": "Staking & Finance", "items": ["staking", "escrow"] },
+      { "title": "Governance", "items": ["governance", "reputation"] },
+      { "title": "Communication", "items": ["chat"] },
+      { "title": "System", "items": ["resources", "settings", "admin"] }
+    ]
+  }
+}

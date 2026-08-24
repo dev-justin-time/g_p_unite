@@ -1,0 +1,129 @@
+
+Role Permission Matrix
+
+┌──────────────────┬───────┬──────────┬────────┐
+│ Permission       │ Admin │ Operator │ Viewer │
+├──────────────────┼───────┼──────────┼────────┤
+│ dashboard:view   │ ✅    │ ✅       │ ✅     │
+│ agents:view      │ ✅    │ ✅       │ ✅     │
+│ agents:focus     │ ✅    │ ✅       │ ✅     │
+│ chat:send        │ ✅    │ ✅       │ ❌     │
+│ tasks:claim      │ ✅    │ ✅       │ ❌     │
+│ staking:stake    │ ✅    │ ✅       │ ❌     │
+│ governance:vote  │ ✅    │ ✅       │ ❌     │
+│ settings:edit    │ ✅    │ ✅       │ ❌     │
+│ admin:view       │ ✅    │ ❌       │ ❌     │
+│ admin:manage     │ ✅    │ ❌       │ ❌     │
+│ admin:roles      │ ✅    │ ❌       │ ❌     │
+│ system:emergency │ ✅    │ ❌       │ ❌     │
+└──────────────────┴───────┴──────────┴────────┘
+
+API Endpoints
+
+┌────────────────────┬──────────┬───────┬──────────────────────────────────────────┐
+│ Endpoint           │ Method   │ Auth  │ Description                              │
+├────────────────────┼──────────┼───────┼──────────────────────────────────────────┤
+│ /api/auth/login    │ POST     │ No    │ Login with wallet address, get token     │
+│ /api/auth/register │ POST     │ Admin │ Register wallet with role                │
+│ /api/auth/refresh  │ POST     │ No    │ Refresh an existing token                │
+│ /api/auth/revoke   │ POST     │ No    │ Revoke token or all sessions for address │
+│ /api/health        │ GET      │ No    │ Server health + auth stats               │
+│ /api/*             │ GET/POST │ Yes   │ All other endpoints require valid token  │
+└────────────────────┴──────────┴───────┴──────────────────────────────────────────┘
+
+WebSocket Auth Flow
+
+1. Client connects:  ws://host:port?token=<jwt> 
+2. Server validates: HMAC signature + expiration check
+3. Server responds:  { type: "auth", authed: true, role: "admin" } 
+4. All messages gated: Unauthenticated clients get  AUTH_REQUIRED  errors
+5. Token refresh: Client can send  { type: "refreshToken", token: "..." } 
+
+GUI Features
+
+- Login Modal: Wallet address input + role selector (operator/viewer)
+- Sidebar Status: Shows connected address and role when logged in
+- Login/Logout Buttons: Toggle based on auth state
+- Auto-prompt: Shows login modal if WebSocket rejects connection
+- Token Persistence: Stored in  localStorage , survives page reload
+- Onboarding Integration:  connectWallet()  also logs in via auth system
+
+How to Use
+
+// bash
+# 1. Set auth secret in .env
+echo 'FCM_AUTH_SECRET=my-super-secret-key' >> .env
+ 
+# 2. Start the server
+npm run live
+ 
+# 3. Open browser → Login modal appears
+# Enter wallet address → Click "Connect"
+# Token is stored → WebSocket connects with auth
+ 
+# 4. Or disable auth for development
+echo 'FCM_AUTH_REQUIRED=false' >> .env
+gpu_nited.html Structure ===" && grep -n "<script src" gpu_nited.html && echo "" && grep -n "<link rel=\"stylesheet\"" gpu_nited.html && echo "" && echo "=== Total ===" && echo "Total lines:" $(cat gpu_nited.html css/gpu-styles.css js/*.js config/gpu-defaults.json | wc -l)
+=== All Supporting Files ===
+📁 css/
+total 52
+drwxr-xr-x 1 dividicus 197121     0 Aug 23 18:48 .
+drwxr-xr-x 1 dividicus 197121     0 Aug 23 18:45 ..
+✅ Supporting Files Created — 8 Files, 2,748 Total Lines
+
+File Structure
+
+gpu_nited.html          (486 lines)  — Main HTML with external references
+css/
+  gpu-styles.css        (679 lines)  — All CSS themes, layout, components
+js/
+  gpu-agents-data.js    (534 lines)  — 18 agents with rules, source, tick()
+  gpu-chart-engine.js   (253 lines)  — Canvas chart engine (FCMChart class)
+  gpu-platform.js       (338 lines)  — Nav, onboarding, rendering, modals, toast
+  gpu-rbac.js           (103 lines)  — Role-based access control engine
+  gpu-theme.js           (89 lines)  — Theme system (dark/light/high-contrast)
+  gpu-ws-client.js      (171 lines)  — WebSocket with auth + reconnection
+config/
+  gpu-defaults.json      (95 lines)  — Platform configuration defaults
+
+What Each File Does
+
+┌──────────────┬────────────────────────────────────────────────────┬────────────────────────────┐
+│ File         │ Purpose                                            │ Functions                  │
+├──────────────┼────────────────────────────────────────────────────┼────────────────────────────┤
+│ gpu-styles.c │ All CSS: themes (dark/light/HC), layout,           │ —                          │
+│ ss           │ components, responsive, accessibility              │                            │
+│ gpu-agents-d │ 18 agent definitions: rules, source code, metrics, │ Data constants             │
+│ ata.js       │ tick() functions                                   │                            │
+│ gpu-chart-en │ Canvas 2D chart engine: line/area/bar, tooltips,   │ FCMChart, initCharts,      │
+│ gine.js      │ crosshair, legends                                 │ renderAllCharts,           │
+│              │                                                    │ ingest*Data                │
+│ gpu-platform │ Core logic: navigation, onboarding wizard, all     │ 30 functions               │
+│ .js          │ section renderers, modals, toasts, live metrics    │                            │
+│ gpu-rbac.js  │ RBAC: permission checks, role switching, admin     │ 7 functions                │
+│              │ panel, permission matrix                           │                            │
+│ gpu-ws-clien │ WebSocket: auth tokens, exponential backoff,       │ 14 functions               │
+│ t.js         │ message handling, login/logout                     │                            │
+│ gpu-theme.js │ Theme toggle, high contrast, font size, motion,    │ 8 functions                │
+│              │ live preview panel                                 │                            │
+│ gpu-defaults │ Config: tiers, staking rules, governance params,   │ JSON config                │
+│ .json        │ auth settings, contracts list                      │                            │
+└──────────────┴────────────────────────────────────────────────────┴────────────────────────────┘
+
+HTML References (Load Order)
+
+// html
+<link rel="stylesheet" href="css/gpu-styles.css">      <!-- 1. CSS -->
+<script src="js/gpu-agents-data.js"></script>           <!-- 2. Data first -->
+<script src="js/gpu-chart-engine.js"></script>           <!-- 3. Chart engine -->
+<script src="js/gpu-rbac.js"></script>                   <!-- 4. RBAC -->
+<script src="js/gpu-ws-client.js"></script>              <!-- 5. WebSocket -->
+<script src="js/gpu-theme.js"></script>                  <!-- 6. Theme -->
+<script src="js/gpu-platform.js"></script>               <!-- 7. Platform (last) -->
+
+How to View
+
+// bash
+npm run gpu        # Start server on port 9090
+# Open http://127.0.0.1:9090/gpu_nited.html
+Suggested followups:
