@@ -115,6 +115,8 @@ contract FCMRewardsPool is AccessControl, ReentrancyGuard, Pausable {
         reward.epochWork += workUnits;
         reward.totalEarned += 0; // Earned on claim, not on record
 
+        epochs[currentEpoch].tasksCompleted += workUnits;
+
         emit WorkRecorded(agent, agentType, workUnits);
     }
 

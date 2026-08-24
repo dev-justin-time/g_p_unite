@@ -143,7 +143,10 @@ contract FCMEscrow is AccessControl, ReentrancyGuard, Pausable {
     {
         Escrow storage e = escrows[escrowId];
         require(e.worker == msg.sender, "Not worker");
-        require(e.state == EscrowState.Funded || e.state == EscrowState.InProgress, "Invalid state");
+        require(
+            e.state == EscrowState.Funded || e.state == EscrowState.InProgress || e.state == EscrowState.Resolved,
+            "Invalid state"
+        );
         require(milestoneIndex < e.milestones.length, "Invalid milestone");
         require(!e.milestones[milestoneIndex].submitted, "Already submitted");
 
@@ -160,17 +163,15 @@ contract FCMEscrow is AccessControl, ReentrancyGuard, Pausable {
     {
         Escrow storage e = escrows[escrowId];
         require(e.client == msg.sender, "Not client");
-        require(e.state == EscrowState.InProgress, "Invalid state");
+        require(e.state == EscrowState.InProgress || e.state == EscrowState.Resolved, "Invalid state");
         require(milestoneIndex < e.milestones.length, "Invalid milestone");
         require(e.milestones[milestoneIndex].submitted, "Not submitted");
         require(!e.milestones[milestoneIndex].approved, "Already approved");
-        require(!e.hasApproved[msg.sender], "Already approved");
 
-        // Multi-sig check
+        // Multi-sig: client confirms twice before funds are released
         if (e.requiresMultiSig) {
-            e.hasApproved[msg.sender] = true;
             e.approvalCount++;
-            if (e.approvalCount < 2) return; // Need 2nd approval
+            if (e.approvalCount < 2) return;
         }
 
         uint256 milestoneAmount = e.milestones[milestoneIndex].amount;
@@ -179,9 +180,8 @@ contract FCMEscrow is AccessControl, ReentrancyGuard, Pausable {
         e.completedMilestones++;
         e.releasedAmount += milestoneAmount;
         e.remainingAmount -= milestoneAmount;
-        // Reset multi-sig state for the next milestone
+        // Reset multi-sig counter for the next milestone
         if (e.requiresMultiSig) {
-            e.hasApproved[msg.sender] = false;
             e.approvalCount = 0;
         }
 
@@ -211,7 +211,10 @@ contract FCMEscrow is AccessControl, ReentrancyGuard, Pausable {
             msg.sender == e.client || msg.sender == e.worker,
             "Not a party"
         );
-        require(e.state == EscrowState.InProgress, "Invalid state");
+        require(
+            e.state == EscrowState.InProgress || e.state == EscrowState.Resolved,
+            "Invalid state"
+        );
         require(block.timestamp <= e.disputeDeadline, "Dispute deadline passed");
         require(milestoneIndex < e.milestones.length, "Invalid milestone");
         require(e.milestones[milestoneIndex].submitted, "Not submitted");
@@ -252,6 +255,10 @@ contract FCMEscrow is AccessControl, ReentrancyGuard, Pausable {
 
         if (e.state == EscrowState.Disputed) {
             e.state = EscrowState.Resolved;
+            // If all milestones are now complete after resolution, mark as completed
+            if (e.completedMilestones == e.milestones.length) {
+                e.state = EscrowState.Completed;
+            }
         }
     }
 

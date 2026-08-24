@@ -208,18 +208,18 @@ describe("Full On-Chain Integration Flow", function () {
             const taskAfterDispute = await registry.tasks(taskId);
             expect(taskAfterDispute.status).to.equal(3); // Disputed
 
-            // Validator resolves in favor of agent (not agent's fault)
+            // Validator resolves in favor of agent — reward paid immediately
+            const balBefore = await token.balanceOf(agent1.address);
             await expect(
                 registry.connect(validator).resolveDispute(taskId, false, "Output verified correct")
             ).to.not.be.reverted;
+            const balAfter = await token.balanceOf(agent1.address);
+            expect(balAfter).to.be.gt(balBefore); // Reward transferred during resolution
 
-            // Agent can now withdraw — advance past deadline + dispute window
-            await ethers.provider.send("evm_increaseTime", [86400 + 86401]);
-            await ethers.provider.send("evm_mine");
-
+            // Double withdraw should be prevented
             await expect(
                 registry.connect(agent1).withdrawReward(taskId)
-            ).to.not.be.reverted;
+            ).to.be.revertedWith("Reward already withdrawn");
         });
 
         it("should slash agent when dispute resolved against them", async function () {

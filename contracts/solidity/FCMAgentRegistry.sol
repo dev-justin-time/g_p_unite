@@ -261,6 +261,7 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard, Pausable {
             require(fcmToken.transfer(task.requester, task.reward + slashAmount), "Transfer failed");
         } else {
             task.status = TaskStatus.Resolved;
+            task.rewardWithdrawn = true;
             require(fcmToken.transfer(task.assignedAgent, task.reward), "Transfer failed");
         }
     }

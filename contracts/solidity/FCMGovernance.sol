@@ -202,7 +202,7 @@ contract FCMGovernance is AccessControl, ReentrancyGuard, Pausable {
     function _getVotingPower(address voter) internal view returns (uint256) {
         uint8 tier = tierStaking.getTier(voter);
         // Tier 0=1x, 1=2x, 2=3x, 3=5x, 4=10x, 5=20x
-        uint256[6] memory tierWeights = [uint256(1), uint256(2), uint256(3), uint256(5), uint256(10), uint256(20)];
+        uint256[6] memory tierWeights = [uint256(100), uint256(200), uint256(300), uint256(500), uint256(1000), uint256(2000)];
         if (tier >= tierWeights.length) tier = 0;
         return fcmToken.balanceOf(voter) * tierWeights[tier] / 100;
     }

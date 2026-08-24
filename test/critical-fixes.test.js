@@ -250,7 +250,7 @@ describe("Critical Vulnerability Fixes", function () {
             ).to.be.revertedWith("Not completed");
         });
 
-        it("should still allow agent withdrawal after Resolved status", async function () {
+        it("should transfer reward during resolution and prevent double withdraw", async function () {
             const did = ethers.keccak256(ethers.toUtf8Bytes("dispute-withdraw"));
             const caps = ethers.encodeBytes32String("gpu");
             const geo = ethers.encodeBytes32String("u4pru");
@@ -263,18 +263,21 @@ describe("Critical Vulnerability Fixes", function () {
             await registry.connect(agent1).claimTask(taskId, did);
             await registry.connect(agent1).submitResult(taskId, ethers.ZeroHash, ethers.ZeroHash);
             await registry.connect(requester).disputeTask(taskId, "Dispute");
+
+            // Agent receives reward as part of dispute resolution (innocent verdict)
+            const balBefore = await token.balanceOf(agent1.address);
             await registry.connect(validator).resolveDispute(taskId, false, "Agent innocent");
+            const balAfter = await token.balanceOf(agent1.address);
+            expect(balAfter).to.be.gt(balBefore); // Reward transferred during resolution
 
             // Advance past dispute window
             await ethers.provider.send("evm_increaseTime", [86400 + 86401]);
             await ethers.provider.send("evm_mine");
 
-            // Agent can still withdraw
-            const balBefore = await token.balanceOf(agent1.address);
-            await registry.connect(agent1).withdrawReward(taskId);
-            const balAfter = await token.balanceOf(agent1.address);
-
-            expect(balAfter).to.be.gt(balBefore);
+            // Double withdraw should revert — reward already paid
+            await expect(
+                registry.connect(agent1).withdrawReward(taskId)
+            ).to.be.revertedWith("Reward already withdrawn");
         });
     });
 });
