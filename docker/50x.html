@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GPU Unite — Service Unavailable</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0a0e1a; color: #e5e7eb;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh;
+    }
+    .error-container {
+      text-align: center; padding: 3rem; max-width: 480px;
+    }
+    .error-code {
+      font-size: 6rem; font-weight: 800; line-height: 1;
+      background: linear-gradient(135deg, #ef4444, #f59e0b);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .error-title {
+      font-size: 1.5rem; font-weight: 600; margin: 1rem 0 0.5rem;
+    }
+    .error-desc {
+      color: #9ca3af; font-size: 0.95rem; line-height: 1.6; margin-bottom: 2rem;
+    }
+    .retry-btn {
+      display: inline-block; padding: 0.75rem 2rem; border-radius: 8px;
+      background: #3b82f6; color: #fff; text-decoration: none;
+      font-weight: 600; font-size: 0.9rem; transition: background 0.2s;
+    }
+    .retry-btn:hover { background: #2563eb; }
+    .error-details {
+      margin-top: 2rem; padding: 1rem; border-radius: 8px;
+      background: rgba(255,255,255,0.05); font-size: 0.8rem;
+      color: #6b7280; font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="error-container">
+    <div class="error-code">50x</div>
+    <div class="error-title">Service Unavailable</div>
+    <div class="error-desc">
+      The GPU Unite platform is temporarily unavailable.
+      This may be due to maintenance or a network issue.
+    </div>
+    <a href="/gpu_nited.html" class="retry-btn">← Return to Dashboard</a>
+    <div class="error-details">
+      GPU Platform v1.0.0 · GPU Unite
+    </div>
+  </div>
+</body>
+</html>

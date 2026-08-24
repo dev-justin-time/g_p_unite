@@ -336,6 +336,47 @@ services:
       - fcm-mesh
     restart: unless-stopped
 
+  gpu-platform:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.gpu-platform
+      target: production
+    container_name: fcm-gpu-platform
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    mem_limit: 1g
+    cpus: 2
+    ports:
+      - "${GPU_PORT:-9091}:9091"
+      - "${GPU_WS_PORT:-9092}:9092"
+    environment:
+      - GPU_PORT=9091
+      - GPU_WS_PORT=9092
+      - GPU_WS_ENABLED=true
+      - GPU_OBSURA_ENABLED=${GPU_OBSURA_ENABLED:-false}
+      - GPU_OBSURA_PORT=9222
+      - GPU_RPC_URL=${RPC_URL:-http://localhost:8545}
+      - GPU_REGISTRY_CONTRACT=${REGISTRY_CONTRACT:-}
+      - GPU_AUTH_SECRET=${GPU_AUTH_SECRET:-}
+      - GPU_AUTH_REQUIRED=${GPU_AUTH_REQUIRED:-false}
+    volumes:
+      - gpu-data:/opt/gpu-platform/data
+    networks:
+      - fcm-mesh
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
   prometheus:
     image: prom/prometheus:latest
     container_name: fcm-prometheus
@@ -366,6 +407,7 @@ services:
       - fcm-mesh
 
 volumes:
+  gpu-data:
   ipfs-data:
   model-cache:
   render-cache:
