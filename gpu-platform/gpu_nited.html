@@ -81,6 +81,7 @@
           <button class="header-btn" id="contrastToggle" aria-label="Toggle high contrast"><span aria-hidden="true">◐</span><span>Contrast</span></button>
           <button class="header-btn" id="fontToggle" aria-label="Change font size"><span aria-hidden="true">Aa</span><span>Font</span></button>
           <button class="header-btn" id="motionToggle" aria-label="Toggle reduced motion"><span aria-hidden="true">✨</span><span>Motion</span></button>
+          <button class="header-btn" id="dataModeToggle" aria-label="Switch between live data and demo simulation" aria-pressed="true" onclick="setDataMode(getDataMode() === 'live' ? 'demo' : 'live')"><span aria-hidden="true">🔌</span><span id="dataModeLabel">LIVE</span></button>
           <button class="header-btn" aria-label="Notifications"><span aria-hidden="true">🔔</span><span class="notification-dot"></span></button>
           <div class="ws-status disconnected" id="wsStatus" role="status" aria-live="polite"><span class="ws-dot"></span><span id="wsStatusText">Disconnected</span></div>
         </div>
@@ -629,6 +630,7 @@
     applyRBAC();
     initCharts();
     updateAuthUI();
+    initDataMode();
 
     // Restore saved theme
     if (savedTheme && savedTheme !== 'dark') {
@@ -638,9 +640,9 @@
       syncThemePreviewCards(savedTheme);
     }
 
-    // Connect WebSocket + live metrics
-    connectWebSocket();
-    setInterval(updateLiveMetrics, 2000);
+    // Connect WebSocket only in Live mode; Demo mode remains local and deterministic.
+    if (getDataMode() === 'live') connectWebSocket();
+    setInterval(() => { if (getDataMode() === 'demo') updateLiveMetrics(); }, 2000);
   </script>
 </body>
 </html>

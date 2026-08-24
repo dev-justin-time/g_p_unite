@@ -2887,6 +2887,63 @@
       "metadata": {
         "onboardedAt": "2026-08-24T03:05:18.079Z"
       }
+    },
+    {
+      "address": "0x6b36c4fc3b5e19f29a65d9e732e499c0d66f784b",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-24T20:08:40.328Z",
+      "lastActive": "2026-08-24T20:08:40.328Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-24T20:08:40.328Z"
+      }
+    },
+    {
+      "address": "0x1ff1267fdcd897b175b395c17e7b286abf4af39c",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-24T20:08:49.260Z",
+      "lastActive": "2026-08-24T20:08:49.260Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-24T20:08:49.259Z"
+      }
+    },
+    {
+      "address": "0xc01c19d8fe8cdd7dbe3c6f9ba0c7309da0fe2798",
+      "role": "provider",
+      "permissions": [
+        "task:claim",
+        "token:withdraw",
+        "network:join",
+        "heartbeat:submit"
+      ],
+      "customPermissions": [],
+      "reputation": 500,
+      "stake": 0,
+      "registeredAt": "2026-08-24T20:08:49.561Z",
+      "lastActive": "2026-08-24T20:08:49.561Z",
+      "banned": false,
+      "metadata": {
+        "onboardedAt": "2026-08-24T20:08:49.561Z"
+      }
     }
   ],
   "agents": [],

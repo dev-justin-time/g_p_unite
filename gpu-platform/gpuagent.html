@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GPU Agent — Live Control</title>
+  <link rel="stylesheet" href="css/gpu-styles.css">
+  <style>
+    .live-shell{max-width:1280px;margin:0 auto;padding:24px}.live-header{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:24px}.live-status{display:inline-flex;align-items:center;gap:8px}.live-dot{width:9px;height:9px;border-radius:50%;background:var(--amber)}.live-dot.ok{background:var(--green)}.live-dot.bad{background:var(--red)}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}.toolbar input{min-width:280px}.agent-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}.agent-card-live{padding:18px}.agent-card-live h3{margin:0 0 6px}.agent-meta{color:var(--text-muted);font-size:var(--font-xs);word-break:break-all}.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.metric-live{padding:10px;background:var(--bg-primary);border-radius:var(--radius-sm)}.metric-live strong{display:block;font-family:'JetBrains Mono',monospace}.metric-live span{font-size:var(--font-xs);color:var(--text-muted)}.error{color:var(--red);white-space:pre-wrap}.empty{color:var(--text-muted);padding:28px;text-align:center}.auth{max-width:520px;margin:80px auto}.table-wrapper{overflow:auto}.small{font-size:var(--font-xs)}
+  </style>
+</head>
+<body>
+  <main class="live-shell">
+    <header class="live-header">
+      <div><h1 class="page-title">GPU Agent Control</h1><p class="page-subtitle">Live network data and real agent operations. No simulation fallback.</p></div>
+      <div class="live-status" role="status"><span id="statusDot" class="live-dot"></span><span id="statusText">Checking API…</span></div>
+    </header>
+
+    <section id="authPanel" class="card auth">
+      <h2>Authenticate</h2><p class="page-subtitle">Use a registered wallet address to access the live API.</p>
+      <form id="loginForm"><div class="form-group"><label class="form-label" for="address">Wallet address</label><input class="form-input" id="address" required pattern="^0x[a-fA-F0-9]{40}$" placeholder="0x…" autocomplete="off"></div><button class="btn btn-primary" type="submit">Connect to Live API</button></form>
+      <p id="authError" class="error" aria-live="polite"></p>
+    </section>
+
+    <section id="appPanel" hidden>
+      <div class="toolbar"><input class="form-input" id="filter" placeholder="Filter agents by name, category, or status"><button class="btn btn-primary" id="refresh">Refresh</button><button class="btn btn-secondary" id="logout">Logout</button></div>
+      <div class="card-grid cols-4" id="stats"></div>
+      <h2 style="margin:24px 0 12px">Registered agents</h2><div id="agents" class="agent-grid"><div class="empty">Loading live agents…</div></div>
+      <h2 style="margin:28px 0 12px">Open tasks</h2><div class="card table-wrapper"><table><thead><tr><th>Task</th><th>Status</th><th>Reward</th><th>Deadline</th></tr></thead><tbody id="tasks"></tbody></table></div>
+      <p id="appError" class="error" aria-live="polite"></p>
+    </section>
+  </main>
+<script>
+(function () {
+  'use strict';
+  const state = { token: localStorage.getItem('fcm_auth_token'), agents: [], tasks: [] };
+  const $ = id => document.getElementById(id);
+  const esc = value => { const d = document.createElement('div'); d.textContent = String(value ?? ''); return d.innerHTML; };
+  const short = value => value ? value.slice(0, 10) + '…' + value.slice(-6) : '—';
+  function setStatus(kind, text) { $('statusDot').className = 'live-dot ' + kind; $('statusText').textContent = text; }
+  async function request(path, options = {}) {
+    const headers = Object.assign({ Accept: 'application/json' }, options.headers || {});
+    if (state.token) headers.Authorization = 'Bearer ' + state.token;
+    const response = await fetch(path, Object.assign({}, options, { headers }));
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || ('HTTP ' + response.status));
+    return data;
+  }
+  function renderStats(stats) {
+    const agents = stats.agents || {}; const governance = stats.governance || {}; const escrow = stats.escrow || {};
+    $('stats').innerHTML = [
+      ['Agents', agents.total ?? '—', (agents.active ?? 0) + ' active'],
+      ['Proposals', governance.totalProposals ?? '—', (governance.active ?? 0) + ' active'],
+      ['Escrows', escrow.total ?? '—', (escrow.inProgress ?? 0) + ' in progress'],
+      ['API mode', 'LIVE', 'on-chain feed required']
+    ].map(x => '<div class="stat-card"><div><div class="stat-value">' + esc(x[1]) + '</div><div class="stat-label">' + esc(x[0]) + '</div><div class="small">' + esc(x[2]) + '</div></div></div>').join('');
+  }
+  function renderAgents() {
+    const term = $('filter').value.trim().toLowerCase();
+    const list = state.agents.filter(a => [a.name, a.category, a.status, a.didHash].some(v => String(v || '').toLowerCase().includes(term)));
+    $('agents').innerHTML = list.length ? list.map(a => '<article class="card agent-card-live"><h3>' + esc(a.icon || '🤖') + ' ' + esc(a.name) + '</h3><div class="agent-meta">' + esc(a.category) + ' · T' + esc(a.tier) + ' · ' + esc(a.didHash) + '</div><div class="metric-grid"><div class="metric-live"><strong>' + esc(a.reputation) + '</strong><span>Reputation</span></div><div class="metric-live"><strong>' + esc(a.stake) + '</strong><span>Stake</span></div><div class="metric-live"><strong>' + esc(a.uptime) + '</strong><span>Uptime</span></div></div><button class="btn btn-sm btn-secondary heartbeat" data-did="' + esc(a.didHash) + '">Check heartbeat</button><div class="small" id="hb-' + esc(a.didHash) + '"></div></article>').join('') : '<div class="empty">No live agents matched.</div>';
+    document.querySelectorAll('.heartbeat').forEach(button => button.addEventListener('click', async () => { const did = button.dataset.did; const output = $('hb-' + did); output.textContent = 'Checking…'; try { const data = await request('/api/v1/agents/' + encodeURIComponent(did) + '/heartbeat'); output.textContent = data.online ? 'Online · age ' + data.heartbeatAge + 's' : 'Offline · age ' + data.heartbeatAge + 's'; } catch (e) { output.textContent = e.message; } }));
+  }
+  function renderTasks() { $('tasks').innerHTML = state.tasks.length ? state.tasks.map(t => '<tr><td class="small">' + esc(short(t.taskId)) + '</td><td>' + esc(t.status) + '</td><td>' + esc(t.reward) + '</td><td>' + esc(new Date(Number(t.deadline) * 1000).toLocaleString()) + '</td></tr>').join('') : '<tr><td colspan="4" class="empty">No live tasks returned by the contract feed.</td></tr>'; }
+  async function load() { $('appError').textContent = ''; setStatus('', 'Loading live data…'); try { const [health, stats, agents, tasks] = await Promise.all([request('/api/health'), request('/api/v1/system/stats'), request('/api/v1/agents?limit=100'), request('/api/v1/tasks?limit=100')]); if (health.mode === 'mock') throw new Error('Server is running in mock mode. Configure contract addresses before using gpuagent.html.'); state.agents = agents.data || []; state.tasks = tasks.data || []; renderStats(stats); renderAgents(); renderTasks(); $('authPanel').hidden = true; $('appPanel').hidden = false; setStatus('ok', 'LIVE · ' + health.version); } catch (e) { setStatus('bad', 'Live API unavailable'); $('appError').textContent = e.message; if (/auth|token/i.test(e.message)) { state.token = null; localStorage.removeItem('fcm_auth_token'); $('authPanel').hidden = false; $('appPanel').hidden = true; } } }
+  $('loginForm').addEventListener('submit', async e => { e.preventDefault(); $('authError').textContent = ''; try { const data = await request('/api/auth/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ address: $('address').value.trim(), role: 'operator' }) }); state.token = data.token; localStorage.setItem('fcm_auth_token', data.token); await load(); } catch (err) { $('authError').textContent = err.message; } });
+  $('refresh').addEventListener('click', load); $('filter').addEventListener('input', renderAgents); $('logout').addEventListener('click', () => { state.token = null; localStorage.removeItem('fcm_auth_token'); $('appPanel').hidden = true; $('authPanel').hidden = false; setStatus('', 'Signed out'); });
+  fetch('/api/health').then(r => r.ok ? setStatus('ok', 'API reachable') : setStatus('bad', 'API error')).catch(() => setStatus('bad', 'API unavailable'));
+  if (state.token) load();
+}());
+</script>
+</body>
+</html>

@@ -141,7 +141,7 @@ function renderAgents(filter) {
       '<div class="agent-badges"><span class="badge ' + (a.status === 'active' ? 'badge-green' : 'badge-amber') + '">' + (a.status === 'active' ? '● Active' : '○ Standby') + '</span><span class="badge badge-blue">T' + a.tier + '</span></div></div>' +
       '<div class="logic-section"><div class="logic-title">Built-in Logic Rules</div>' + rhtml + '</div>' +
       '<div class="metrics-row">' + mhtml + '</div>' +
-      '<div class="action-bar"><button class="btn btn-secondary" onclick="viewSource(\'' + a.id + '\')">View Logic</button><button class="btn btn-primary" onclick="simulateAgent(\'' + a.id + '\')">⚡ Simulate</button></div>' +
+      '<div class="action-bar"><button class="btn btn-secondary" onclick="viewSource(\'' + a.id + '\')">View Logic</button><button class="btn btn-primary" onclick="runAgentAction(\'' + a.id + '\')">⚡ Run Agent</button></div>' +
       '</div>';
   }).join('');
 }
@@ -162,6 +162,26 @@ function viewSource(id) {
   showModal('sourceModal');
 }
 
+async function runAgentAction(id) {
+  const a = AGENTS.find(x => x.id === id);
+  if (!a) return;
+  if (typeof getDataMode === 'function' && getDataMode() === 'demo') {
+    simulateAgent(id);
+    return;
+  }
+  try {
+    const response = await fetch('/api/v1/agents/' + encodeURIComponent(id) + '/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Agent action failed');
+    showToast(a.icon + ' ' + a.name + ' completed a live action', 'success');
+  } catch (error) {
+    showToast('Live agent action unavailable: ' + error.message, 'error');
+  }
+}
+
 function simulateAgent(id) {
   const a = AGENTS.find(x => x.id === id);
   if (!a) return;
@@ -179,7 +199,7 @@ function simulateAgent(id) {
       if (el) el.textContent = typeof m.value === 'number' ? m.value.toLocaleString() : String(m.value);
     });
   }
-  showToast(a.icon + ' ' + a.name + ' simulated', 'success');
+  showToast(a.icon + ' ' + a.name + ' simulated (Demo mode)', 'success');
 }
 
 function renderTasks() {
@@ -189,7 +209,18 @@ function renderTasks() {
   ).join('');
 }
 
-function claimTask(name) { showToast('Task "' + name + '" claimed!', 'success'); }
+async async function claimTask(name) {
+  if (typeof getDataMode === 'function' && getDataMode() === 'demo') {
+    showToast('Task "' + name + '" claimed (Demo mode)', 'success');
+    return;
+  }
+  try {
+    const r = await fetch('/api/v1/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Task claim failed');
+    showToast('Task "' + name + '" claimed!', 'success');
+  } catch (e) { showToast('Live task claim unavailable: ' + e.message, 'error'); }
+}
 
 function renderProposals() {
   const container = document.getElementById('proposalsList');

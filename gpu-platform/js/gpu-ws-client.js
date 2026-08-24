@@ -8,6 +8,30 @@ let wsReconnectTimer = null;
 let wsReconnectDelay = 1000;
 let authToken = localStorage.getItem('fcm_auth_token') || null;
 let authAddress = localStorage.getItem('fcm_auth_address') || null;
+let dataMode = localStorage.getItem('fcm_data_mode') || 'live';
+
+function getDataMode() { return dataMode; }
+
+function setDataMode(mode) {
+  dataMode = mode === 'demo' ? 'demo' : 'live';
+  localStorage.setItem('fcm_data_mode', dataMode);
+  document.documentElement.setAttribute('data-data-mode', dataMode);
+  const label = document.getElementById('dataModeLabel');
+  if (label) label.textContent = dataMode === 'live' ? 'LIVE' : 'DEMO';
+  const toggle = document.getElementById('dataModeToggle');
+  if (toggle) toggle.setAttribute('aria-pressed', dataMode === 'live' ? 'true' : 'false');
+  if (dataMode === 'live') connectWebSocket();
+  else if (ws) { ws.close(); ws = null; }
+  if (typeof showToast === 'function') showToast(dataMode === 'live' ? 'Live data enabled' : 'Demo simulation enabled', 'info');
+}
+
+function initDataMode() {
+  document.documentElement.setAttribute('data-data-mode', dataMode);
+  const toggle = document.getElementById('dataModeToggle');
+  if (toggle) toggle.setAttribute('aria-pressed', dataMode === 'live' ? 'true' : 'false');
+  const label = document.getElementById('dataModeLabel');
+  if (label) label.textContent = dataMode === 'live' ? 'LIVE' : 'DEMO';
+}
 
 function setAuth(token, addr) {
   authToken = token;
@@ -39,10 +63,8 @@ async function loginWithWallet(addr) {
       return false;
     }
   } catch (e) {
-    // Demo mode — create mock auth
-    setAuth('mock-' + Date.now(), addr);
-    showToast('Connected (demo mode)', 'success');
-    return true;
+    showToast('Live API unavailable. Switch to Demo mode to use simulation.', 'error');
+    return false;
   }
 }
 
@@ -84,6 +106,7 @@ function updateWsStatus(status) {
 }
 
 function connectWebSocket() {
+  if (dataMode !== 'live') return;
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   let url = protocol + '//' + location.host;
   if (authToken) url += '?token=' + encodeURIComponent(authToken);
