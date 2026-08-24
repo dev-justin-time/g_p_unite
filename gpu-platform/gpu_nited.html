@@ -508,6 +508,114 @@
     );
     window.addEventListener('resize', renderAllCharts);
 
+    // ── OBSCURA INTEGRATION ──────────────────────
+    let obscuraConnected = false;
+
+    async function obscuraScrape() {
+      const url = document.getElementById('obsUrl').value;
+      const evalExpr = document.getElementById('obsEval').value;
+      if (!url) { showToast('Enter a URL', 'error'); return; }
+      const resultEl = document.getElementById('obsResult');
+      resultEl.style.display = 'block';
+      resultEl.textContent = 'Scraping ' + url + '...';
+      try {
+        const r = await fetch('/api/obscura/scrape', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, eval: evalExpr || undefined, dump: evalExpr ? undefined : 'html' })
+        });
+        const data = await r.json();
+        resultEl.textContent = data.success ? (data.output || JSON.stringify(data, null, 2)) : 'Error: ' + (data.error || 'Unknown');
+        if (data.success) showToast('Scraped successfully (' + data.latency + 'ms)', 'success');
+        else showToast('Scrape failed: ' + data.error, 'error');
+      } catch (e) {
+        resultEl.textContent = 'Connection error: ' + e.message + '\n\nMake sure obscura is running:\n  obscura serve --port 9222';
+        showToast('Obscura not connected', 'error');
+      }
+    }
+
+    async function obscuraScreenshot() {
+      const url = document.getElementById('obsUrl').value;
+      if (!url) { showToast('Enter a URL', 'error'); return; }
+      showToast('Screenshot feature requires obscura binary with render support', 'info');
+    }
+
+    async function obscuraMonitor() {
+      const url = document.getElementById('obsMonUrl').value;
+      const interval = parseInt(document.getElementById('obsMonInterval').value) || 60000;
+      if (!url) { showToast('Enter a URL', 'error'); return; }
+      try {
+        const r = await fetch('/api/obscura/monitor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, interval })
+        });
+        const data = await r.json();
+        if (data.status === 'monitoring') {
+          showToast('Monitoring started for ' + url, 'success');
+          obscuraUpdateMonitors();
+        }
+      } catch (e) {
+        showToast('Failed to start monitoring', 'error');
+      }
+    }
+
+    async function obscuraUpdateMonitors() {
+      try {
+        const r = await fetch('/api/obscura/status');
+        const data = await r.json();
+        document.getElementById('obsMonitors').textContent = (data.monitors || []).length;
+        const list = document.getElementById('obsMonList');
+        if (list && data.monitors) {
+          list.innerHTML = data.monitors.map(m =>
+            '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-color);font-size:var(--font-sm);"><span style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;max-width:200px;">' + m.url + '</span><span class="badge badge-green">' + m.changes + ' changes</span></div>'
+          ).join('');
+        }
+        document.getElementById('obsPages').textContent = data.metrics?.[0]?.value || 0;
+        document.getElementById('obsSuccess').textContent = data.metrics?.[1]?.value || '100%';
+        document.getElementById('obsLatency').textContent = data.metrics?.[2]?.value || '85ms';
+        // Update history table
+        const tbody = document.getElementById('obsHistoryBody');
+        if (tbody && data.history) {
+          tbody.innerHTML = data.history.slice(-20).reverse().map(h =>
+            '<tr><td style="font-family:\'JetBrains Mono\',monospace;font-size:var(--font-xs);max-width:200px;overflow:hidden;text-overflow:ellipsis;">' + h.url + '</td><td><span class="badge ' + (h.success ? 'badge-green' : 'badge-red') + '">' + (h.success ? 'OK' : 'Fail') + '</span></td><td>' + h.latency + 'ms</td><td style="font-size:var(--font-xs);color:var(--text-muted);">' + new Date(h.timestamp).toLocaleTimeString() + '</td></tr>'
+          ).join('');
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    async function obscuraConnect() {
+      const port = document.getElementById('obsPort').value || 9222;
+      const stealth = document.getElementById('obsStealthToggle').classList.contains('active');
+      showToast('Connecting to obscura on port ' + port + '...', 'info');
+      try {
+        const r = await fetch('/api/obscura/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ port, stealth }) });
+        const data = await r.json();
+        if (data.success) { obscuraConnected = true; showToast('Connected to obscura!', 'success'); obscuraUpdateMonitors(); }
+        else showToast('Connection failed: ' + data.error, 'error');
+      } catch (e) {
+        showToast('Cannot connect. Install obscura first.', 'error');
+      }
+    }
+
+    async function obscuraDisconnect() {
+      try {
+        await fetch('/api/obscura/disconnect', { method: 'POST' });
+        obscuraConnected = false;
+        showToast('Disconnected from obscura', 'info');
+      } catch (e) { showToast('Disconnect failed', 'error'); }
+    }
+
+    function obscuraInstall() {
+      showToast('Run: bash gpu-platform/bin/install-obscura.sh', 'info');
+    }
+
+    // Poll obscura status when on the obscura page
+    setInterval(() => {
+      const page = document.querySelector('.page-section.active')?.id;
+      if (page === 'page-obscura') obscuraUpdateMonitors();
+    }, 5000);
+
     // ── INIT ────────────────────────────────────
     renderTierGrids();
     renderAgents('all');
