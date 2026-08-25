@@ -410,6 +410,9 @@ services:
       - OBSCURA_PORT=3001
       - OBSCURA_CDP=${OBSCURA_CDP:-9222}
       - OBSCURA_DATA_DIR=/app/data
+      - OBSCURA_AUTH=${OBSCURA_AUTH:-true}
+      - OBSCURA_API_KEY=${OBSCURA_API_KEY:-}
+      - OBSCURA_ADMIN_KEY=${OBSCURA_ADMIN_KEY:-}
       - NODE_ENV=production
     volumes:
       - obscura-data:/app/data

@@ -62,13 +62,105 @@ async function api(path, options = {}) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// AUTHENTICATION
+// ═══════════════════════════════════════════════════════════════
+
+function showLogin() {
+  document.getElementById('login-overlay').classList.remove('hidden');
+}
+
+function hideLogin() {
+  document.getElementById('login-overlay').classList.add('hidden');
+}
+
+async function doLogin() {
+  const apiKey = document.getElementById('login-api-key').value.trim();
+  const password = document.getElementById('login-password').value.trim();
+  const errorEl = document.getElementById('login-error');
+  const btn = document.getElementById('btn-login');
+
+  if (!apiKey && !password) {
+    errorEl.textContent = 'Enter an API key or password';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>';
+
+  try {
+    const body = apiKey ? { api_key: apiKey } : { password };
+    const res = await fetch(`${state.apiURL}/api/obscura/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      state.authToken = data.token;
+      state.authRole = data.role;
+      state.authRequired = false;
+      localStorage.setItem('obscura-auth-token', data.token);
+      localStorage.setItem('obscura-auth-role', data.role);
+      hideLogin();
+      showToast('check_circle', `Authenticated as ${data.role}`);
+      // Reconnect WebSocket with auth
+      disconnectWebSocket();
+      connectWebSocket();
+    } else {
+      errorEl.textContent = data.error || 'Login failed';
+      errorEl.classList.remove('hidden');
+    }
+  } catch (e) {
+    errorEl.textContent = 'Connection failed: ' + e.message;
+    errorEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">login</span> SIGN IN';
+  }
+}
+
+async function doLogout() {
+  try {
+    await api('/api/obscura/auth/logout', { method: 'POST', body: {} });
+  } catch (e) {}
+  state.authToken = null;
+  state.authRole = null;
+  localStorage.removeItem('obscura-auth-token');
+  localStorage.removeItem('obscura-auth-role');
+  disconnectWebSocket();
+  showLogin();
+  showToast('logout', 'Logged out');
+}
+
+async function checkAuth() {
+  if (!state.authToken) return;
+  try {
+    const data = await api('/api/obscura/auth/me');
+    if (!data.authenticated) {
+      state.authToken = null;
+      state.authRole = null;
+      localStorage.removeItem('obscura-auth-token');
+      localStorage.removeItem('obscura-auth-role');
+      showLogin();
+    }
+  } catch (e) {
+    // 401 will trigger showLogin via api()
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // WEBSOCKET CLIENT
 // ═══════════════════════════════════════════════════════════════
 
 function connectWebSocket() {
   if (state.ws && (state.ws.readyState === WebSocket.OPEN || state.ws.readyState === WebSocket.CONNECTING)) return;
 
-  const wsUrl = state.apiURL.replace(/^http/, 'ws') + '/ws';
+  // Build WS URL with auth token
+  let wsUrl = state.apiURL.replace(/^http/, 'ws') + '/ws';
+  if (state.authToken) wsUrl += `?token=${state.authToken}`;
+
   try {
     state.ws = new WebSocket(wsUrl);
   } catch (e) {
@@ -1276,6 +1368,7 @@ document.getElementById('scrape-mode')?.addEventListener('change', function() {
 
 function init() {
   applyTheme();
+  checkAuth();
   renderMonitors();
   renderProxies();
   renderHistory();

@@ -58,23 +58,25 @@ function validateSession(token) {
 
 function extractAuth(req) {
   // Check Authorization header: Bearer <token> or ApiKey <key>
-  const authHeader = req.headers['authorization'] || '';
+  const authHeader = req.headers['authorization'] || req.headers['Authorization'] || '';
   if (authHeader.startsWith('Bearer ')) {
-    return { type: 'session', token: authHeader.slice(7) };
+    return { type: 'session', token: authHeader.slice(7).trim() };
   }
   if (authHeader.startsWith('ApiKey ')) {
-    return { type: 'apikey', key: authHeader.slice(7) };
+    return { type: 'apikey', key: authHeader.slice(7).trim() };
   }
   // Check query parameter
-  const url = new URL(req.url, `http://localhost:${PORT}`);
-  const tokenParam = url.searchParams.get('token');
-  if (tokenParam) return { type: 'session', token: tokenParam };
-  const keyParam = url.searchParams.get('api_key');
-  if (keyParam) return { type: 'apikey', key: keyParam };
+  try {
+    const url = new URL(req.url, `http://localhost:${PORT}`);
+    const tokenParam = url.searchParams.get('token');
+    if (tokenParam) return { type: 'session', token: tokenParam };
+    const keyParam = url.searchParams.get('api_key');
+    if (keyParam) return { type: 'apikey', key: keyParam };
+  } catch (e) { /* ignore parse errors */ }
   return null;
 }
 
-function checkAuth(req, requiredRole = 'admin') {
+function checkAuth(req, requiredRole = 'user') {
   if (!AUTH_ENABLED) return { ok: true, role: 'admin' };
 
   const auth = extractAuth(req);
@@ -474,19 +476,28 @@ const server = http.createServer(async (req, res) => {
       handled = true;
     }
 
-    // ── Connect ──
+    // ── Connect (admin only) ──
     if (req.method === 'POST' && url.pathname === '/api/obscura/connect') {
-      const body = await readBody(req);
-      const { port = CDP_PORT } = JSON.parse(body);
-      cdpConnected = true;
-      json(res, 200, { success: true, port, connected: true });
-      handled = true;
+      if (req._authRole !== 'admin') {
+        json(res, 403, { error: 'Admin access required' });
+        handled = true;
+      } else {
+        const body = await readBody(req);
+        const { port = CDP_PORT } = JSON.parse(body);
+        cdpConnected = true;
+        json(res, 200, { success: true, port, connected: true });
+        handled = true;
+      }
     }
 
-    // ── Disconnect ──
+    // ── Disconnect (admin only) ──
     if (req.method === 'POST' && url.pathname === '/api/obscura/disconnect') {
-      cdpConnected = false;
-      json(res, 200, { success: true });
+      if (req._authRole !== 'admin') {
+        json(res, 403, { error: 'Admin access required' });
+      } else {
+        cdpConnected = false;
+        json(res, 200, { success: true });
+      }
       handled = true;
     }
 
