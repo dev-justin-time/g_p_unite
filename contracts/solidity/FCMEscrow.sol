@@ -231,36 +231,36 @@ contract FCMEscrow is AccessControl, ReentrancyGuard, Pausable {
         Escrow storage e = escrows[escrowId];
         require(e.state == EscrowState.Disputed, "Not disputed");
 
-        // Find the disputed milestone (last submitted, not approved)
-        for (uint256 i = 0; i < e.milestones.length; i++) {
-            if (e.milestones[i].submitted && !e.milestones[i].approved) {
-                uint256 milestoneAmount = e.milestones[i].amount;
-                if (clientWins) {
-                    // Refund ALL remaining escrow to client (not just the disputed milestone)
-                    uint256 remaining = e.remainingAmount;
-                    e.remainingAmount = 0;
-                    e.state = EscrowState.Refunded;
-                    emit DisputeResolved(escrowId, clientWins, remaining, resolution);
-                    require(fcmToken.transfer(e.client, remaining), "Refund failed");
-                } else {
-                    e.releasedAmount += milestoneAmount;
-                    e.remainingAmount -= milestoneAmount;
+        // L-8: process ALL disputed milestones in one call
+        if (clientWins) {
+            // Refund ALL remaining escrow to client
+            uint256 remaining = e.remainingAmount;
+            e.remainingAmount = 0;
+            e.state = EscrowState.Refunded;
+            emit DisputeResolved(escrowId, clientWins, remaining, resolution);
+            require(fcmToken.transfer(e.client, remaining), "Refund failed");
+        } else {
+            // L-8: Worker wins: approve ALL submitted-not-approved milestones
+            uint256 totalPayout = 0;
+            bool resolvedAny = false;
+            for (uint256 i = 0; i < e.milestones.length; i++) {
+                if (e.milestones[i].submitted && !e.milestones[i].approved) {
+                    totalPayout += e.milestones[i].amount;
+                    e.releasedAmount += e.milestones[i].amount;
+                    e.remainingAmount -= e.milestones[i].amount;
                     e.completedMilestones++;
                     e.milestones[i].approved = true;
                     e.milestones[i].approvedAt = block.timestamp;
-                    emit DisputeResolved(escrowId, clientWins, milestoneAmount, resolution);
-                    require(fcmToken.transfer(e.worker, milestoneAmount), "Transfer failed");
+                    resolvedAny = true;
                 }
-                break;
             }
-        }
-
-        if (e.state == EscrowState.Disputed) {
+            require(resolvedAny, "No disputed milestones");
             e.state = EscrowState.Resolved;
-            // If all milestones are now complete after resolution, mark as completed
             if (e.completedMilestones == e.milestones.length) {
                 e.state = EscrowState.Completed;
             }
+            emit DisputeResolved(escrowId, clientWins, totalPayout, resolution);
+            require(fcmToken.transfer(e.worker, totalPayout), "Transfer failed");
         }
     }
 

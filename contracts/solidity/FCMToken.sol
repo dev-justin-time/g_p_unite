@@ -41,7 +41,8 @@ contract FCMToken is ERC20, ERC20Burnable, AccessControl {
         require(amount > 0, "Amount must be > 0");
         require(totalMintedRewards + amount <= MAX_SUPPLY - INITIAL_SUPPLY, "Mintable supply exceeded");
         totalMintedRewards += amount;
-        _mint(to, amount);
+        _mint(to, amount); // OZ _mint emits standard Transfer(address(0), to, amount) per ERC20 spec
+        // L-10: BurnMintEquilibrium is an additional protocol-level tracking event, not a replacement for Transfer
         emit BurnMintEquilibrium(totalBurned, totalMintedRewards, block.timestamp);
     }
 

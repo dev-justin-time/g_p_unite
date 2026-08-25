@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface ITierStaking {
     function getTier(address operator) external view returns (uint8);
+    function getStakedAmount(address operator) external view returns (uint256);
 }
 
 /**
@@ -181,7 +182,15 @@ contract FCMGovernance is AccessControl, ReentrancyGuard, Pausable {
     // ── View Functions ──────────────────────────────────────────
 
     function getProposalState(uint256 proposalId) external view returns (ProposalState) {
-        return proposals[proposalId].state;
+        Proposal storage p = proposals[proposalId];
+        // Compute terminal states for Active proposals whose voting period ended
+        if (p.state == ProposalState.Active && block.number > p.endBlock) {
+            if (!_quorumReached(proposalId) || !_majorityReached(proposalId)) {
+                return ProposalState.Defeated;
+            }
+            return ProposalState.Succeeded;
+        }
+        return p.state;
     }
 
     function getProposalVotes(uint256 proposalId) external view returns (
@@ -199,12 +208,14 @@ contract FCMGovernance is AccessControl, ReentrancyGuard, Pausable {
 
     // ── Internal ────────────────────────────────────────────────
 
+    // L-7: voting power based on staked amount (not wallet balance)
     function _getVotingPower(address voter) internal view returns (uint256) {
         uint8 tier = tierStaking.getTier(voter);
+        uint256 staked = tierStaking.getStakedAmount(voter);
         // Tier 0=1x, 1=2x, 2=3x, 3=5x, 4=10x, 5=20x
         uint256[6] memory tierWeights = [uint256(100), uint256(200), uint256(300), uint256(500), uint256(1000), uint256(2000)];
         if (tier >= tierWeights.length) tier = 0;
-        return fcmToken.balanceOf(voter) * tierWeights[tier] / 100;
+        return staked * tierWeights[tier] / 100;
     }
 
     function _quorumReached(uint256 proposalId) internal view returns (bool) {

@@ -270,8 +270,10 @@ describe("FCMAgentRegistry", function () {
             const deadline = (await ethers.provider.getBlock("latest")).timestamp + 86400;
 
             // Task requires 0x01 (bit 0) — agent has it
-            await token.connect(requester).approve(await registry.getAddress(), REWARD);
-            await registry.connect(requester).createTask(taskId, ethers.encodeBytes32String("0x01"), ethers.ZeroHash, deadline);
+            const requirements = ethers.encodeBytes32String("0x01");
+            const expectedReward = await registry.calculateReward(requirements);
+            await token.connect(requester).approve(await registry.getAddress(), expectedReward);
+            await registry.connect(requester).createTask(taskId, requirements, ethers.ZeroHash, deadline);
 
             await registry.connect(operator1).claimTask(taskId, didHash);
             const task = await registry.tasks(taskId);
@@ -327,12 +329,20 @@ describe("FCMAgentRegistry", function () {
     });
 
     describe("Reward Calculation", function () {
-        it("should calculate reward based on requirements complexity", async function () {
+        it("should calculate reward based on requirements complexity (popcount)", async function () {
             const base = ethers.parseEther("100");
-            // Use a simple bytes32 value: 0x0000...0005 = 5, 5 % 100 = 5
+            // 5 = 0b101 → popcount = 2 → reward = 100 + 2*50 = 200 FCM
             const req = ethers.zeroPadValue(ethers.toBeHex(5), 32);
-            const expected = base + ethers.parseEther("5");
+            const expected = base + ethers.parseEther("100");
             expect(await registry.calculateReward(req)).to.equal(expected);
+
+            // 0 = popcount 0 → 100 FCM (base only)
+            const req0 = ethers.zeroPadValue(ethers.toBeHex(0), 32);
+            expect(await registry.calculateReward(req0)).to.equal(base);
+
+            // 15 = 0b1111 → popcount 4 → 100 + 4*50 = 300 FCM
+            const req15 = ethers.zeroPadValue(ethers.toBeHex(15), 32);
+            expect(await registry.calculateReward(req15)).to.equal(base + ethers.parseEther("200"));
         });
     });
 });

@@ -409,8 +409,6 @@ void main() {
 <!-- Scrollable Canvas -->
 <div class="flex-1 overflow-y-auto pt-24 pb-12 px-margin-desktop">
 <div class="max-w-5xl mx-auto">
-<!-- ═══ STEP 1: Wallet Connection ═══ -->
-<div id="step-1">
 <!-- Title Section -->
 <div class="mb-stack-lg">
 <h2 class="font-display-lg text-display-lg text-on-surface mb-2">Initialize Connection</h2>
@@ -605,7 +603,6 @@ void main() {
 </div>
 </div>
 </div>
-</div>
 <!-- ═══ STEP 2: Resource Allocation ═══ -->
 <div id="step-2" class="hidden">
 <div class="mb-stack-lg">
@@ -615,43 +612,37 @@ void main() {
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
 <div class="glass-panel rounded-xl p-6 border-l-2 border-primary glow-active">
 <h4 class="font-headline-sm text-headline-sm text-on-surface mb-2">GPU Compute</h4>
-<p class="font-body-md text-body-md text-on-surface-variant mb-4">NVIDIA CUDA cores for AI inference and rendering workloads.</p>
+<p class="font-body-md text-body-md text-on-surface-variant mb-4">NVIDIA CUDA cores for AI inference and rendering.</p>
 <div class="flex gap-2">
 <button class="gpu-opt px-3 py-1.5 rounded border border-primary text-primary font-label-caps text-[10px]" data-gpu="nvidia">NVIDIA</button>
 <button class="gpu-opt px-3 py-1.5 rounded border border-outline-variant text-on-surface-variant font-label-caps text-[10px]" data-gpu="amd">AMD</button>
 <button class="gpu-opt px-3 py-1.5 rounded border border-outline-variant text-on-surface-variant font-label-caps text-[10px]" data-gpu="intel">INTEL</button>
-</div>
-</div>
+</div></div>
 <div class="glass-panel rounded-xl p-6">
 <h4 class="font-headline-sm text-headline-sm text-on-surface mb-2">Storage</h4>
-<p class="font-body-md text-body-md text-on-surface-variant mb-4">Distributed file storage for model weights and datasets.</p>
+<p class="font-body-md text-body-md text-on-surface-variant mb-4">Distributed file storage for model weights.</p>
 <input type="range" min="10" max="1000" value="100" class="w-full accent-primary" id="storage-slider">
 <p class="font-code-sm text-code-sm text-on-surface-variant mt-2">Reserved: <span id="storage-val" class="text-primary">100 GB</span></p>
 </div>
 <div class="glass-panel rounded-xl p-6">
 <h4 class="font-headline-sm text-headline-sm text-on-surface mb-2">Bandwidth</h4>
-<p class="font-body-md text-body-md text-on-surface-variant mb-4">Network bandwidth shared for relay and CDN tasks.</p>
+<p class="font-body-md text-body-md text-on-surface-variant mb-4">Network bandwidth for relay and CDN tasks.</p>
 <input type="range" min="10" max="1000" value="100" class="w-full accent-primary" id="bw-slider">
 <p class="font-code-sm text-code-sm text-on-surface-variant mt-2">Reserved: <span id="bw-val" class="text-primary">100 Mbps</span></p>
-</div>
-</div>
-</div>
-</div>
+</div></div></div>
 <!-- ═══ STEP 3: Workload Selection ═══ -->
 <div id="step-3" class="hidden">
 <div class="mb-stack-lg">
 <h2 class="font-display-lg text-display-lg text-on-surface mb-2">Workload Selection</h2>
 <p class="font-body-lg text-body-lg text-on-surface-variant">Choose which agent types your node will support.</p>
 </div>
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="workload-grid">
-</div>
-</div>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="workload-grid"></div>
 </div>
 <!-- ═══ STEP 4: Network Configuration ═══ -->
 <div id="step-4" class="hidden">
 <div class="mb-stack-lg">
 <h2 class="font-display-lg text-display-lg text-on-surface mb-2">Network Configuration</h2>
-<p class="font-body-lg text-body-lg text-on-surface-variant">Configure your node's network endpoints and RPC settings.</p>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Configure your node network endpoints and RPC settings.</p>
 </div>
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter">
 <div class="glass-panel rounded-xl p-6">
@@ -660,21 +651,10 @@ void main() {
 </div>
 <div class="glass-panel rounded-xl p-6">
 <h4 class="font-headline-sm text-headline-sm text-on-surface mb-4">Geohash Location</h4>
-<input id="geo-input" type="text" value="u4pru" placeholder="u4pru" class="w-full bg-surface-container-low border border-outline-variant rounded px-4 py-3 font-code-sm text-code-sm text-on-surface focus:border-primary focus:outline-none">
-</div>
-</div>
-</div>
-</div>
+<input id="geo-input" type="text" value="u4pru" class="w-full bg-surface-container-low border border-outline-variant rounded px-4 py-3 font-code-sm text-code-sm text-on-surface focus:border-primary focus:outline-none">
+</div></div></div>
 <!-- ═══ STEP 5: Initial Staking ═══ -->
 <div id="step-5" class="hidden">
-    }
-    // Show selected step
-    for (let i = 1; i <= 5; i++) {
-      const el = document.getElementById("step-" + i);
-      if (el) el.classList.add("hidden");
-    }
-    const target = document.getElementById("step-" + step);
-    if (target) target.classList.remove("hidden");
 <div class="mb-stack-lg">
 <h2 class="font-display-lg text-display-lg text-on-surface mb-2">Initial Staking</h2>
 <p class="font-body-lg text-body-lg text-on-surface-variant">Stake FCM tokens to register your node and begin earning rewards.</p>
@@ -690,9 +670,7 @@ void main() {
 <button id="btn-stake-max" class="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/50 px-6 py-2.5 rounded-DEFAULT font-label-caps text-label-caps transition-all">10000 FCM</button>
 </div>
 <div id="stake-tx-status" class="mt-6 text-center font-code-sm text-code-sm hidden"></div>
-</div>
-</div>
-</div>
+</div></div>
 <!-- ═══ Connection Modal ═══ -->
 <div id="connect-modal" class="fixed inset-0 z-[60] hidden">
 <div class="absolute inset-0 bg-black/70" onclick="closeConnectModal()"></div>
@@ -700,10 +678,8 @@ void main() {
 <div id="modal-spinner" class="flex flex-col items-center gap-4">
 <div class="w-10 h-10 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
 <p id="modal-msg" class="font-code-sm text-code-sm text-on-surface">Connecting...</p>
-</div>
-</div>
-</div>
-<!-- ═══ Main Wiring Script ═══ -->
+</div></div></div>
+
 <script>
 (function() {
   'use strict';
@@ -843,13 +819,15 @@ void main() {
     }
     currentStep = step;
     // Hide all step panels
-    for (let i = 1; i <= 5; i++) {
-      const el = document.getElementById('step-' + i);
-      if (el) el.classList.add('hidden');
+    for (let i = 2; i <= 5; i++) {
+      const el = document.getElementById("step-" + i);
+      if (el) el.classList.add("hidden");
     }
     // Show selected step
-    const target = document.getElementById('step-' + step);
-    if (target) target.classList.remove('hidden');
+    if (step > 1) {
+      const target = document.getElementById("step-" + step);
+      if (target) target.classList.remove("hidden");
+    }
     // Update sidebar active state
     document.querySelectorAll('.nav-tab').forEach(tab => {
       tab.classList.remove('text-primary', 'border-l-2', 'border-primary', 'font-bold', 'bg-primary/5');
@@ -969,5 +947,6 @@ void main() {
 })();
 </script>
 </main>
+</div>
 </div>
 </body></html>

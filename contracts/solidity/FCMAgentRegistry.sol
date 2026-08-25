@@ -266,7 +266,8 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard, Pausable {
             task.status = TaskStatus.Slashed;
             slashHistory[didHash] += slashAmount;
             emit AgentSlashed(didHash, slashAmount, _resolution);
-            require(fcmToken.transfer(task.requester, task.reward + slashAmount), "Transfer failed");
+            // L-4: only return escrowed reward to requester — slash stays in registry (prevents over-compensation)
+            require(fcmToken.transfer(task.requester, task.reward), "Transfer failed");
         } else {
             task.status = TaskStatus.Resolved;
             task.rewardWithdrawn = true;
@@ -345,10 +346,17 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard, Pausable {
         return result;
     }
 
+    // L-6: popcount-based reward — more capabilities required = higher reward
+    // 1 bit set → 150 FCM, 4 bits → 300 FCM, 8 bits → 500 FCM, 16 bits → 900 FCM
     function calculateReward(bytes32 _requirements) public pure returns (uint256) {
         uint256 base = 100 * 10**18;
-        uint256 complexity = uint256(_requirements) % 100;
-        return base + (complexity * 10**18);
+        uint256 bits = uint256(_requirements);
+        uint256 complexity = 0;
+        while (bits > 0) {
+            complexity += bits & 1;
+            bits >>= 1;
+        }
+        return base + (complexity * 50 * 10**18);
     }
 
     function findDidByOperator(address _operator) internal view returns (bytes32) {

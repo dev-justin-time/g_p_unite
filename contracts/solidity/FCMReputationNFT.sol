@@ -130,25 +130,54 @@ contract FCMReputationNFT is ERC721, AccessControl, Pausable {
         badges[tokenId].consecutiveDays++;
     }
 
+    // ── Badge Revocation (Admin only) ─────────────────────────
+
+    /**
+     * @notice Burn a badge for a deregistered or penalized agent.
+     *         Clears operatorBadge, didBadge, achievements, and calls _burn.
+     *         Admin-only to prevent unauthorized revocation.
+     */
+    function revokeBadge(uint256 tokenId) external onlyRole(ADMIN_ROLE) {
+        require(tokenId > 0 && tokenId <= _tokenIdCounter.current(), "Invalid token");
+        Badge storage b = badges[tokenId];
+        require(b.exists, "Badge does not exist");
+
+        address operator = b.operator;
+        bytes32 didHash = b.didHash;
+
+        // Clear mappings
+        operatorBadge[operator] = 0;
+        didBadge[didHash] = 0;
+        achievements[tokenId] = 0;
+
+        // Mark badge as burned
+        b.exists = false;
+        b.operator = address(0);
+        b.didHash = bytes32(0);
+
+        // Burn the NFT (internal — bypasses soulbound transfer restrictions)
+        _burn(tokenId);
+    }
+
     // ── Soulbound: Block transfers and approvals ────────────────
 
-    function transferFrom(address, address, uint256) public view override {
+    function transferFrom(address, address, uint256) public pure override {
         revert("Soulbound: cannot transfer");
     }
 
-    function safeTransferFrom(address, address, uint256) public view override {
+    function safeTransferFrom(address, address, uint256) public pure override {
         revert("Soulbound: cannot transfer");
     }
 
-    function safeTransferFrom(address, address, uint256, bytes memory) public view override {
+    function safeTransferFrom(address, address, uint256, bytes memory) public pure override {
         revert("Soulbound: cannot transfer");
     }
 
-    function approve(address, uint256) public view override {
+    function approve(address, uint256) public pure override {
         revert("Soulbound: cannot approve");
     }
 
-    function setApprovalForAll(address, bool) public view override {
+    function setApprovalForAll(address, bool) public pure override {
         revert("Soulbound: cannot approve");
     }
 

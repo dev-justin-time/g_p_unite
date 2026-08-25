@@ -223,6 +223,11 @@ contract FCMTierStaking is AccessControl, ReentrancyGuard, Pausable {
         return tiers[stakes[operator].currentTier].maxConcurrent;
     }
 
+    // L-7: expose staked amount for governance voting power
+    function getStakedAmount(address operator) external view returns (uint256) {
+        return stakes[operator].amount;
+    }
+
     function getStakerCount() external view returns (uint256) {
         return stakers.length;
     }
