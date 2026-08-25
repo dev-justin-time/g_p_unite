@@ -298,6 +298,21 @@ const server = http.createServer(async (req, res) => {
       handled = true;
     }
 
+    // ── WebSocket Status ──
+    if (req.method === 'GET' && url.pathname === '/api/obscura/ws/status') {
+      const ipStats = {};
+      for (const [ip, entry] of wsIPConnections) {
+        ipStats[ip] = { connections: entry.count, recentAttempts: entry.connects.length };
+      }
+      json(res, 200, {
+        clients: wsClients.size,
+        rateLimits: WS_RATE_LIMITS,
+        ipStats,
+        messageBuckets: wsMessageBuckets.size
+      });
+      handled = true;
+    }
+
     // ── Bulk Scrape ──
     if (req.method === 'POST' && url.pathname === '/api/obscura/bulk-scrape') {
       const body = await readBody(req);
@@ -478,37 +493,165 @@ function sanitizeSched(s) {
   return rest;
 }
 
+// ─── WebSocket Rate Limiting ──────────────────────────────────
+const WS_RATE_LIMITS = {
+  maxConnectionsPerIP: 5,       // max concurrent connections per IP
+  maxConnectsPerMinute: 10,     // max new connections per IP per minute
+  maxMessagesPerMinute: 60,     // max messages per connection per minute
+  maxMessageBytes: 8192,        // max single message size (8KB)
+  idleTimeoutMs: 300_000,       // 5 min idle timeout
+};
+
+const wsIPConnections = new Map();  // ip -> { count, connects[] }
+const wsMessageBuckets = new Map(); // clientId -> { count, window[] }
+
+function wsRateCheckConnect(ip) {
+  const now = Date.now();
+  let entry = wsIPConnections.get(ip);
+  if (!entry) { entry = { count: 0, connects: [] }; wsIPConnections.set(ip, entry); }
+
+  // Prune old connection attempts (>60s)
+  entry.connects = entry.connects.filter(t => now - t < 60_000);
+
+  // Check concurrent connections
+  if (entry.count >= WS_RATE_LIMITS.maxConnectionsPerIP) {
+    return { ok: false, reason: `Max ${WS_RATE_LIMITS.maxConnectionsPerIP} concurrent connections per IP` };
+  }
+
+  // Check connect rate
+  if (entry.connects.length >= WS_RATE_LIMITS.maxConnectsPerMinute) {
+    return { ok: false, reason: `Max ${WS_RATE_LIMITS.maxConnectsPerMinute} connections per minute` };
+  }
+
+  entry.connects.push(now);
+  entry.count++;
+  return { ok: true };
+}
+
+function wsRateCheckMessage(clientId) {
+  const now = Date.now();
+  let bucket = wsMessageBuckets.get(clientId);
+  if (!bucket) { bucket = { messages: [] }; wsMessageBuckets.set(clientId, bucket); }
+
+  // Prune old messages (>60s)
+  bucket.messages = bucket.messages.filter(t => now - t < 60_000);
+
+  if (bucket.messages.length >= WS_RATE_LIMITS.maxMessagesPerMinute) {
+    return { ok: false, reason: `Max ${WS_RATE_LIMITS.maxMessagesPerMinute} messages per minute` };
+  }
+
+  bucket.messages.push(now);
+  return { ok: true };
+}
+
+function wsRateDecrementIP(ip) {
+  const entry = wsIPConnections.get(ip);
+  if (entry) {
+    entry.count = Math.max(0, entry.count - 1);
+    if (entry.count === 0) wsIPConnections.delete(ip);
+  }
+}
+
+// Periodic cleanup of stale rate limit entries
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of wsIPConnections) {
+    entry.connects = entry.connects.filter(t => now - t < 60_000);
+    if (entry.connects.length === 0 && entry.count === 0) wsIPConnections.delete(ip);
+  }
+  for (const [id, bucket] of wsMessageBuckets) {
+    bucket.messages = bucket.messages.filter(t => now - t < 60_000);
+    if (bucket.messages.length === 0) wsMessageBuckets.delete(id);
+  }
+}, 60_000);
+
 // ─── WebSocket Upgrade ────────────────────────────────────────
 
 server.on('upgrade', (req, socket, head) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   if (url.pathname !== '/ws') { socket.destroy(); return; }
 
+  // Extract client IP (support nginx X-Forwarded-For)
+  const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+                    req.socket.remoteAddress?.replace(/^::ffff:/, '') || 'unknown';
+
+  // Rate limit check
+  const rateCheck = wsRateCheckConnect(clientIP);
+  if (!rateCheck.ok) {
+    console.log(`  ⚠️  WS rate limit: ${clientIP} — ${rateCheck.reason}`);
+    socket.write('HTTP/1.1 429 Too Many Requests\r\nRetry-After: 60\r\n\r\n');
+    socket.destroy();
+    return;
+  }
+
   const wsSocket = wsHandshake(req, socket);
   if (!wsSocket) return;
 
-  const client = { socket: wsSocket, id: Date.now() };
+  const client = { socket: wsSocket, id: Date.now(), ip: clientIP, lastActivity: Date.now() };
   wsClients.add(client);
-  console.log(`  🔌 WS client connected (${wsClients.size} total)`);
+  console.log(`  🔌 WS client connected from ${clientIP} (${wsClients.size} total)`);
 
   // Send welcome
   wsSocket.write(wsEncode({ type: 'connected', clientId: client.id, timestamp: new Date().toISOString() }));
 
+  // Idle timeout
+  const idleTimer = setTimeout(() => {
+    console.log(`  ⏱️  WS idle timeout: ${clientIP}`);
+    wsSocket.write(wsEncode({ type: 'error', message: 'Idle timeout' }));
+    wsSocket.end(Buffer.from([0x88, 0x02, 0x03, 0xe8]));
+    wsClients.delete(client);
+    wsRateDecrementIP(clientIP);
+    wsMessageBuckets.delete(client.id);
+  }, WS_RATE_LIMITS.idleTimeoutMs);
+
   // Handle incoming messages
   let buffer = Buffer.alloc(0);
   wsSocket.on('data', (chunk) => {
+    client.lastActivity = Date.now();
+    clearTimeout(idleTimer);
+    // Restart idle timer on activity
+    const newIdleTimer = setTimeout(() => {
+      console.log(`  ⏱️  WS idle timeout: ${clientIP}`);
+      wsSocket.write(wsEncode({ type: 'error', message: 'Idle timeout' }));
+      wsSocket.end(Buffer.from([0x88, 0x02, 0x03, 0xe8]));
+      wsClients.delete(client);
+      wsRateDecrementIP(clientIP);
+      wsMessageBuckets.delete(client.id);
+    }, WS_RATE_LIMITS.idleTimeoutMs);
+    // Update reference for cleanup
+    client._idleTimer = newIdleTimer;
+
     buffer = Buffer.concat([buffer, chunk]);
     while (buffer.length >= 2) {
       const result = wsDecode(buffer);
       if (!result || result.totalLen > buffer.length) break;
       buffer = buffer.slice(result.totalLen);
+
       if (result.opcode === 0x08) { // close frame
+        clearTimeout(newIdleTimer);
         wsSocket.end();
         wsClients.delete(client);
+        wsRateDecrementIP(clientIP);
+        wsMessageBuckets.delete(client.id);
         console.log(`  🔌 WS client disconnected (${wsClients.size} total)`);
         return;
       }
+
       if (result.opcode === 0x01) { // text frame
+        // Message size check
+        if (Buffer.byteLength(result.payload) > WS_RATE_LIMITS.maxMessageBytes) {
+          wsSocket.write(wsEncode({ type: 'error', message: 'Message too large (max 8KB)' }));
+          continue;
+        }
+
+        // Message rate check
+        const msgRate = wsRateCheckMessage(client.id);
+        if (!msgRate.ok) {
+          console.log(`  ⚠️  WS message rate limit: ${clientIP}`);
+          wsSocket.write(wsEncode({ type: 'error', message: msgRate.reason }));
+          continue;
+        }
+
         try {
           const msg = JSON.parse(result.payload);
           if (msg.type === 'ping') {
@@ -523,7 +666,10 @@ server.on('upgrade', (req, socket, head) => {
   });
 
   wsSocket.on('close', () => {
+    clearTimeout(client._idleTimer || idleTimer);
     wsClients.delete(client);
+    wsRateDecrementIP(clientIP);
+    wsMessageBuckets.delete(client.id);
     console.log(`  🔌 WS client disconnected (${wsClients.size} total)`);
   });
 

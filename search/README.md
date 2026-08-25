@@ -138,7 +138,9 @@ Connect to `ws://localhost:3001/ws` for real-time notifications:
 - `Ctrl+K` — Focus search input
 - `Enter` — Execute search
 
-## Rate Limiting (nginx)
+## Rate Limiting
+
+### Nginx (L7)
 
 | Endpoint | Rate | Burst | Description |
 |----------|------|-------|-------------|
@@ -146,7 +148,22 @@ Connect to `ws://localhost:3001/ws` for real-time notifications:
 | `/api/obscura/bulk-scrape` | 2 req/s | 5 | Bulk operations |
 | `/api/obscura/scrape` | 5 req/s | 5 | Single URL scrape |
 | `/api/obscura/alerts` | 10 req/s | 20 | Alert management |
-| `/ws` | 10 conn/IP | — | WebSocket connections |
+| `/ws` | 10 conn/min | 5 | WebSocket upgrades |
+
+### Application (WebSocket)
+
+| Limit | Value | Description |
+|-------|-------|-------------|
+| Max connections per IP | 5 | Concurrent WebSocket connections |
+| Max connects per minute | 10 | New connections per IP per 60s |
+| Max messages per minute | 60 | Messages per connection per 60s |
+| Max message size | 8 KB | Single message payload limit |
+| Idle timeout | 5 min | Disconnect inactive clients |
+
+**Monitor via API:**
+```bash
+curl http://localhost:3001/api/obscura/ws/status
+```
 
 **Docker setup:**
 ```bash
