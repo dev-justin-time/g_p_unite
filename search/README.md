@@ -138,6 +138,23 @@ Connect to `ws://localhost:3001/ws` for real-time notifications:
 - `Ctrl+K` — Focus search input
 - `Enter` — Execute search
 
+## Rate Limiting (nginx)
+
+| Endpoint | Rate | Burst | Description |
+|----------|------|-------|-------------|
+| `/api/obscura/search` | 5 req/s | 10 | Search queries |
+| `/api/obscura/bulk-scrape` | 2 req/s | 5 | Bulk operations |
+| `/api/obscura/scrape` | 5 req/s | 5 | Single URL scrape |
+| `/api/obscura/alerts` | 10 req/s | 20 | Alert management |
+| `/ws` | 10 conn/IP | — | WebSocket connections |
+
+**Docker setup:**
+```bash
+npm run docker:search:build    # Build image
+npm run docker:search:compose  # Start with nginx proxy
+npm run docker:search:stop     # Stop all services
+```
+
 ## Integration with FCM Agents
 
 Each of the 20 FCM agents can use Obscura for web intelligence:

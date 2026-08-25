@@ -404,8 +404,8 @@ services:
           memory: 128M
     mem_limit: 256m
     cpus: 1
-    ports:
-      - "${OBSCURA_PORT:-3001}:3001"
+    expose:
+      - "3001"
     environment:
       - OBSCURA_PORT=3001
       - OBSCURA_CDP=${OBSCURA_CDP:-9222}
@@ -418,6 +418,36 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    restart: unless-stopped
+
+  obscura-nginx:
+    image: nginx:alpine
+    container_name: fcm-obscura-nginx
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 64M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+    mem_limit: 64m
+    cpus: 0.5
+    ports:
+      - "${OBSCURA_PORT:-3001}:80"
+    volumes:
+      - ./nginx/search.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      obscura-search:
+        condition: service_healthy
+    networks:
+      - fcm-mesh
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
     restart: unless-stopped
 
   prometheus:
