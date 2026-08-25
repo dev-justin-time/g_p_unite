@@ -1,6 +1,6 @@
 /**
- * Obscura Agent — Main Entry Point
- * Standalone web intelligence agent.
+ * Obscura Agent — Main Entry Point (Merged)
+ * Standalone web intelligence agent with search, scraping, monitoring, and GUI
  *
  * Usage:
  *   node src/index.js                    # Start with defaults
@@ -17,12 +17,13 @@ const { AIExtractor } = require('./ai-extractor');
 const { CDPBridge } = require('./cdp');
 const { ProxyRotator } = require('./proxy-rotator');
 const { Scheduler } = require('./scheduler');
+const { SearchEngine } = require('./engine');
 const { APIServer } = require('./api-server');
 
 async function main() {
   const config = {
-    apiPort: parseInt(process.env.PORT || '3000'),
-    cdpPort: parseInt(process.env.CDP_PORT || '9222'),
+    apiPort: parseInt(process.env.PORT || process.env.OBSCURA_PORT || '3000'),
+    cdpPort: parseInt(process.env.CDP_PORT || process.env.OBSCURA_CDP || '9222'),
     cdpHost: process.env.CDP_HOST || '127.0.0.1',
     proxies: process.env.PROXY_LIST?.split(',').filter(Boolean) || [],
     maxConcurrency: parseInt(process.env.MAX_CONCURRENCY || '10'),
@@ -42,12 +43,12 @@ async function main() {
   const stealth = new Stealth({ enabled: true });
   const extractor = new AIExtractor();
   const cdp = new CDPBridge({ host: config.cdpHost, port: config.cdpPort });
-  const proxy = new ProxyRotator({ proxies: config.proxies.map(p => ({ url: p })) });
+  const proxy = new ProxyRotator({ proxies: config.proxies });
   const scheduler = new Scheduler();
-  const server = new APIServer({ port: config.apiPort, host: '0.0.0.0', core });
+  const searchEngine = new SearchEngine();
 
   // Boot engine with all modules
-  await core.boot({ scraper, monitor, stealth, extractor, cdp, proxy, scheduler });
+  await core.boot({ scraper, monitor, stealth, extractor, cdp, proxy, scheduler, searchEngine });
 
   // Try to connect CDP
   try {
@@ -58,11 +59,22 @@ async function main() {
     console.log('   CDP: Not available (HTTP-only fallback mode)');
   }
 
-  // Start API server
+  // Start API server (merged server with auth, WebSocket, alerts, rate limiting)
+  const server = new APIServer({
+    port: config.apiPort,
+    host: '0.0.0.0',
+    core,
+    searchEngine,
+    stealth,
+    proxyRotator: proxy,
+    monitor,
+    extractor,
+    scraper,
+    cdp
+  });
   const serverInfo = await server.start();
-  console.log(`   ✓ Ready on http://${serverInfo.host}:${serverInfo.port}`);
 
-  // Start scheduler for periodic health checks
+  // Start scheduler
   scheduler.start();
 
   // Graceful shutdown
@@ -80,8 +92,7 @@ async function main() {
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
 
-  // Keep alive
-  return { core, scraper, monitor, extractor, cdp, proxy, scheduler, server };
+  return { core, scraper, monitor, extractor, cdp, proxy, scheduler, searchEngine, server };
 }
 
 module.exports = { main };

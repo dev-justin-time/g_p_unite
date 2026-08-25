@@ -19,6 +19,7 @@ const { CDPBridge } = require('./cdp');
 const { ProxyRotator } = require('./proxy-rotator');
 const { APIServer } = require('./api-server');
 const { Scheduler } = require('./scheduler');
+const { SearchEngine } = require('./engine');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -29,15 +30,17 @@ async function main() {
 🕸️  Obscura Agent — Web Intelligence CLI
 
 Commands:
+  search <query>       Multi-engine search (--engine duckduckgo|google|bing|brave, --limit <n>)
   scrape <url>         Scrape a URL (--format html|text|json, --eval <js>, --timeout <ms>)
   batch <urls>         Scrape multiple URLs (comma-separated)
   monitor <url>        Start monitoring a URL for changes (--interval <seconds>)
-  extract <url>        Extract structured data from a URL (--schema <name>)
+  extract <url>        Extract structured data from a URL (--schema <json>)
   serve                Start API server (--port <port>)
   status               Show agent status
   help                 Show this help
 
 Examples:
+  node cli.js search "machine learning" --engine duckduckgo --limit 10
   node cli.js scrape "https://example.com" --format text
   node cli.js batch "https://a.com,https://b.com"
   node cli.js monitor "https://example.com" --interval 60
@@ -49,6 +52,17 @@ Examples:
   const core = new CoreEngine();
 
   switch (command) {
+    case 'search': {
+      const query = args[1];
+      if (!query) { console.error('Error: Query required'); process.exit(1); }
+      const options = parseOptions(args.slice(2));
+      const searchEngine = new SearchEngine();
+      const results = await searchEngine.search(query, options);
+      const deduped = searchEngine.deduplicate(results);
+      console.log(JSON.stringify({ results: deduped, total: deduped.length }, null, 2));
+      break;
+    }
+
     case 'scrape': {
       const url = args[1];
       if (!url) { console.error('Error: URL required'); process.exit(1); }

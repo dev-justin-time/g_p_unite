@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Obscura - Search Console</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-tertiary-fixed": "#360f00",
+                        "tertiary-container": "#ffb595",
+                        "on-background": "#e5e2e1",
+                        "surface-bright": "#393939",
+                        "on-surface": "#e5e2e1",
+                        "secondary-fixed-dim": "#4edea3",
+                        "secondary": "#4edea3",
+                        "surface": "#131313",
+                        "on-primary": "#122f5f",
+                        "surface-container": "#201f1f",
+                        "inverse-on-surface": "#313030",
+                        "on-error-container": "#ffdad6",
+                        "surface-container-high": "#2a2a2a",
+                        "on-secondary-container": "#003e28",
+                        "surface-dim": "#131313",
+                        "on-error": "#690005",
+                        "surface-tint": "#adc6ff",
+                        "on-secondary-fixed-variant": "#005236",
+                        "primary-fixed": "#d8e2ff",
+                        "secondary-fixed": "#6ffbbe",
+                        "on-tertiary": "#51240d",
+                        "outline-variant": "#44474f",
+                        "on-primary-container": "#385283",
+                        "primary": "#d8e2ff",
+                        "surface-container-highest": "#353534",
+                        "tertiary-fixed": "#ffdbcd",
+                        "surface-container-low": "#1c1b1b",
+                        "on-primary-fixed": "#001a42",
+                        "error": "#ffb4ab",
+                        "inverse-surface": "#e5e2e1",
+                        "secondary-container": "#00b47d",
+                        "on-secondary": "#003824",
+                        "tertiary": "#ffdbcc",
+                        "primary-container": "#adc6ff",
+                        "surface-variant": "#353534",
+                        "inverse-primary": "#455e90",
+                        "background": "#131313",
+                        "error-container": "#93000a",
+                        "outline": "#8e909a",
+                        "on-secondary-fixed": "#002114",
+                        "on-surface-variant": "#c4c6d0",
+                        "on-primary-fixed-variant": "#2c4677",
+                        "surface-container-lowest": "#0e0e0e",
+                        "on-tertiary-container": "#7a442b",
+                        "primary-fixed-dim": "#adc6ff",
+                        "on-tertiary-fixed-variant": "#6c3921",
+                        "tertiary-fixed-dim": "#ffb596"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "gutter": "12px",
+                        "safe-area": "20px",
+                        "unit": "4px",
+                        "margin-mobile": "16px"
+                    },
+                    fontFamily: {
+                        "label-caps": ["JetBrains Mono"],
+                        "code-md": ["JetBrains Mono"],
+                        "code-sm": ["JetBrains Mono"],
+                        "body-sm": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    fontSize: {
+                        "label-caps": ["10px", { lineHeight: "12px", letterSpacing: "0.1em", fontWeight: "700" }],
+                        "code-md": ["14px", { lineHeight: "20px", letterSpacing: "0.02em", fontWeight: "500" }],
+                        "code-sm": ["12px", { lineHeight: "16px", fontWeight: "500" }],
+                        "body-sm": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+                        "headline-md": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+                        "headline-lg": ["24px", { lineHeight: "32px", letterSpacing: "-0.02em", fontWeight: "700" }],
+                        "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .scanline {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.2) 50%,
+                rgba(0,0,0,0.2)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+        
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+        
+        .pulse-emerald {
+            position: relative;
+        }
+        
+        .pulse-emerald::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: theme('colors.secondary');
+            border-radius: 50%;
+            z-index: -1;
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+
+        .skeleton-wave {
+            background: linear-gradient(90deg, 
+                theme('colors.surface-container-high') 25%, 
+                theme('colors.surface-bright') 50%, 
+                theme('colors.surface-container-high') 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite linear;
+        }
+
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .terminal-text-glow {
+            text-shadow: 0 0 4px theme('colors.secondary');
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen relative overflow-hidden flex flex-col md:flex-row font-body-sm">
+<!-- Background Image -->
+<div class="absolute inset-0 z-0 bg-cover bg-center opacity-30 mix-blend-luminosity" style="background-image: url('https://lh3.googleusercontent.com/aida/AEtjO1UU6EQhe7Qvzrii1R27TEGZdxoGeHDDMpDlYpk5AV5xc9v-2qCMy7qcMYhowfs9adTgMP3eKBodV647ndZjvW8Nb3ayArRBmZHdWw8sJyBZCc0OE2c5DQ7cOFxIrOzYhb3Xu1zeF9pSa_qdiYEibNkl_w36QShX0GOzeMRa8aDV4-tUhOcKND2y0TpAUyiHcIgALU_a7epFbYfl1XoBxwZjDNF3bDGS_mhuUecSZG5d3kgQ2qADyaUha7T_')"></div>
+<div class="absolute inset-0 z-0 scanline"></div>
+<!-- Navigation Drawer (Desktop) -->
+<nav class="hidden md:flex flex-col h-full py-safe w-80 bg-surface-container-highest/95 backdrop-blur-2xl border-r border-white/10 relative z-10">
+<div class="p-6 border-b border-white/10 flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center border border-white/10 overflow-hidden">
+<span class="material-symbols-outlined text-secondary" data-icon="person">person</span>
+</div>
+<div>
+<div class="font-headline-lg text-headline-lg text-secondary">OP_SEC_01</div>
+<div class="font-code-sm text-code-sm text-on-surface-variant">LEVEL 4 ACCESS</div>
+<div class="font-label-caps text-label-caps text-secondary/70 mt-1">ENCRYPTED</div>
+</div>
+</div>
+<div class="flex-1 flex flex-col gap-2 p-4 mt-4">
+<a class="flex items-center gap-3 p-3 rounded text-on-surface-variant hover:bg-white/5 transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="grid_view">grid_view</span>
+<span class="font-code-md text-code-md">DASHBOARD</span>
+</a>
+<a class="flex items-center gap-3 p-3 rounded bg-secondary/10 text-secondary border-l-4 border-secondary transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+<span class="font-code-md text-code-md terminal-text-glow">SEARCH</span>
+</a>
+<a class="flex items-center gap-3 p-3 rounded text-on-surface-variant hover:bg-white/5 transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="router">router</span>
+<span class="font-code-md text-code-md">PROXY CONFIG</span>
+</a>
+<a class="flex items-center gap-3 p-3 rounded text-on-surface-variant hover:bg-white/5 transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="key">key</span>
+<span class="font-code-md text-code-md">API KEYS</span>
+</a>
+</div>
+<div class="p-4 border-t border-white/10">
+<a class="flex items-center gap-3 p-3 rounded text-on-surface-variant hover:bg-white/5 transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-code-md text-code-md">LOGOUT</span>
+</a>
+</div>
+</nav>
+<!-- Top App Bar (Mobile) -->
+<header class="md:hidden fixed top-0 w-full z-50 bg-surface-dim/80 backdrop-blur-md border-b border-white/10 flex justify-between items-center px-margin-mobile h-14">
+<button class="text-secondary hover:text-secondary transition-colors active:opacity-70 p-2 -ml-2">
+<span class="material-symbols-outlined" data-icon="security">security</span>
+</button>
+<span class="font-label-caps text-label-caps tracking-widest text-secondary drop-shadow-[0_0_4px_#4edea3]">OBSCURA</span>
+<button class="text-outline hover:text-secondary transition-colors active:opacity-70 p-2 -mr-2">
+<span class="material-symbols-outlined" data-icon="sensors">sensors</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 relative z-10 flex flex-col pt-14 md:pt-0 pb-16 md:pb-0 h-screen overflow-hidden">
+<!-- Search Header Area -->
+<div class="p-6 border-b border-white/10 bg-surface/50 backdrop-blur-sm">
+<div class="max-w-4xl mx-auto w-full">
+<div class="font-label-caps text-label-caps text-secondary mb-2 terminal-text-glow">ACTIVE OPERATION</div>
+<div class="relative group mt-2">
+<div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+<span class="material-symbols-outlined text-secondary animate-pulse" data-icon="search">search</span>
+</div>
+<input class="w-full bg-surface-container-high border-x-0 border-t-0 border-b border-secondary/50 text-on-surface font-code-md text-code-md pl-12 pr-4 py-4 focus:ring-0 focus:border-secondary transition-colors focus:bg-surface-bright/50" readonly="" type="text" value="SELECT * FROM targets WHERE threat_level &gt; 8 AND location = 'UNDEFINED'"/>
+<div class="absolute inset-y-0 right-0 flex items-center pr-4">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 bg-secondary rounded-full pulse-emerald drop-shadow-[0_0_4px_#4edea3]"></span>
+<span class="font-code-sm text-code-sm text-secondary">PROCESSING</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Terminal Output / Skeletons Area -->
+<div class="flex-1 overflow-y-auto p-6 max-w-4xl mx-auto w-full flex flex-col gap-6">
+<!-- Terminal Log -->
+<div class="bg-surface-container-lowest border border-white/10 rounded-DEFAULT p-4 font-code-sm text-code-sm text-outline-variant h-32 overflow-hidden relative">
+<div class="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent to-surface-container-lowest pointer-events-none z-10"></div>
+<ul class="space-y-1 flex flex-col justify-end h-full absolute bottom-4 w-[calc(100%-2rem)]">
+<li>[SYS] Initiating query sequence...</li>
+<li>[SYS] Bypassing localized firewalls...</li>
+<li class="text-on-surface-variant">ROUTING THROUGH PROXY_ALPHA... <span class="text-secondary">OK</span></li>
+<li class="text-on-surface-variant">ROUTING THROUGH PROXY_DELTA... <span class="text-secondary">OK</span></li>
+<li class="text-on-surface-variant">ESTABLISHING SECURE HANDSHAKE... <span class="text-secondary">OK</span></li>
+<li class="text-primary-container">DECRYPTING HEADERS... <span class="animate-pulse">_</span></li>
+</ul>
+</div>
+<!-- Loading Skeletons Grid (Bento Style) -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Skeleton Card 1 -->
+<div class="col-span-1 md:col-span-2 bg-surface-container/50 border border-white/5 backdrop-blur-md rounded-lg p-4 flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded skeleton-wave"></div>
+<div class="flex-1">
+<div class="h-4 w-1/3 skeleton-wave rounded mb-2"></div>
+<div class="h-3 w-1/4 skeleton-wave rounded opacity-50"></div>
+</div>
+</div>
+<div class="space-y-2 mt-2">
+<div class="h-3 w-full skeleton-wave rounded"></div>
+<div class="h-3 w-5/6 skeleton-wave rounded"></div>
+<div class="h-3 w-4/6 skeleton-wave rounded"></div>
+</div>
+</div>
+<!-- Skeleton Card 2 (Square) -->
+<div class="col-span-1 bg-surface-container/50 border border-white/5 backdrop-blur-md rounded-lg p-4 flex flex-col items-center justify-center gap-4">
+<div class="w-16 h-16 rounded-full skeleton-wave pulse-emerald opacity-20 relative">
+<span class="absolute inset-0 flex items-center justify-center text-secondary/30 material-symbols-outlined" data-icon="fingerprint">fingerprint</span>
+</div>
+<div class="h-3 w-2/3 skeleton-wave rounded mt-2"></div>
+</div>
+<!-- Skeleton Row -->
+<div class="col-span-1 md:col-span-3 bg-surface-container/30 border border-white/5 backdrop-blur-sm rounded-lg p-3 flex items-center gap-4">
+<div class="w-8 h-8 rounded skeleton-wave"></div>
+<div class="flex-1 h-3 skeleton-wave rounded"></div>
+<div class="w-20 h-6 rounded skeleton-wave"></div>
+</div>
+<div class="col-span-1 md:col-span-3 bg-surface-container/30 border border-white/5 backdrop-blur-sm rounded-lg p-3 flex items-center gap-4 opacity-75">
+<div class="w-8 h-8 rounded skeleton-wave"></div>
+<div class="flex-1 h-3 skeleton-wave rounded"></div>
+<div class="w-20 h-6 rounded skeleton-wave"></div>
+</div>
+<div class="col-span-1 md:col-span-3 bg-surface-container/30 border border-white/5 backdrop-blur-sm rounded-lg p-3 flex items-center gap-4 opacity-50">
+<div class="w-8 h-8 rounded skeleton-wave"></div>
+<div class="flex-1 h-3 skeleton-wave rounded"></div>
+<div class="w-20 h-6 rounded skeleton-wave"></div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Nav Bar (Mobile) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 pb-safe bg-surface-container/90 backdrop-blur-xl border-t border-white/15 flex justify-around items-center h-16 px-2">
+<a class="flex flex-col items-center justify-center text-secondary drop-shadow-[0_0_4px_#4edea3] border-t-2 border-secondary -mt-[1px] w-1/4 h-full active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="search" data-weight="fill" style="font-variation-settings: 'FILL' 1;">search</span>
+<span class="font-label-caps text-label-caps">SEARCH</span>
+</a>
+<a class="flex flex-col items-center justify-center text-outline-variant w-1/4 h-full hover:bg-white/5 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="terminal">terminal</span>
+<span class="font-label-caps text-label-caps">SCRAPE</span>
+</a>
+<a class="flex flex-col items-center justify-center text-outline-variant w-1/4 h-full hover:bg-white/5 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="monitoring">monitoring</span>
+<span class="font-label-caps text-label-caps">MONITOR</span>
+</a>
+<a class="flex flex-col items-center justify-center text-outline-variant w-1/4 h-full hover:bg-white/5 active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="notifications">notifications</span>
+<span class="font-label-caps text-label-caps">INTEL</span>
+</a>
+</nav>
+<script>
+        // Simple terminal text rotation to simulate active processing
+        const terminalTexts = [
+            "DECRYPTING HEADERS...",
+            "ANALYZING PACKET TRAFFIC...",
+            "EXTRACTING METADATA...",
+            "MATCHING SIGNATURES...",
+            "COMPILING INTEL..."
+        ];
+        
+        let i = 0;
+        const terminalLine = document.querySelector('.text-primary-container');
+        
+        if(terminalLine) {
+            setInterval(() => {
+                i = (i + 1) % terminalTexts.length;
+                terminalLine.innerHTML = `${terminalTexts[i]} <span class="animate-pulse">_</span>`;
+            }, 2500);
+        }
+    </script>
+</body></html>

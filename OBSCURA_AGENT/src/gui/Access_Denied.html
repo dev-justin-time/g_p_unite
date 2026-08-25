@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Obscura Intel - Access Denied</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-container": "#7a442b",
+                        "secondary-fixed": "#6ffbbe",
+                        "on-secondary": "#003824",
+                        "primary-container": "#adc6ff",
+                        "primary": "#d8e2ff",
+                        "surface-container-lowest": "#0e0e0e",
+                        "tertiary-fixed-dim": "#ffb596",
+                        "on-primary-fixed-variant": "#2c4677",
+                        "surface-container-highest": "#353534",
+                        "secondary": "#4edea3",
+                        "on-surface": "#e5e2e1",
+                        "primary-fixed": "#d8e2ff",
+                        "surface-container-high": "#2a2a2a",
+                        "on-background": "#e5e2e1",
+                        "on-tertiary-fixed": "#360f00",
+                        "background": "#131313",
+                        "tertiary-container": "#ffb595",
+                        "on-error": "#690005",
+                        "error": "#ffb4ab",
+                        "outline-variant": "#44474f",
+                        "surface-bright": "#393939",
+                        "tertiary": "#ffdbcc",
+                        "on-error-container": "#ffdad6",
+                        "surface-variant": "#353534",
+                        "on-secondary-fixed-variant": "#005236",
+                        "on-secondary-fixed": "#002114",
+                        "on-primary-fixed": "#001a42",
+                        "on-primary": "#122f5f",
+                        "surface-dim": "#131313",
+                        "surface-container-low": "#1c1b1b",
+                        "surface-tint": "#adc6ff",
+                        "on-tertiary": "#51240d",
+                        "secondary-fixed-dim": "#4edea3",
+                        "on-surface-variant": "#c4c6d0",
+                        "on-tertiary-fixed-variant": "#6c3921",
+                        "surface-container": "#201f1f",
+                        "primary-fixed-dim": "#adc6ff",
+                        "error-container": "#93000a",
+                        "tertiary-fixed": "#ffdbcd",
+                        "on-primary-container": "#385283",
+                        "surface": "#131313",
+                        "outline": "#8e909a",
+                        "secondary-container": "#00b47d",
+                        "inverse-primary": "#455e90",
+                        "inverse-on-surface": "#313030",
+                        "inverse-surface": "#e5e2e1",
+                        "on-secondary-container": "#003e28"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "gutter": "12px",
+                        "safe-area": "20px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "code-md": ["JetBrains Mono"],
+                        "headline-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-caps": ["JetBrains Mono"],
+                        "code-sm": ["JetBrains Mono"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "code-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-caps": ["10px", { "lineHeight": "12px", "letterSpacing": "0.1em", "fontWeight": "700" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #0a0a0a;
+            color: #e5e2e1;
+        }
+        
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.2) 50%,
+                rgba(0,0,0,0.2)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.3;
+        }
+        
+        .glow-error {
+            drop-shadow: 0 0 8px rgba(255, 180, 171, 0.6);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative overflow-hidden bg-surface-container-lowest">
+<div class="scanline"></div>
+<div class="absolute inset-0 z-0">
+<img alt="Digital Shadow background" class="w-full h-full object-cover opacity-20 mix-blend-screen" src="https://lh3.googleusercontent.com/aida/AEtjO1UU6EQhe7Qvzrii1R27TEGZdxoGeHDDMpDlYpk5AV5xc9v-2qCMy7qcMYhowfs9adTgMP3eKBodV647ndZjvW8Nb3ayArRBmZHdWw8sJyBZCc0OE2c5DQ7cOFxIrOzYhb3Xu1zeF9pSa_qdiYEibNkl_w36QShX0GOzeMRa8aDV4-tUhOcKND2y0TpAUyiHcIgALU_a7epFbYfl1XoBxwZjDNF3bDGS_mhuUecSZG5d3kgQ2qADyaUha7T_"/>
+</div>
+<!-- Navigation suppression: Intent is Transactional/Error (Access Denied) -->
+<main class="flex-grow flex items-center justify-center p-margin-mobile relative z-10 w-full max-w-7xl mx-auto h-screen">
+<div class="bg-surface/60 backdrop-blur-xl border border-error/30 rounded-xl p-8 max-w-md w-full flex flex-col items-center text-center shadow-[0_0_24px_rgba(255,180,171,0.1)]">
+<div class="w-16 h-16 rounded-full bg-error/10 flex items-center justify-center mb-6 glow-error">
+<span class="material-symbols-outlined text-error text-[32px]" style="font-variation-settings: 'FILL' 1;">
+                    lock
+                </span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-error mb-4">CLEARANCE LEVEL INSUFFICIENT</h1>
+<div class="bg-surface-container/50 border border-white/5 rounded p-4 mb-8 w-full">
+<p class="font-body-md text-body-md text-on-surface-variant mb-2">
+                    Access to this secure node is denied.
+                </p>
+<div class="flex items-center justify-center space-x-2 mt-4 text-error">
+<span class="material-symbols-outlined text-sm">warning</span>
+<span class="font-code-sm text-code-sm uppercase tracking-wider">Required: Level 5 Auth</span>
+</div>
+</div>
+<button class="group relative w-full overflow-hidden rounded border border-error/50 bg-transparent px-6 py-3 font-label-caps text-label-caps text-error transition-all hover:bg-error hover:text-on-error">
+<div class="relative z-10 flex items-center justify-center space-x-2">
+<span class="material-symbols-outlined text-sm">shield_person</span>
+<span>REQUEST ESCALATION</span>
+</div>
+<div class="absolute inset-0 h-full w-full bg-error opacity-0 transition-opacity group-hover:opacity-100"></div>
+</button>
+<a class="mt-6 font-code-sm text-code-sm text-outline-variant hover:text-on-surface-variant transition-colors flex items-center space-x-1" href="#">
+<span class="material-symbols-outlined text-xs">arrow_back</span>
+<span>Return to Sector Index</span>
+</a>
+</div>
+</main>
+<!-- TopAppBar and BottomNavBar suppressed for Error state -->
+</body></html>

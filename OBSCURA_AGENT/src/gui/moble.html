@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Obscura - Stealth Minimalist</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-dim": "#131313",
+                      "on-secondary-fixed-variant": "#005236",
+                      "on-secondary-fixed": "#002114",
+                      "surface-container": "#201f1f",
+                      "surface-tint": "#adc6ff",
+                      "primary-fixed": "#d8e2ff",
+                      "surface-bright": "#393939",
+                      "primary": "#d8e2ff",
+                      "on-surface": "#e5e2e1",
+                      "error-container": "#93000a",
+                      "on-surface-variant": "#c4c6d0",
+                      "surface-variant": "#353534",
+                      "inverse-primary": "#455e90",
+                      "surface-container-highest": "#353534",
+                      "tertiary-fixed-dim": "#ffb596",
+                      "error": "#ffb4ab",
+                      "inverse-surface": "#e5e2e1",
+                      "on-error": "#690005",
+                      "secondary": "#4edea3",
+                      "on-tertiary-fixed": "#360f00",
+                      "secondary-container": "#00b47d",
+                      "outline": "#8e909a",
+                      "on-tertiary-fixed-variant": "#6c3921",
+                      "outline-variant": "#44474f",
+                      "on-primary": "#122f5f",
+                      "on-background": "#e5e2e1",
+                      "on-primary-container": "#385283",
+                      "secondary-fixed": "#6ffbbe",
+                      "inverse-on-surface": "#313030",
+                      "surface": "#131313",
+                      "primary-container": "#adc6ff",
+                      "on-error-container": "#ffdad6",
+                      "tertiary-fixed": "#ffdbcd",
+                      "on-tertiary-container": "#7a442b",
+                      "surface-container-lowest": "#0e0e0e",
+                      "on-primary-fixed": "#001a42",
+                      "on-primary-fixed-variant": "#2c4677",
+                      "primary-fixed-dim": "#adc6ff",
+                      "secondary-fixed-dim": "#4edea3",
+                      "tertiary-container": "#ffb595",
+                      "on-secondary": "#003824",
+                      "background": "#131313",
+                      "surface-container-low": "#1c1b1b",
+                      "on-tertiary": "#51240d",
+                      "surface-container-high": "#2a2a2a",
+                      "tertiary": "#ffdbcc",
+                      "on-secondary-container": "#003e28"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "safe-area": "20px",
+                      "margin-mobile": "16px",
+                      "unit": "4px",
+                      "gutter": "12px"
+              },
+              "fontFamily": {
+                      "code-md": [
+                              "JetBrains Mono"
+                      ],
+                      "code-sm": [
+                              "JetBrains Mono"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "label-caps": [
+                              "JetBrains Mono"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "code-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "code-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-caps": [
+                              "10px",
+                              {
+                                      "lineHeight": "12px",
+                                      "letterSpacing": "0.1em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            background-image: 
+                linear-gradient(to bottom, rgba(19,19,19,0.3) 0%, rgba(19,19,19,1) 100%),
+                radial-gradient(circle at top right, rgba(173,198,255,0.05) 0%, transparent 40%),
+                radial-gradient(circle at bottom left, rgba(78,222,163,0.05) 0%, transparent 40%),
+                url('https://lh3.googleusercontent.com/aida-public/AB6AXuD9DtdrV4EZdeSvlouBoKIfPuqBjzDBTOmH2BkgFEbDa2hZ7-lo0OsJIdPa_M46mikLhvjMqCoVwKN96uvPcA0JC-3InIYD27OjxMOP2f7Dxazld2V7t4WgFwxyFpNJ67Jw5EWZ7zoseYtLMlUezhb4LPunF_v3gxHqThyruprQH5vu8A6SlZdsv9WYQ2633WxsR4JwEqcMhaCHCBVf7pWuTY57TTpb1j4zCUQhpAMVTVxDJwCMltySEw');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+
+        .scanline::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 100;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            opacity: 0.15;
+        }
+        
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .glass-card {
+            background: rgba(32, 31, 31, 0.4);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .status-pulse {
+            animation: pulse-glow 2s infinite;
+        }
+
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(173, 198, 255, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(173, 198, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(173, 198, 255, 0); }
+        }
+
+        /* Micro-interactions & Animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.4s ease-out forwards;
+            opacity: 0;
+        }
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+
+        @keyframes ambientShimmer {
+            0% { background-color: rgba(32, 31, 31, 0.4); }
+            50% { background-color: rgba(45, 43, 43, 0.5); }
+            100% { background-color: rgba(32, 31, 31, 0.4); }
+        }
+        .glass-card-ambient {
+            animation: ambientShimmer 4s infinite ease-in-out;
+        }
+
+        @keyframes scanShimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+        .btn-scan-shimmer {
+            background: linear-gradient(90deg, rgba(216,226,255,0.1) 0%, rgba(216,226,255,0.25) 50%, rgba(216,226,255,0.1) 100%);
+            background-size: 200% auto;
+            animation: scanShimmer 2.5s infinite linear;
+        }
+
+        @keyframes rotateSlow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .icon-rotate {
+            animation: rotateSlow 10s linear infinite;
+        }
+
+        .terminal-input {
+            caret-color: transparent;
+        }
+        .terminal-input:focus {
+            caret-color: theme('colors.primary');
+            text-shadow: 0 0 8px rgba(173, 198, 255, 0.5);
+        }
+
+        /* Accessibility: Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, ::before, ::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col scanline">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface-dim/80 backdrop-blur-md border-b border-white/10 flex justify-between items-center px-margin-mobile h-14 w-full transition-all">
+<button class="text-outline hover:text-secondary transition-colors active:scale-90 flex items-center justify-center w-[44px] h-[44px]">
+<span class="material-symbols-outlined" data-icon="security" data-weight="fill" style="font-variation-settings: 'FILL' 1;">security</span>
+</button>
+<div class="flex flex-col items-center justify-center">
+<h1 class="font-headline-md text-headline-md text-secondary tracking-tight">OBSCURA</h1>
+<div class="flex items-center gap-1 mt-0.5">
+<div class="w-1.5 h-1.5 rounded-full bg-primary status-pulse"></div>
+<span class="font-label-caps text-[8px] text-primary tracking-widest uppercase">Connected</span>
+</div>
+</div>
+<button class="text-outline hover:text-secondary transition-colors active:scale-90 flex items-center justify-center w-[44px] h-[44px]">
+<span class="material-symbols-outlined icon-rotate" data-icon="sensors">sensors</span>
+</button>
+</header>
+<!-- Main Content Area -->
+<main class="flex-grow pt-24 pb-28 px-margin-mobile flex flex-col gap-6 relative z-10">
+<!-- Search Section -->
+<div class="w-full relative z-20">
+<div class="glass-card glass-card-ambient rounded-xl p-1 relative flex items-center group focus-within:ring-1 focus-within:ring-primary focus-within:shadow-[0_0_16px_rgba(173,198,255,0.4)] transition-all duration-300">
+<span class="material-symbols-outlined text-outline ml-3 transition-colors group-focus-within:text-primary" data-icon="search">search</span>
+<input class="w-full bg-transparent border-none text-on-surface font-code-md placeholder:text-outline-variant focus:ring-0 px-3 py-3 h-[48px] terminal-input" placeholder="ENTER QUERY..." type="text"/>
+<button class="btn-scan-shimmer text-primary font-label-caps px-4 py-2 rounded-lg mr-1 transition-all h-[40px] flex items-center border border-primary/20 hover:border-primary/50 active:scale-95 shadow-[0_0_10px_rgba(173,198,255,0.1)] hover:shadow-[0_0_15px_rgba(173,198,255,0.3)]">
+                    EXECUTE
+                </button>
+</div>
+</div>
+<!-- Filters (Horizontal Scroll) -->
+<div class="flex gap-2 overflow-x-auto hide-scrollbar pb-2">
+<button class="glass-card glass-card-ambient px-4 py-2 rounded-full font-label-caps text-primary border border-primary/30 shadow-[0_0_8px_rgba(173,198,255,0.2)] whitespace-nowrap active:scale-95 transition-all duration-200 h-[36px] hover:bg-white/10">ALL NODES</button>
+<button class="glass-card px-4 py-2 rounded-full font-label-caps text-outline-variant hover:text-on-surface hover:bg-white/5 whitespace-nowrap active:scale-95 transition-all duration-200 h-[36px]">DEEP WEB</button>
+<button class="glass-card px-4 py-2 rounded-full font-label-caps text-outline-variant hover:text-on-surface hover:bg-white/5 whitespace-nowrap active:scale-95 transition-all duration-200 h-[36px]">SOCIAL</button>
+<button class="glass-card px-4 py-2 rounded-full font-label-caps text-outline-variant hover:text-on-surface hover:bg-white/5 whitespace-nowrap active:scale-95 transition-all duration-200 h-[36px]">FINANCIAL</button>
+</div>
+<!-- Results List -->
+<div class="flex flex-col gap-4">
+<!-- Result Item 1 -->
+<div class="glass-card glass-card-ambient p-4 rounded-xl flex flex-col gap-3 group hover:bg-white/5 active:scale-[0.98] transition-all cursor-pointer animate-fade-in-up delay-100">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="terminal">terminal</span>
+<span class="font-code-sm text-outline-variant group-hover:text-primary transition-colors">ID: 8F29-A</span>
+</div>
+<span class="font-label-caps text-secondary bg-secondary/10 px-2 py-0.5 rounded text-[9px] border border-secondary/20 shadow-[0_0_8px_rgba(78,222,163,0.1)]">HIGH CONFIDENCE</span>
+</div>
+<h3 class="font-body-md text-on-surface leading-tight">Encrypted communication packet intercepted via secondary node routing.</h3>
+<div class="flex items-center gap-4 mt-1">
+<div class="flex items-center gap-1">
+<span class="w-1 h-3 bg-primary/40 rounded-sm"></span>
+<span class="w-1 h-3 bg-primary/60 rounded-sm"></span>
+<span class="w-1 h-3 bg-primary rounded-sm shadow-[0_0_4px_#adc6ff]"></span>
+<span class="font-code-sm text-primary ml-1">98% Match</span>
+</div>
+<span class="font-code-sm text-outline-variant">2 mins ago</span>
+</div>
+</div>
+<!-- Result Item 2 -->
+<div class="glass-card glass-card-ambient p-4 rounded-xl flex flex-col gap-3 group hover:bg-white/5 active:scale-[0.98] transition-all cursor-pointer animate-fade-in-up delay-200">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="monitoring">monitoring</span>
+<span class="font-code-sm text-outline-variant group-hover:text-primary transition-colors">ID: 3B44-C</span>
+</div>
+<span class="font-label-caps text-outline-variant bg-surface-bright px-2 py-0.5 rounded text-[9px] border border-white/5">ANALYZING</span>
+</div>
+<h3 class="font-body-md text-on-surface leading-tight">Anomalous data transfer detected in financial subsystem. Volume exceeds baseline.</h3>
+<div class="flex items-center gap-4 mt-1">
+<div class="flex items-center gap-1">
+<span class="w-1 h-3 bg-outline/40 rounded-sm"></span>
+<span class="w-1 h-3 bg-outline/60 rounded-sm"></span>
+<span class="w-1 h-3 bg-outline-variant rounded-sm"></span>
+<span class="font-code-sm text-outline ml-1">45% Match</span>
+</div>
+<span class="font-code-sm text-outline-variant">15 mins ago</span>
+</div>
+</div>
+<!-- Result Item 3 -->
+<div class="glass-card glass-card-ambient p-4 rounded-xl flex flex-col gap-3 group hover:bg-white/5 active:scale-[0.98] transition-all cursor-pointer opacity-70 hover:opacity-100 animate-fade-in-up delay-300">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-outline-variant text-[18px]" data-icon="notifications">notifications</span>
+<span class="font-code-sm text-outline-variant group-hover:text-primary transition-colors">ID: 9X11-Z</span>
+</div>
+<span class="font-label-caps text-error bg-error/10 px-2 py-0.5 rounded text-[9px] border border-error/20">FLAGGED</span>
+</div>
+<h3 class="font-body-md text-on-surface leading-tight">Unauthorized access attempt recorded on perimeter gateway.</h3>
+<div class="flex items-center gap-4 mt-1">
+<div class="flex items-center gap-1">
+<span class="font-code-sm text-error">Source Traced</span>
+</div>
+<span class="font-code-sm text-outline-variant">1 hr ago</span>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface-container/90 backdrop-blur-xl border-t border-white/15 flex justify-around items-center h-16 w-full px-2">
+<!-- Active Tab: SEARCH -->
+<button class="flex flex-col items-center justify-center text-secondary drop-shadow-[0_0_4px_#4edea3] border-t-2 border-secondary -mt-[1px] hover:bg-white/5 active:scale-90 transition-transform duration-200 w-[64px] h-full">
+<span class="material-symbols-outlined mb-1" data-icon="search" data-weight="fill" style="font-variation-settings: 'FILL' 1;">search</span>
+<span class="font-label-caps text-label-caps">SEARCH</span>
+</button>
+<button class="flex flex-col items-center justify-center text-outline-variant hover:text-secondary hover:bg-white/5 active:scale-90 transition-all duration-200 w-[64px] h-full group">
+<span class="material-symbols-outlined mb-1 group-hover:-translate-y-0.5 transition-transform" data-icon="terminal">terminal</span>
+<span class="font-label-caps text-label-caps opacity-70 group-hover:opacity-100 transition-opacity">SCRAPE</span>
+</button>
+<button class="flex flex-col items-center justify-center text-outline-variant hover:text-secondary hover:bg-white/5 active:scale-90 transition-all duration-200 w-[64px] h-full group">
+<span class="material-symbols-outlined mb-1 group-hover:-translate-y-0.5 transition-transform" data-icon="monitoring">monitoring</span>
+<span class="font-label-caps text-label-caps opacity-70 group-hover:opacity-100 transition-opacity">MONITOR</span>
+</button>
+<button class="flex flex-col items-center justify-center text-outline-variant hover:text-secondary hover:bg-white/5 active:scale-90 transition-all duration-200 w-[64px] h-full group">
+<span class="material-symbols-outlined mb-1 group-hover:-translate-y-0.5 transition-transform" data-icon="notifications">notifications</span>
+<span class="font-label-caps text-label-caps opacity-70 group-hover:opacity-100 transition-opacity">INTEL</span>
+</button>
+</nav>
+</body></html>

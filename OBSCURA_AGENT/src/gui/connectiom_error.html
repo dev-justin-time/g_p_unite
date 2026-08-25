@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OBSCURA - CONNECTION ERROR</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed": "#360f00",
+                        "tertiary-container": "#ffb595",
+                        "on-background": "#e5e2e1",
+                        "surface-bright": "#393939",
+                        "on-surface": "#e5e2e1",
+                        "secondary-fixed-dim": "#4edea3",
+                        "secondary": "#4edea3",
+                        "surface": "#131313",
+                        "on-primary": "#122f5f",
+                        "surface-container": "#201f1f",
+                        "inverse-on-surface": "#313030",
+                        "on-error-container": "#ffdad6",
+                        "surface-container-high": "#2a2a2a",
+                        "on-secondary-container": "#003e28",
+                        "surface-dim": "#131313",
+                        "on-error": "#690005",
+                        "surface-tint": "#adc6ff",
+                        "on-secondary-fixed-variant": "#005236",
+                        "primary-fixed": "#d8e2ff",
+                        "secondary-fixed": "#6ffbbe",
+                        "on-tertiary": "#51240d",
+                        "outline-variant": "#44474f",
+                        "on-primary-container": "#385283",
+                        "primary": "#d8e2ff",
+                        "surface-container-highest": "#353534",
+                        "tertiary-fixed": "#ffdbcd",
+                        "surface-container-low": "#1c1b1b",
+                        "on-primary-fixed": "#001a42",
+                        "error": "#ffb4ab",
+                        "inverse-surface": "#e5e2e1",
+                        "secondary-container": "#00b47d",
+                        "on-secondary": "#003824",
+                        "tertiary": "#ffdbcc",
+                        "primary-container": "#adc6ff",
+                        "surface-variant": "#353534",
+                        "inverse-primary": "#455e90",
+                        "background": "#131313",
+                        "error-container": "#93000a",
+                        "outline": "#8e909a",
+                        "on-secondary-fixed": "#002114",
+                        "on-surface-variant": "#c4c6d0",
+                        "on-primary-fixed-variant": "#2c4677",
+                        "surface-container-lowest": "#0e0e0e",
+                        "on-tertiary-container": "#7a442b",
+                        "primary-fixed-dim": "#adc6ff",
+                        "on-tertiary-fixed-variant": "#6c3921",
+                        "tertiary-fixed-dim": "#ffb596"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "12px",
+                        "safe-area": "20px",
+                        "unit": "4px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "label-caps": ["JetBrains Mono"],
+                        "code-md": ["JetBrains Mono"],
+                        "code-sm": ["JetBrains Mono"],
+                        "body-sm": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-caps": ["10px", { "lineHeight": "12px", "letterSpacing": "0.1em", "fontWeight": "700" }],
+                        "code-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #131313;
+            color: #e5e2e1;
+        }
+        .scanlines {
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+        .glitch-text {
+            position: relative;
+        }
+        .glitch-text::before, .glitch-text::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+            animation: glitch-anim 2s infinite linear alternate-reverse;
+            opacity: 0.8;
+        }
+        .glitch-text::after {
+            clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
+            animation: glitch-anim2 2.5s infinite linear alternate-reverse;
+            left: -2px;
+            color: #ffb4ab;
+        }
+        .glitch-text::before {
+            left: 2px;
+            color: #4edea3;
+        }
+        @keyframes glitch-anim {
+            0% { transform: translate(0) }
+            20% { transform: translate(-2px, 1px) }
+            40% { transform: translate(-2px, -1px) }
+            60% { transform: translate(2px, 1px) }
+            80% { transform: translate(2px, -1px) }
+            100% { transform: translate(0) }
+        }
+        @keyframes glitch-anim2 {
+            0% { transform: translate(0) }
+            20% { transform: translate(2px, -1px) }
+            40% { transform: translate(2px, 1px) }
+            60% { transform: translate(-2px, -1px) }
+            80% { transform: translate(-2px, 1px) }
+            100% { transform: translate(0) }
+        }
+        .glow-error {
+            box-shadow: 0 0 12px rgba(255, 180, 171, 0.4);
+        }
+    </style>
+</head>
+<body class="min-h-screen w-full relative overflow-hidden flex flex-col font-body-md text-body-md antialiased selection:bg-error/30 selection:text-error">
+<!-- Background Image with Overlay -->
+<div class="absolute inset-0 z-0 bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida/AEtjO1UU6EQhe7Qvzrii1R27TEGZdxoGeHDDMpDlYpk5AV5xc9v-2qCMy7qcMYhowfs9adTgMP3eKBodV647ndZjvW8Nb3ayArRBmZHdWw8sJyBZCc0OE2c5DQ7cOFxIrOzYhb3Xu1zeF9pSa_qdiYEibNkl_w36QShX0GOzeMRa8aDV4-tUhOcKND2y0TpAUyiHcIgALU_a7epFbYfl1XoBxwZjDNF3bDGS_mhuUecSZG5d3kgQ2qADyaUha7T_');">
+<!-- Desaturated Red Tint Overlay -->
+<div class="absolute inset-0 bg-error/10 mix-blend-color-burn"></div>
+<div class="absolute inset-0 bg-surface/90 backdrop-blur-sm"></div>
+</div>
+<!-- Scanline Overlay -->
+<div class="absolute inset-0 z-10 scanlines mix-blend-overlay opacity-30"></div>
+<!-- Top Navigation (Shell suppressed due to Error state, minimal brand bar instead) -->
+<header class="fixed top-0 w-full z-50 bg-surface-dim/80 backdrop-blur-md border-b border-white/10 flex justify-between items-center px-margin-mobile h-14">
+<div class="flex items-center gap-2 text-secondary">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">security</span>
+</div>
+<div class="font-label-caps text-label-caps tracking-widest text-secondary drop-shadow-[0_0_4px_#4edea3]">
+            OBSCURA
+        </div>
+<div class="flex items-center gap-2 text-outline">
+<span class="material-symbols-outlined text-[20px]">sensors</span>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="relative z-20 flex-grow flex items-center justify-center p-gutter pt-20 pb-safe">
+<div class="w-full max-w-lg border border-error/30 bg-surface-container/60 backdrop-blur-xl glow-error rounded-sm flex flex-col items-center justify-center p-8 text-center gap-6">
+<!-- Error Icon -->
+<div class="relative w-20 h-20 rounded-full border border-error/50 flex items-center justify-center mb-2 animate-pulse bg-error/5">
+<span class="material-symbols-outlined text-[40px] text-error drop-shadow-[0_0_8px_#ffb4ab]" style="font-variation-settings: 'FILL' 1;">warning</span>
+<!-- Subtle radar ping ring -->
+<div class="absolute inset-0 rounded-full border border-error/20 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
+</div>
+<!-- Error Headline -->
+<div class="flex flex-col gap-2 w-full">
+<div class="font-label-caps text-label-caps text-error tracking-[0.2em] uppercase opacity-70">Error 0xDEADBEEF</div>
+<h1 class="font-headline-lg text-headline-lg text-error uppercase glitch-text" data-text="CONNECTION TERMINATED">
+                    CONNECTION TERMINATED
+                </h1>
+</div>
+<!-- Terminal Log Snippet -->
+<div class="w-full bg-surface-container-lowest border border-white/5 rounded-sm p-4 text-left font-code-sm text-code-sm text-outline-variant overflow-hidden h-32 relative group">
+<div class="absolute top-0 left-0 w-1 h-full bg-error/50"></div>
+<div class="flex flex-col gap-1 opacity-80" id="terminal-log">
+<div class="flex gap-2"><span class="text-secondary/50">[SYS]</span> <span>Initializing secure handshake... OK</span></div>
+<div class="flex gap-2"><span class="text-secondary/50">[SYS]</span> <span>Authenticating access token... OK</span></div>
+<div class="flex gap-2"><span class="text-secondary/50">[SYS]</span> <span>Connecting to mainframe node 04...</span></div>
+<div class="flex gap-2"><span class="text-error/80">[ERR]</span> <span class="text-error">Timeout detected. Packet loss: 100%</span></div>
+<div class="flex gap-2"><span class="text-error/80">[ERR]</span> <span class="text-error">Connection forcefully dropped by remote host.</span></div>
+<div class="flex gap-2 animate-pulse mt-2"><span class="text-error">_</span></div>
+</div>
+</div>
+<!-- Resolution Action -->
+<p class="font-body-sm text-body-sm text-on-surface-variant max-w-sm mt-2">
+                The query to the intelligence stream has timed out or the connection was actively refused. Verify network integrity and attempt to reconnect.
+            </p>
+<button class="mt-4 px-6 py-3 border border-error text-error font-code-md text-code-md uppercase hover:bg-error hover:text-on-error active:bg-error-container transition-all flex items-center gap-2 group w-full justify-center sm:w-auto min-w-[200px]">
+<span class="material-symbols-outlined text-[18px] group-hover:animate-spin">sync</span>
+                RETRY CONNECTION
+            </button>
+<a class="font-label-caps text-label-caps text-outline hover:text-on-surface transition-colors mt-2" href="#">
+                RETURN TO DASHBOARD
+            </a>
+</div>
+</main>
+<script>
+        // Simple script to scroll terminal to bottom if it were dynamic
+        const log = document.getElementById('terminal-log');
+        log.scrollTop = log.scrollHeight;
+    </script>
+</body></html>

@@ -1,17 +1,18 @@
 {
   "name": "obscura-agent",
-  "version": "1.0.0",
-  "description": "Standalone web intelligence agent with headless browser automation, scraping, monitoring, and AI-driven content extraction. Optimized for independent operation with zero external LLM dependencies.",
+  "version": "2.0.0",
+  "description": "Standalone web intelligence agent with search, scraping, monitoring, AI extraction, and real-time alerts. Merged from search GUI and agent modules.",
   "main": "src/index.js",
   "bin": {
     "obscura-agent": "src/cli.js"
   },
   "scripts": {
     "start": "node src/index.js",
-    "server": "node src/api-server.js",
+    "server": "node src/index.js",
     "cli": "node src/cli.js",
     "scrape": "node src/cli.js scrape",
     "monitor": "node src/cli.js monitor",
+    "search": "node src/cli.js search",
     "test": "node test/index.js",
     "lint": "eslint src/"
   },
@@ -32,12 +33,15 @@
   },
   "keywords": [
     "web-scraping",
+    "search-engine",
     "headless-browser",
     "obscura",
     "cdp",
     "monitoring",
     "ai-extraction",
-    "fcm-agent"
+    "fcm-agent",
+    "real-time-alerts",
+    "proxy-rotation"
   ],
   "license": "MIT",
   "author": "FCM Agent Swarm",

@@ -5,7 +5,8 @@ RUN apk add --no-cache chromium nss freetype harfbuzz ca-certificates ttf-freefo
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
-    CDP_PORT=9222
+    CDP_PORT=9222 \
+    PORT=3000
 
 WORKDIR /app
 
