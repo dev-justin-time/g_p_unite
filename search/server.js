@@ -27,6 +27,44 @@ let cdpConnected = false;
 const DATA_DIR = process.env.OBSCURA_DATA_DIR || path.join(__dirname, 'data');
 const SCHED_FILE = path.join(DATA_DIR, 'scheduled.json');
 const ALERTS_FILE = path.join(DATA_DIR, 'alerts.json');
+const NOTIF_FILE = path.join(DATA_DIR, 'notifications.json');
+const MAX_NOTIFICATIONS = 500; // keep last 500 notifications
+
+// ─── Notifications Store ─────────────────────────────────────
+const notifications = []; // { id, alertId, keywords, type, results, count, read, timestamp }
+
+function addNotification({ alertId, keywords, type, results, count }) {
+  const notif = {
+    id: Date.now() + Math.random(),
+    alertId,
+    keywords,
+    type,        // 'first' | 'new' | 'check'
+    results: (results || []).slice(0, 10), // store up to 10 result snippets
+    count,
+    read: false,
+    timestamp: new Date().toISOString()
+  };
+  notifications.unshift(notif);
+  if (notifications.length > MAX_NOTIFICATIONS) notifications.length = MAX_NOTIFICATIONS;
+  saveNotifications();
+  return notif;
+}
+
+function saveNotifications() {
+  try {
+    ensureDataDir();
+    fs.writeFileSync(NOTIF_FILE, JSON.stringify(notifications, null, 2));
+  } catch (e) { console.error('Failed to save notifications:', e.message); }
+}
+
+function loadNotifications() {
+  try {
+    if (!fs.existsSync(NOTIF_FILE)) return;
+    const data = JSON.parse(fs.readFileSync(NOTIF_FILE, 'utf8'));
+    notifications.push(...data);
+    console.log(`  📂 Loaded ${data.length} notifications from disk`);
+  } catch (e) { console.error('Failed to load notifications:', e.message); }
+}
 
 function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -168,24 +206,25 @@ function startAlertAutoCheck() {
         const prevCount = (alert.lastResults || []).length;
         const newCount = deduped.length;
         if (prevCount > 0 && newCount > prevCount) {
-          // New results found — notify clients
-          wsBroadcast({
-            type: 'alert:new',
+          // New results found — create notification + broadcast
+          const notif = addNotification({
             alertId: id,
             keywords: alert.keywords,
-            newResults: deduped.slice(0, newCount - prevCount),
-            totalResults: newCount,
-            timestamp: new Date().toISOString()
+            type: 'new',
+            results: deduped.slice(0, newCount - prevCount),
+            count: newCount - prevCount
           });
+          wsBroadcast({ type: 'notification', notification: notif });
         } else if (prevCount === 0 && newCount > 0) {
-          wsBroadcast({
-            type: 'alert:first',
+          // First results — create notification + broadcast
+          const notif = addNotification({
             alertId: id,
             keywords: alert.keywords,
+            type: 'first',
             results: deduped,
-            totalResults: newCount,
-            timestamp: new Date().toISOString()
+            count: newCount
           });
+          wsBroadcast({ type: 'notification', notification: notif });
         }
         alert.lastResults = deduped;
       } catch (e) { /* skip failed checks */ }
@@ -378,7 +417,64 @@ const server = http.createServer(async (req, res) => {
       const deduped = engine.deduplicate(allResults);
       alert.lastResults = deduped;
       saveAlerts();
+      // Create notification for manual check
+      const notif = addNotification({
+        alertId: alert.id,
+        keywords: alert.keywords,
+        type: 'check',
+        results: deduped,
+        count: deduped.length
+      });
+      wsBroadcast({ type: 'notification', notification: notif });
       json(res, 200, { alert, results: deduped, total: deduped.length });
+      handled = true;
+    }
+
+    // ── Notifications: list ──
+    if (req.method === 'GET' && url.pathname === '/api/obscura/notifications') {
+      const limit = parseInt(url.searchParams.get('limit') || '50');
+      const unreadOnly = url.searchParams.get('unread') === 'true';
+      let filtered = notifications;
+      if (unreadOnly) filtered = filtered.filter(n => !n.read);
+      json(res, 200, { notifications: filtered.slice(0, limit), total: notifications.length, unread: notifications.filter(n => !n.read).length });
+      handled = true;
+    }
+
+    // ── Notifications: mark read ──
+    if (req.method === 'POST' && url.pathname === '/api/obscura/notifications/read') {
+      const body = await readBody(req);
+      const { id: notifId } = JSON.parse(body);
+      const notif = notifications.find(n => n.id === notifId);
+      if (notif) notif.read = true;
+      saveNotifications();
+      json(res, 200, { success: true });
+      handled = true;
+    }
+
+    // ── Notifications: mark all read ──
+    if (req.method === 'POST' && url.pathname === '/api/obscura/notifications/read-all') {
+      notifications.forEach(n => n.read = true);
+      saveNotifications();
+      json(res, 200, { success: true });
+      handled = true;
+    }
+
+    // ── Notifications: delete ──
+    if (req.method === 'DELETE' && url.pathname === '/api/obscura/notifications') {
+      const body = await readBody(req);
+      const { id: notifId } = JSON.parse(body);
+      const idx = notifications.findIndex(n => n.id === notifId);
+      if (idx >= 0) notifications.splice(idx, 1);
+      saveNotifications();
+      json(res, 200, { success: true });
+      handled = true;
+    }
+
+    // ── Notifications: clear all ──
+    if (req.method === 'DELETE' && url.pathname === '/api/obscura/notifications/clear') {
+      notifications.length = 0;
+      saveNotifications();
+      json(res, 200, { success: true });
       handled = true;
     }
 
@@ -688,5 +784,6 @@ server.listen(PORT, () => {
   console.log(`  📂  Data directory: ${DATA_DIR}\n`);
   loadAlerts();
   loadScheduled();
+  loadNotifications();
   startAlertAutoCheck();
 });

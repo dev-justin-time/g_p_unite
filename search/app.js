@@ -103,11 +103,22 @@ function handleWSMessage(msg) {
       showToast('wifi', `WebSocket connected (ID: ${msg.clientId})`);
       break;
 
+    case 'notification': {
+      if (msg.notification) {
+        addNotificationLocal(msg.notification);
+        const keywords = Array.isArray(msg.notification.keywords) ? msg.notification.keywords : [msg.notification.keywords];
+        showToast('notifications_active', `${msg.notification.count} results for "${keywords.join(', ')}"`);
+        try {
+          const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH+JkI2LhX12dHN1eXt7enl4d3d5e3x9fX18e3p5eHd4eXp7fH19fHt6eXh3eHl6e3x9fXx7enl4d3h5ent8fX18e3p5eHd4eXp7fH19fHt6eXh3eHl6e3x9fXx7e3p5eHd4eXp7fH19fHt6eXh3eHl6e3x9fXx7e3p5eHd4eXp7fH19fHt7enl4d3h5ent8fX19fHt6eXh3eHl6e3x9fX18e3p5eHd4eXp7fH19fHt6eXh3eHl6e3x9fXx7enl4d3h5ent8fX18e3p5eHd4eXp7fH18fA==');
+          audio.play().catch(() => {});
+        } catch (e) {}
+      }
+      break;
+    }
     case 'alert:first':
     case 'alert:new': {
       const isNew = msg.type === 'alert:new';
       const count = isNew ? msg.newResults.length : msg.totalResults;
-      const title = isNew ? `🔔 New alert results!` : `🔔 Alert: ${msg.keywords.join(', ')}`;
       const body = isNew
         ? `${count} new results found for "${msg.keywords.join(', ')}"`
         : `${count} results found for "${msg.keywords.join(', ')}"`;
@@ -120,11 +131,6 @@ function handleWSMessage(msg) {
         localStorage.setItem('obscura-alerts', JSON.stringify(state.alerts));
         renderAlerts();
       }
-      // Play notification sound (if available)
-      try {
-        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH+JkI2LhX12dHN1eXt7enl4d3d5e3x9fX18e3p5eHd4eXp7fH19fHt6eXh3eHl6e3x9fXx7enl4d3h5ent8fX18e3p5eHd4eXp7fH19fHt6eXh3eHl6e3x9fXx7e3p5eHd4eXp7fH19fHt6eXh3eHl6e3x9fXx7e3p5eHd4eXp7fH19fHt7enl4d3h5ent8fX19fHt6eXh3eHl6e3x9fX18e3p5eHd4eXp7fH19fHt6eXh3eHl6e3x9fXx7enl4d3h5ent8fX18e3p5eHd4eXp7fH18fA==');
-        audio.play().catch(() => {});
-      } catch (e) {}
       break;
     }
 
@@ -673,6 +679,114 @@ function renderHistory() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════════
+
+state.notifications = [];
+state.unreadCount = 0;
+
+async function loadNotifications() {
+  try {
+    const data = await api('/api/obscura/notifications?limit=100');
+    state.notifications = data.notifications || [];
+    state.unreadCount = data.unread || 0;
+    updateNotifBadge();
+    renderNotifications();
+  } catch (e) { /* ignore */ }
+}
+
+async function markAllRead() {
+  try {
+    await api('/api/obscura/notifications/read-all', { method: 'POST', body: {} });
+    state.notifications.forEach(n => n.read = true);
+    state.unreadCount = 0;
+    updateNotifBadge();
+    renderNotifications();
+    showToast('done_all', 'All notifications marked as read');
+  } catch (e) {
+    showToast('error', 'Failed: ' + e.message);
+  }
+}
+
+async function clearNotifications() {
+  try {
+    await api('/api/obscura/notifications/clear', { method: 'DELETE', body: {} });
+    state.notifications = [];
+    state.unreadCount = 0;
+    updateNotifBadge();
+    renderNotifications();
+    showToast('delete', 'Notifications cleared');
+  } catch (e) {
+    showToast('error', 'Failed: ' + e.message);
+  }
+}
+
+async function markRead(id) {
+  try {
+    await api('/api/obscura/notifications/read', { method: 'POST', body: { id } });
+    const n = state.notifications.find(x => x.id === id);
+    if (n && !n.read) { n.read = true; state.unreadCount = Math.max(0, state.unreadCount - 1); }
+    updateNotifBadge();
+    renderNotifications();
+  } catch (e) { /* ignore */ }
+}
+
+function addNotificationLocal(notif) {
+  state.notifications.unshift(notif);
+  if (!notif.read) state.unreadCount++;
+  if (state.notifications.length > 100) state.notifications.length = 100;
+  updateNotifBadge();
+  renderNotifications();
+}
+
+function updateNotifBadge() {
+  const badge = document.getElementById('notif-badge');
+  if (!badge) return;
+  if (state.unreadCount > 0) {
+    badge.classList.remove('hidden');
+    badge.textContent = state.unreadCount > 99 ? '99+' : state.unreadCount;
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function renderNotifications() {
+  const list = document.getElementById('notification-list');
+  const count = document.getElementById('notif-count');
+  if (count) count.textContent = state.notifications.length + ' notifications (' + state.unreadCount + ' unread)';
+
+  if (state.notifications.length === 0) {
+    list.innerHTML = `<div class="glass-panel rounded-xl p-8 text-center">
+      <span class="material-symbols-outlined text-[48px] text-outline-variant">notifications_off</span>
+      <p class="font-body-md text-body-md text-on-surface-variant mt-3">No notifications yet</p>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = state.notifications.map(n => {
+    const icon = n.type === 'first' ? 'notifications' : n.type === 'new' ? 'notifications_active' : 'search';
+    const color = n.type === 'first' ? 'text-secondary' : n.type === 'new' ? 'text-tertiary' : 'text-primary';
+    const keywords = Array.isArray(n.keywords) ? n.keywords : [n.keywords];
+    return `
+      <div class="glass-panel rounded-xl p-4 ${n.read ? '' : 'border-l-2 border-l-secondary'}" onclick="markRead(${n.id})">
+        <div class="flex items-center gap-4">
+          <span class="material-symbols-outlined text-[20px] ${color}">${icon}</span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              ${keywords.map(k => `<span class="tag bg-primary/20 text-primary border border-primary/30">${escapeHtml(k)}</span>`).join('')}
+              <span class="tag ${n.type === 'first' ? 'bg-secondary/20 text-secondary border-secondary/30' : n.type === 'new' ? 'bg-tertiary/20 text-tertiary border-tertiary/30' : 'bg-primary/20 text-primary border-primary/30'}">${n.type}</span>
+            </div>
+            <p class="font-code-sm text-code-sm text-on-surface-variant mt-1">${n.count} results · ${timeAgo(n.timestamp)}</p>
+            ${n.results && n.results.length > 0 ? `<div class="mt-2 space-y-1">${n.results.slice(0, 3).map(r => 
+              `<a href="${escapeHtml(r.url || '#')}" target="_blank" class="block text-sm text-primary hover:text-primary-fixed-dim truncate" onclick="event.stopPropagation()">${escapeHtml(r.title || r.url || '')}</a>`
+            ).join('')}${n.results.length > 3 ? `<p class="font-code-sm text-code-sm text-outline-variant">+${n.results.length - 3} more</p>` : ''}</div>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
 // KEYWORD ALERTS
 // ═══════════════════════════════════════════════════════════════
 
@@ -1152,6 +1266,7 @@ function init() {
   renderAlerts();
   renderBookmarks();
   renderScheduled();
+  loadNotifications();
   updateStats();
   connectWebSocket();
 

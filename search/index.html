@@ -191,6 +191,13 @@
           </button>
         </li>
         <li>
+          <button onclick="switchTab('notifications')" id="nav-notifications" class="w-full flex items-center gap-3 px-4 py-3 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-200">
+            <span class="material-symbols-outlined">notifications_active</span>
+            <span class="font-label-caps text-label-caps">Notifications</span>
+            <span id="notif-badge" class="ml-auto hidden tag bg-error/20 text-error border border-error/30">0</span>
+          </button>
+        </li>
+        <li>
           <button onclick="switchTab('bulk')" id="nav-bulk" class="w-full flex items-center gap-3 px-4 py-3 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-200">
             <span class="material-symbols-outlined">batch_prediction</span>
             <span class="font-label-caps text-label-caps">Bulk Scrape</span>
@@ -482,6 +489,30 @@
             </div>
           </div>
           <div id="alert-list" class="space-y-3"></div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- TAB: NOTIFICATIONS -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div id="tab-notifications" class="tab-content hidden fade-in">
+          <div class="mb-stack-lg">
+            <h2 class="font-display-lg text-display-lg text-on-surface mb-2">Notifications</h2>
+            <p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">Real-time alert notifications persisted across restarts.</p>
+          </div>
+          <div class="flex justify-between items-center mb-4">
+            <span id="notif-count" class="font-code-sm text-code-sm text-on-surface-variant">0 notifications</span>
+            <div class="flex gap-3">
+              <button onclick="markAllRead()" class="text-on-surface-variant hover:text-primary transition-colors font-code-sm text-code-sm flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px]">done_all</span>
+                Mark all read
+              </button>
+              <button onclick="clearNotifications()" class="text-error/70 hover:text-error transition-colors font-code-sm text-code-sm flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px]">delete</span>
+                Clear all
+              </button>
+            </div>
+          </div>
+          <div id="notification-list" class="space-y-2"></div>
         </div>
 
         <!-- ═══════════════════════════════════════════════ -->
