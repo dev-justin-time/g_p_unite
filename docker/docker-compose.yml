@@ -388,6 +388,38 @@ services:
       start_period: 15s
     restart: unless-stopped
 
+  obscura-search:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.search
+      target: production
+    container_name: fcm-obscura-search
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    mem_limit: 256m
+    cpus: 1
+    ports:
+      - "${OBSCURA_PORT:-3001}:3001"
+    environment:
+      - OBSCURA_PORT=3001
+      - OBSCURA_CDP=${OBSCURA_CDP:-9222}
+      - NODE_ENV=production
+    networks:
+      - fcm-mesh
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/api/obscura/status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
   prometheus:
     image: prom/prometheus:latest
     container_name: fcm-prometheus

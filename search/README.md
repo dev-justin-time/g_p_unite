@@ -96,6 +96,21 @@ search/
 - Add/remove proxies via GUI
 - Active proxy indicator
 
+## WebSocket
+
+Connect to `ws://localhost:3001/ws` for real-time notifications:
+
+| Event | Description |
+|-------|-------------|
+| `connected` | Server confirmed connection |
+| `alert:first` | First results found for an alert |
+| `alert:new` | New results detected for an alert |
+| `pong` | Heartbeat response |
+
+**Client messages:**
+- `subscribe:alerts` — Subscribe to alert notifications
+- `ping` — Keep-alive heartbeat (sent every 30s automatically)
+
 ## API Endpoints
 
 | Method | Endpoint | Description |
