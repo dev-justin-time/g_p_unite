@@ -506,7 +506,7 @@ const CHAT_MESSAGES = [
   { sender: '🤖 Coordinator', text: 'You qualify for 8 open tasks. 3 AI inference, 2 rendering, 1 FL, 1 ZK, 1 storage. Check Marketplace.', isAgent: true }
 ];
 
-const NAV_ITEMS = ['onboarding', 'dashboard', 'agents', 'marketplace', 'staking', 'escrow', 'governance', 'reputation', 'chat', 'obscura', 'resources', 'settings', 'admin'];
+const NAV_ITEMS = ['onboarding', 'dashboard', 'agents', 'marketplace', 'staking', 'escrow', 'governance', 'reputation', 'chat', 'search-console', 'obscura', 'agent-control', 'node-setup', 'resources', 'settings', 'admin'];
 
 const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 

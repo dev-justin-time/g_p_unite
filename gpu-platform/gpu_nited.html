@@ -44,7 +44,10 @@
           <button class="nav-item" data-page="chat"><span class="nav-icon" aria-hidden="true">💬</span>Chat</button>
         </div>
         <div class="nav-section"><div class="nav-section-title">Automation</div>
+          <button class="nav-item" data-page="search-console"><span class="nav-icon" aria-hidden="true">🔍</span>Search Console<span class="nav-badge green">Live</span></button>
           <button class="nav-item" data-page="obscura"><span class="nav-icon" aria-hidden="true">🕸️</span>Obscura Browser<span class="nav-badge green">Live</span></button>
+          <button class="nav-item" data-page="agent-control"><span class="nav-icon" aria-hidden="true">📡</span>Agent Control<span class="nav-badge">Live API</span></button>
+          <button class="nav-item" data-page="node-setup"><span class="nav-icon" aria-hidden="true">🔧</span>Node Setup</button>
         </div>
         <div class="nav-section"><div class="nav-section-title">System</div>
           <button class="nav-item" data-page="resources"><span class="nav-icon" aria-hidden="true">⚡</span>Resources</button>
@@ -449,6 +452,118 @@
             </tbody></table></div>
           </div>
         </section>
+        <!-- SEARCH CONSOLE -->
+        <section class="page-section" id="page-search-console">
+          <h1 class="page-title">🔍 Search Console</h1>
+          <p class="page-subtitle">Web intelligence: search, scrape, monitor, and extract data from the web. Powered by Obscura.</p>
+          <div class="card" style="margin-bottom:24px;">
+            <div style="display:flex;gap:12px;align-items:flex-end;">
+              <div style="flex:1;">
+                <label class="form-label" for="scQuery">Search Query</label>
+                <input class="form-input" id="scQuery" placeholder="Search the web..." style="font-size:var(--font-lg);" onkeydown="if(event.key==='Enter') runSearch()">
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <select class="form-select" id="scEngine" style="width:140px;"><option value="duckduckgo">DuckDuckGo</option><option value="google">Google</option><option value="bing">Bing</option><option value="brave">Brave</option></select>
+                <select class="form-select" id="scLimit" style="width:120px;"><option value="10">10 results</option><option value="25" selected>25 results</option><option value="50">50 results</option></select>
+                <button class="btn btn-primary" onclick="runSearch()">🔍 Search</button>
+              </div>
+            </div>
+          </div>
+          <div id="scStatus" class="card" style="display:none;margin-bottom:16px;"><div style="display:flex;align-items:center;gap:12px;"><div class="spinner"></div><span id="scStatusText">Searching...</span></div></div>
+          <div id="scResults"></div>
+          <div class="card-grid cols-2" style="margin-top:24px;">
+            <div class="card">
+              <h3 style="font-weight:700;margin-bottom:16px;">🕸️ Quick Scrape</h3>
+              <div class="form-group"><label class="form-label" for="scScrapeUrl">URL</label><input class="form-input" id="scScrapeUrl" placeholder="https://example.com"></div>
+              <div class="form-group"><label class="form-label" for="scScrapeMode">Mode</label><select class="form-select" id="scScrapeMode"><option value="text">Text Only</option><option value="html">Full HTML</option></select></div>
+              <button class="btn btn-primary" onclick="runScrape()">🕸️ Scrape</button>
+              <pre id="scScrapeResult" style="margin-top:16px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:12px;font-size:11px;max-height:300px;overflow:auto;display:none;white-space:pre-wrap;color:var(--text-secondary);"></pre>
+            </div>
+            <div class="card">
+              <h3 style="font-weight:700;margin-bottom:16px;">👁 Monitor</h3>
+              <div class="form-group"><label class="form-label" for="scMonUrl">URL to Watch</label><input class="form-input" id="scMonUrl" placeholder="https://example.com"></div>
+              <div class="form-group"><label class="form-label" for="scMonInterval">Interval (sec)</label><input class="form-input" id="scMonInterval" type="number" value="300"></div>
+              <button class="btn btn-primary" onclick="runMonitor()">👁 Start Monitor</button>
+              <div id="scMonList" style="margin-top:16px;"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- AGENT CONTROL -->
+        <section class="page-section" id="page-agent-control">
+          <h1 class="page-title">📡 Agent Control</h1>
+          <p class="page-subtitle">Live agent management and real-time network data.</p>
+          <div id="acAuth" class="card" style="max-width:520px;margin:0 auto 24px;">
+            <h2 style="font-weight:700;margin-bottom:16px;">Authenticate</h2>
+            <div class="form-group"><label class="form-label" for="acAddress">Wallet Address</label><input class="form-input" id="acAddress" placeholder="0x..." pattern="^0x[a-fA-F0-9]{40}$"></div>
+            <button class="btn btn-primary" onclick="acLogin()">🔑 Connect to Live API</button>
+            <p id="acAuthError" class="error" style="margin-top:8px;"></p>
+          </div>
+          <div id="acApp" style="display:none;">
+            <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+              <input class="form-input" id="acFilter" placeholder="Filter agents..." style="flex:1;min-width:200px;" oninput="acRenderAgents()">
+              <button class="btn btn-primary" onclick="acLoad()">🔄 Refresh</button>
+              <button class="btn btn-secondary" onclick="acLogout()">🚪 Logout</button>
+            </div>
+            <div class="card-grid cols-4" id="acStats"></div>
+            <h2 style="font-size:var(--font-lg);font-weight:700;margin:24px 0 12px;">Registered Agents</h2>
+            <div id="acAgents" class="card-grid auto-fill"></div>
+            <h2 style="font-size:var(--font-lg);font-weight:700;margin:24px 0 12px;">Open Tasks</h2>
+            <div class="card table-wrapper"><table><thead><tr><th>Task</th><th>Status</th><th>Reward</th><th>Deadline</th></tr></thead><tbody id="acTasks"></tbody></table></div>
+            <p id="acError" class="error" style="margin-top:8px;"></p>
+          </div>
+        </section>
+
+        <!-- NODE SETUP -->
+        <section class="page-section" id="page-node-setup">
+          <h1 class="page-title">🔧 Node Setup</h1>
+          <p class="page-subtitle">Configure and deploy your GPU sharing node.</p>
+          <div class="onboarding-wizard">
+            <div class="wizard-steps" role="tablist">
+              <div class="wizard-step active" id="ns1"><div class="wizard-step-num">1</div><span class="wizard-step-label">Connect</span></div>
+              <div class="wizard-step-line"></div>
+              <div class="wizard-step" id="ns2"><div class="wizard-step-num">2</div><span class="wizard-step-label">Hardware</span></div>
+              <div class="wizard-step-line"></div>
+              <div class="wizard-step" id="ns3"><div class="wizard-step-num">3</div><span class="wizard-step-label">Capabilities</span></div>
+              <div class="wizard-step-line"></div>
+              <div class="wizard-step" id="ns4"><div class="wizard-step-num">4</div><span class="wizard-step-label">Deploy</span></div>
+            </div>
+            <div class="wizard-panel active card" id="nsStep1">
+              <h2 style="font-size:var(--font-xl);margin-bottom:16px;">🔗 Connect Wallet</h2>
+              <div class="form-group"><label class="form-label" for="nsWallet">Wallet Address</label><input class="form-input" id="nsWallet" placeholder="0x..."></div>
+              <div style="display:flex;gap:12px;margin-top:16px;"><button class="btn btn-primary" onclick="nsComplete(1)">Continue →</button></div>
+            </div>
+            <div class="wizard-panel card" id="nsStep2" style="display:none;">
+              <h2 style="font-size:var(--font-xl);margin-bottom:16px;">🖥️ Hardware Profile</h2>
+              <div class="card-grid cols-2">
+                <div class="form-group"><label class="form-label" for="nsGpu">GPU Model</label><select class="form-select" id="nsGpu"><option value="">Select GPU...</option><option>NVIDIA RTX 4090 (24GB)</option><option>NVIDIA RTX 4080 (16GB)</option><option>NVIDIA A100 (80GB)</option><option>NVIDIA H100 (80GB)</option><option>AMD RX 7900 XTX (24GB)</option><option>CPU Only</option></select></div>
+                <div class="form-group"><label class="form-label" for="nsRam">System RAM</label><select class="form-select" id="nsRam"><option value="">Select RAM...</option><option>16 GB</option><option>32 GB</option><option>64 GB</option><option>128 GB</option><option>256 GB+</option></select></div>
+              </div>
+              <div style="margin-top:16px;"><button class="btn btn-primary" onclick="nsComplete(2)">Continue →</button></div>
+            </div>
+            <div class="wizard-panel card" id="nsStep3" style="display:none;">
+              <h2 style="font-size:var(--font-xl);margin-bottom:16px;">⚡ Select Capabilities</h2>
+              <div class="capability-grid">
+                <div class="capability-item" onclick="toggleCap(this)" tabindex="0" role="checkbox" aria-checked="false"><div class="cap-icon">🧠</div><div class="cap-name">AI Inference</div></div>
+                <div class="capability-item" onclick="toggleCap(this)" tabindex="0" role="checkbox" aria-checked="false"><div class="cap-icon">🎬</div><div class="cap-name">Rendering</div></div>
+                <div class="capability-item" onclick="toggleCap(this)" tabindex="0" role="checkbox" aria-checked="false"><div class="cap-icon">🔒</div><div class="cap-name">Federated Learning</div></div>
+                <div class="capability-item" onclick="toggleCap(this)" tabindex="0" role="checkbox" aria-checked="false"><div class="cap-icon">🛡️</div><div class="cap-name">ZK Proving</div></div>
+              </div>
+              <div style="margin-top:16px;"><button class="btn btn-primary" onclick="nsComplete(3)">Continue →</button></div>
+            </div>
+            <div class="wizard-panel card" id="nsStep4" style="display:none;">
+              <h2 style="font-size:var(--font-xl);margin-bottom:16px;">🚀 Deploy Node</h2>
+              <div style="background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px;">
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);"><span style="color:var(--text-muted);">Wallet</span><span id="nsSumWallet" style="font-family:'JetBrains Mono',monospace;font-size:var(--font-xs);">Not set</span></div>
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-color);"><span style="color:var(--text-muted);">Hardware</span><span id="nsSumHardware">Not configured</span></div>
+                <div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="color:var(--text-muted);">Capabilities</span><span id="nsSumCaps">0 selected</span></div>
+              </div>
+              <div class="form-group"><label class="form-label" for="nsNodeName">Node Name</label><input class="form-input" id="nsNodeName" value="my-node"></div>
+              <button class="btn btn-success" onclick="nsDeploy()">🚀 Deploy Node</button>
+            </div>
+          </div>
+        </section>
+
       </main>
     </div>
   </div>
@@ -617,6 +732,132 @@
       const page = document.querySelector('.page-section.active')?.id;
       if (page === 'page-obscura') obscuraUpdateMonitors();
     }, 5000);
+
+    // ── SEARCH CONSOLE ──────────────────────────
+    async function runSearch() {
+      const query = document.getElementById('scQuery').value.trim();
+      if (!query) return;
+      const engine = document.getElementById('scEngine').value;
+      const limit = parseInt(document.getElementById('scLimit').value);
+      const status = document.getElementById('scStatus');
+      const statusText = document.getElementById('scStatusText');
+      const results = document.getElementById('scResults');
+      status.style.display = 'block';
+      statusText.textContent = 'Querying ' + engine + '...';
+      results.innerHTML = '';
+      try {
+        const r = await fetch('/api/obscura/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query, engine, limit }) });
+        const data = await r.json();
+        status.style.display = 'none';
+        if (data.results && data.results.length > 0) {
+          results.innerHTML = '<div style="font-size:var(--font-xs);color:var(--text-muted);margin-bottom:12px;">' + data.results.length + ' results via ' + engine + '</div>' + data.results.map(function(r, i) {
+            return '<div class="card" style="margin-bottom:8px;padding:16px;"><div style="display:flex;gap:12px;"><span style="color:var(--text-muted);font-size:var(--font-xs);margin-top:2px;">' + (i+1) + '.</span><div style="flex:1;"><a href="' + (r.url||'#') + '" target="_blank" style="color:var(--accent);font-weight:600;text-decoration:none;">' + (r.title||'Untitled') + '</a><div style="font-size:var(--font-xs);color:var(--text-muted);margin-top:2px;font-family:\'JetBrains Mono\',monospace;">' + (r.url||'') + '</div><p style="font-size:var(--font-sm);color:var(--text-secondary);margin-top:6px;">' + (r.snippet||'') + '</p></div></div></div>';
+          }).join('');
+        } else {
+          results.innerHTML = '<div class="card" style="text-align:center;padding:32px;color:var(--text-muted);">No results found for \"' + query + '\"</div>';
+        }
+      } catch (e) {
+        status.style.display = 'none';
+        results.innerHTML = '<div class="card" style="text-align:center;padding:32px;color:var(--red);">Error: ' + e.message + '<br><small>Make sure the Obscura Search server is running on port 3001</small></div>';
+      }
+    }
+
+    async function runScrape() {
+      const url = document.getElementById('scScrapeUrl').value.trim();
+      if (!url) return;
+      const mode = document.getElementById('scScrapeMode').value;
+      const result = document.getElementById('scScrapeResult');
+      result.style.display = 'block';
+      result.textContent = 'Scraping ' + url + '...';
+      try {
+        const r = await fetch('/api/obscura/scrape', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url, dump: mode }) });
+        const data = await r.json();
+        result.textContent = data.output || data.text || JSON.stringify(data, null, 2);
+      } catch (e) { result.textContent = 'Error: ' + e.message; }
+    }
+
+    async function runMonitor() {
+      const url = document.getElementById('scMonUrl').value.trim();
+      const interval = parseInt(document.getElementById('scMonInterval').value) * 1000;
+      if (!url) return;
+      try {
+        const r = await fetch('/api/obscura/monitor/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) });
+        const data = await r.json();
+        const list = document.getElementById('scMonList');
+        list.innerHTML += '<div style="padding:8px 0;border-bottom:1px solid var(--border-color);font-size:var(--font-sm);display:flex;justify-content:space-between;"><span style="overflow:hidden;text-overflow:ellipsis;max-width:250px;color:var(--text-secondary);">' + url + '</span><span class="badge badge-green">Monitoring</span></div>';
+        showToast('Monitoring started for ' + url, 'success');
+      } catch (e) { showToast('Failed: ' + e.message, 'error'); }
+    }
+
+    // ── AGENT CONTROL ────────────────────────────
+    var acState = { token: localStorage.getItem('fcm_agent_token'), agents: [], tasks: [] };
+
+    async function acLogin() {
+      var addr = document.getElementById('acAddress').value.trim();
+      if (!addr) return;
+      try {
+        var r = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address: addr, role: 'operator' }) });
+        var data = await r.json();
+        acState.token = data.token;
+        localStorage.setItem('fcm_agent_token', data.token);
+        acLoad();
+      } catch (e) { document.getElementById('acAuthError').textContent = e.message; }
+    }
+
+    function acLogout() {
+      acState.token = null;
+      localStorage.removeItem('fcm_agent_token');
+      document.getElementById('acAuth').style.display = '';
+      document.getElementById('acApp').style.display = 'none';
+    }
+
+    async function acLoad() {
+      try {
+        var headers = { 'Accept': 'application/json' };
+        if (acState.token) headers['Authorization'] = 'Bearer ' + acState.token;
+        var r = await fetch('/api/v1/agents?limit=100', { headers: headers });
+        var data = await r.json();
+        acState.agents = data.data || [];
+        document.getElementById('acAuth').style.display = 'none';
+        document.getElementById('acApp').style.display = '';
+        acRenderAgents();
+        showToast('Loaded ' + acState.agents.length + ' agents', 'success');
+      } catch (e) {
+        document.getElementById('acAuth').style.display = '';
+        document.getElementById('acApp').style.display = 'none';
+        showToast('API unavailable: ' + e.message, 'error');
+      }
+    }
+
+    function acRenderAgents() {
+      var filter = (document.getElementById('acFilter').value || '').toLowerCase();
+      var list = acState.agents.filter(function(a) { return !filter || (a.name||'').toLowerCase().includes(filter) || (a.category||'').toLowerCase().includes(filter); });
+      document.getElementById('acAgents').innerHTML = list.length ? list.map(function(a) {
+        return '<div class="card" style="padding:16px;"><h3 style="font-weight:700;margin-bottom:4px;">' + (a.icon||'🤖') + ' ' + (a.name||'Unknown') + '</h3><div style="font-size:var(--font-xs);color:var(--text-muted);margin-bottom:12px;">' + (a.category||'') + ' · T' + (a.tier||0) + '</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;"><div style="text-align:center;"><div style="font-weight:700;font-family:\'JetBrains Mono\',monospace;">' + (a.reputation||0) + '</div><div style="font-size:var(--font-xs);color:var(--text-muted);">Rep</div></div><div style="text-align:center;"><div style="font-weight:700;font-family:\'JetBrains Mono\',monospace;">' + (a.stake||0) + '</div><div style="font-size:var(--font-xs);color:var(--text-muted);">Stake</div></div><div style="text-align:center;"><div style="font-weight:700;font-family:\'JetBrains Mono\',monospace;">' + (a.uptime||'—') + '</div><div style="font-size:var(--font-xs);color:var(--text-muted);">Uptime</div></div></div></div>';
+      }).join('') : '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:32px;">No agents found</div>';
+    }
+
+    // ── NODE SETUP ───────────────────────────────
+    var nsStep = 1;
+    function nsComplete(step) {
+      document.getElementById('nsStep' + step).style.display = 'none';
+      document.getElementById('nsStep' + (step + 1)).style.display = '';
+      document.getElementById('ns' + (step + 1)).classList.add('active');
+      if (step === 3) {
+        document.getElementById('nsSumWallet').textContent = document.getElementById('nsWallet').value || 'Not set';
+        document.getElementById('nsSumHardware').textContent = (document.getElementById('nsGpu').value || 'Not selected') + ' / ' + (document.getElementById('nsRam').value || 'Not selected');
+        var caps = document.querySelectorAll('#nsStep3 .capability-item.selected');
+        document.getElementById('nsSumCaps').textContent = caps.length + ' selected';
+      }
+    }
+
+    function nsDeploy() {
+      var name = document.getElementById('nsNodeName').value || 'my-node';
+      showToast('Node \"' + name + '\" deploying... (Docker compose up)', 'success');
+      try {
+        fetch('/api/v1/nodes/deploy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name, wallet: document.getElementById('nsWallet').value, gpu: document.getElementById('nsGpu').value, ram: document.getElementById('nsRam').value }) });
+      } catch (e) { /* API may not be available */ }
+    }
 
     // ── INIT ────────────────────────────────────
     renderTierGrids();
