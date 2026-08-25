@@ -454,8 +454,13 @@
         </section>
         <!-- SEARCH CONSOLE -->
         <section class="page-section" id="page-search-console">
-          <h1 class="page-title">🔍 Search Console</h1>
-          <p class="page-subtitle">Web intelligence: search, scrape, monitor, and extract data from the web. Powered by Obscura.</p>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+            <div><h1 class="page-title">🔍 Search Console</h1><p class="page-subtitle">Web intelligence: search, scrape, monitor, and extract data from the web. Powered by Obscura.</p></div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div id="scWsStatus" style="display:flex;align-items:center;gap:6px;font-size:var(--font-xs);color:var(--text-muted);"><span id="scWsDot" style="width:8px;height:8px;border-radius:50%;background:var(--text-muted);"></span><span id="scWsLabel">WS Offline</span></div>
+              <button class="btn btn-sm btn-secondary" onclick="scWsConnect()" id="scWsBtn">🔌 Connect WS</button>
+            </div>
+          </div>
           <div class="card" style="margin-bottom:24px;">
             <div style="display:flex;gap:12px;align-items:flex-end;">
               <div style="flex:1;">
@@ -485,6 +490,21 @@
               <div class="form-group"><label class="form-label" for="scMonInterval">Interval (sec)</label><input class="form-input" id="scMonInterval" type="number" value="300"></div>
               <button class="btn btn-primary" onclick="runMonitor()">👁 Start Monitor</button>
               <div id="scMonList" style="margin-top:16px;"></div>
+            </div>
+          </div>
+          <div class="card-grid cols-2" style="margin-top:24px;">
+            <div class="card">
+              <h3 style="font-weight:700;margin-bottom:16px;">🔔 Keyword Alerts</h3>
+              <div class="form-group"><label class="form-label" for="scAlertKw">Keywords (comma-separated)</label><input class="form-input" id="scAlertKw" placeholder="quantum computing, AI agent"></div>
+              <div style="display:flex;gap:8px;align-items:flex-end;">
+                <select class="form-select" id="scAlertEngine" style="width:140px;"><option value="duckduckgo">DuckDuckGo</option><option value="google">Google</option><option value="bing">Bing</option><option value="brave">Brave</option></select>
+                <button class="btn btn-primary" onclick="scCreateAlert()">🔔 Create Alert</button>
+              </div>
+              <div id="scAlertList" style="margin-top:16px;"></div>
+            </div>
+            <div class="card" style="max-height:400px;display:flex;flex-direction:column;">
+              <h3 style="font-weight:700;margin-bottom:16px;">📡 Live Notifications <span id="scNotifBadge" class="badge badge-green" style="font-size:10px;vertical-align:middle;display:none;">0</span></h3>
+              <div id="scNotifFeed" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;"><div style="color:var(--text-muted);text-align:center;padding:24px;font-size:var(--font-sm);">Connect WebSocket to receive real-time notifications</div></div>
             </div>
           </div>
         </section>
@@ -732,6 +752,138 @@
       const page = document.querySelector('.page-section.active')?.id;
       if (page === 'page-obscura') obscuraUpdateMonitors();
     }, 5000);
+
+    // ── SEARCH CONSOLE WS ───────────────────────
+    var scWs = null;
+    var scWsReconnectTimer = null;
+
+    function scWsConnect() {
+      if (scWs && scWs.readyState === WebSocket.OPEN) return;
+      var wsUrl = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.hostname + ':3001/ws';
+      try {
+        scWs = new WebSocket(wsUrl);
+        scWs.onopen = function() {
+          document.getElementById('scWsDot').style.background = 'var(--green)';
+          document.getElementById('scWsDot').classList.add('live-pulse');
+          document.getElementById('scWsLabel').textContent = 'WS Live';
+          document.getElementById('scWsLabel').style.color = 'var(--green)';
+          document.getElementById('scWsBtn').textContent = '✅ Connected';
+          scWs.send(JSON.stringify({ type: 'subscribe:alerts' }));
+        };
+        scWs.onmessage = function(event) {
+          try {
+            var msg = JSON.parse(event.data);
+            scHandleWsMessage(msg);
+          } catch (e) { /* ignore */ }
+        };
+        scWs.onclose = function() {
+          document.getElementById('scWsDot').style.background = 'var(--text-muted)';
+          document.getElementById('scWsDot').classList.remove('live-pulse');
+          document.getElementById('scWsLabel').textContent = 'WS Offline';
+          document.getElementById('scWsLabel').style.color = 'var(--text-muted)';
+          document.getElementById('scWsBtn').textContent = '🔌 Connect WS';
+          scWsReconnectTimer = setTimeout(scWsConnect, 5000);
+        };
+        scWs.onerror = function() {
+          document.getElementById('scWsLabel').textContent = 'WS Error';
+          document.getElementById('scWsLabel').style.color = 'var(--red)';
+        };
+      } catch (e) {
+        console.warn('WebSocket failed:', e.message);
+      }
+    }
+
+    function scHandleWsMessage(msg) {
+      if (msg.type === 'connected') {
+        console.log('Search WS connected, ID:', msg.clientId);
+        return;
+      }
+      if (msg.type === 'notification' && msg.notification) {
+        var n = msg.notification;
+        var keywords = Array.isArray(n.keywords) ? n.keywords : [n.keywords];
+        var feed = document.getElementById('scNotifFeed');
+        var badge = document.getElementById('scNotifBadge');
+        var count = parseInt(badge.textContent || '0') + 1;
+        badge.textContent = count;
+        badge.style.display = '';
+        var typeColor = n.type === 'first' ? 'var(--green)' : n.type === 'new' ? 'var(--amber)' : 'var(--accent)';
+        var typeLabel = n.type === 'first' ? 'New Alert' : n.type === 'new' ? 'Update' : 'Check';
+        var resultsHtml = '';
+        if (n.results && n.results.length > 0) {
+          resultsHtml = '<div style="margin-top:8px;">' + n.results.slice(0, 3).map(function(r) {
+            return '<a href="' + (r.url || '#') + '" target="_blank" style="display:block;font-size:var(--font-xs);color:var(--accent);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;">' + (r.title || r.url || 'Untitled') + '</a>';
+          }).join('') + (n.results.length > 3 ? '<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">+' + (n.results.length - 3) + ' more</div>' : '') + '</div>';
+        }
+        var entry = document.createElement('div');
+        entry.style.cssText = 'padding:10px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--radius-sm);border-left:3px solid ' + typeColor + ';';
+        entry.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;gap:4px;flex-wrap:wrap;">' + keywords.map(function(k) { return '<span class="badge" style="background:' + typeColor + '20;color:' + typeColor + ';border:1px solid ' + typeColor + '40;font-size:10px;">' + k + '</span>'; }).join('') + '<span class="badge" style="background:' + typeColor + '20;color:' + typeColor + ';border:1px solid ' + typeColor + '40;font-size:10px;">' + typeLabel + '</span></div><span style="font-size:10px;color:var(--text-muted);">just now</span></div><div style="font-size:var(--font-xs);color:var(--text-muted);margin-top:4px;">' + (n.count || 0) + ' results</div>' + resultsHtml;
+        feed.insertBefore(entry, feed.firstChild);
+        if (feed.children.length > 50) feed.removeChild(feed.lastChild);
+        showToast('🔔 ' + typeLabel + ': ' + keywords.join(', ') + ' (' + n.count + ' results)', 'success');
+      }
+      if (msg.type === 'alert:new' || msg.type === 'alert:first') {
+        var kw = msg.keywords || [];
+        showToast('🔔 Alert: ' + kw.join(', '), 'success');
+      }
+    }
+
+    async function scCreateAlert() {
+      var kw = document.getElementById('scAlertKw').value.trim();
+      if (!kw) return;
+      var keywords = kw.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+      var engine = document.getElementById('scAlertEngine').value;
+      try {
+        var r = await fetch('http://localhost:3001/api/obscura/alerts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keywords: keywords, engine: engine }) });
+        var data = await r.json();
+        showToast('Alert created for: ' + keywords.join(', '), 'success');
+        document.getElementById('scAlertKw').value = '';
+        scLoadAlerts();
+      } catch (e) { showToast('Failed to create alert: ' + e.message, 'error'); }
+    }
+
+    async function scLoadAlerts() {
+      try {
+        var r = await fetch('http://localhost:3001/api/obscura/alerts');
+        var data = await r.json();
+        var list = document.getElementById('scAlertList');
+        if (!data.alerts || data.alerts.length === 0) {
+          list.innerHTML = '<div style="color:var(--text-muted);font-size:var(--font-sm);padding:12px 0;">No alerts configured</div>';
+          return;
+        }
+        list.innerHTML = data.alerts.map(function(a) {
+          var kws = Array.isArray(a.keywords) ? a.keywords : [a.keywords];
+          var results = a.lastResults || [];
+          return '<div style="padding:10px;border:1px solid var(--border-color);border-radius:var(--radius-sm);margin-bottom:8px;"><div style="display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;gap:4px;flex-wrap:wrap;">' + kws.map(function(k) { return '<span class="badge badge-blue" style="font-size:10px;">' + k + '</span>'; }).join('') + '</div><div style="display:flex;gap:4px;"><button class="btn btn-sm btn-secondary" onclick="scCheckAlert(' + a.id + ')">Check</button><button class="btn btn-sm btn-secondary" style="color:var(--red);" onclick="scDeleteAlert(' + a.id + ')">✕</button></div></div><div style="font-size:var(--font-xs);color:var(--text-muted);margin-top:4px;">Engine: ' + a.engine + ' · ' + results.length + ' results</div></div>';
+        }).join('');
+      } catch (e) { /* ignore */ }
+    }
+
+    async function scCheckAlert(id) {
+      try {
+        var r = await fetch('http://localhost:3001/api/obscura/alerts/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
+        var data = await r.json();
+        showToast('Alert check: ' + data.total + ' results', 'success');
+        scLoadAlerts();
+      } catch (e) { showToast('Check failed: ' + e.message, 'error'); }
+    }
+
+    async function scDeleteAlert(id) {
+      try {
+        await fetch('http://localhost:3001/api/obscura/alerts', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
+        showToast('Alert deleted', 'info');
+        scLoadAlerts();
+      } catch (e) { showToast('Delete failed: ' + e.message, 'error'); }
+    }
+
+    // Load alerts when search console page is shown
+    var origNav = window.navigateTo;
+    window.navigateTo = function(page) {
+      origNav(page);
+      if (page === 'search-console') {
+        scLoadAlerts();
+        if (!scWs || scWs.readyState !== WebSocket.OPEN) scWsConnect();
+      }
+    };
 
     // ── SEARCH CONSOLE ──────────────────────────
     async function runSearch() {
