@@ -1,5 +1,5 @@
 /**
- * FCM Hardhat Tasks — Individual Contract Deployment
+ * FCM Hardhat Tasks — Individual Contract Deployment (Hardhat 3 ESM)
  *
  * Deploy any of the 8 FCM contracts independently with custom configuration.
  *
@@ -17,9 +17,14 @@
  *   npx hardhat deploy:status --network sepolia  (check deployed state)
  */
 
-const { task, types } = require("hardhat/config");
-const fs = require("fs");
-const path = require("path");
+import { task } from "hardhat/config";
+import { ArgumentType } from "hardhat/types/arguments";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -58,17 +63,24 @@ function updateDeployment(networkName, contractName, address) {
 // TASK: deploy:token
 // ══════════════════════════════════════════════════════════════════
 
-task("deploy:token", "Deploy FCMToken (ERC20 with fees)")
-    .addOptionalParam("treasury", "Treasury address (defaults to deployer)")
-    .setAction(async (args, hre) => {
-        const { ethers } = hre;
-        const [deployer] = await ethers.getSigners();
-        const treasury = args.treasury || deployer.address;
+export const deployTokenTask = task("deploy:token", "Deploy FCMToken (ERC20 with fees)")
+    .addOption({
+        name: "treasury",
+        description: "Treasury address (defaults to deployer)",
+        defaultValue: "",
+        type: ArgumentType.STRING,
+    })
+    .setInlineAction(async (taskArgs, hre) => {
+        const conn = await hre.network.connect();
+        const { ethers } = conn;
+        const signers = await conn.provider.request({ method: "eth_accounts" });
+        const deployer = await ethers.getSigner(signers[0]);
+        const treasury = taskArgs.treasury || deployer.address;
 
         logHeader("Deploying FCMToken");
         log(`Deployer:  ${deployer.address}`);
         log(`Treasury:  ${treasury}`);
-        log(`Network:   ${hre.network.name}`);
+        log(`Network:   ${conn.networkName}`);
 
         const FCMToken = await ethers.getContractFactory("FCMToken");
         const token = await FCMToken.deploy(treasury);
@@ -85,60 +97,82 @@ task("deploy:token", "Deploy FCMToken (ERC20 with fees)")
         log(`  Total Supply: ${ethers.formatEther(totalSupply)} FCM`);
         log(`  Decimals: ${await token.decimals()}`);
 
-        updateDeployment(hre.network.name, "FCMToken", addr);
+        updateDeployment(conn.networkName, "FCMToken", addr);
         return { address: addr, deployer: deployer.address, treasury };
-    });
+    })
+    .build();
 
 // ══════════════════════════════════════════════════════════════════
 // TASK: deploy:registry
 // ══════════════════════════════════════════════════════════════════
 
-task("deploy:registry", "Deploy FCMAgentRegistry")
-    .addParam("token", "FCMToken contract address")
-    .setAction(async (args, hre) => {
-        const { ethers } = hre;
-        const [deployer] = await ethers.getSigners();
+export const deployRegistryTask = task("deploy:registry", "Deploy FCMAgentRegistry")
+    .addOption({
+        name: "token",
+        description: "FCMToken contract address",
+        defaultValue: "",
+        type: ArgumentType.STRING,
+    })
+    .setInlineAction(async (taskArgs, hre) => {
+        if (!taskArgs.token) { log("❌ --token is required"); return; }
+        const conn = await hre.network.connect();
+        const { ethers } = conn;
+        const signers = await conn.provider.request({ method: "eth_accounts" });
+        const deployer = await ethers.getSigner(signers[0]);
 
         logHeader("Deploying FCMAgentRegistry");
         log(`Deployer: ${deployer.address}`);
-        log(`Token:    ${args.token}`);
+        log(`Token:    ${taskArgs.token}`);
 
         const FCMAgentRegistry = await ethers.getContractFactory("FCMAgentRegistry");
-        const registry = await FCMAgentRegistry.deploy(args.token);
+        const registry = await FCMAgentRegistry.deploy(taskArgs.token);
         await registry.waitForDeployment();
         const addr = await registry.getAddress();
 
         log(`\n  ✅ FCMAgentRegistry deployed to: ${addr}`);
 
-        // Verify cross-reference
         const registryToken = await registry.fcmToken();
-        log(`  fcmToken: ${registryToken} ${registryToken.toLowerCase() === args.token.toLowerCase() ? "✅" : "❌"}`);
+        log(`  fcmToken: ${registryToken} ${registryToken.toLowerCase() === taskArgs.token.toLowerCase() ? "✅" : "❌"}`);
 
         const VALIDATOR_ROLE = await registry.VALIDATOR_ROLE();
         log(`  VALIDATOR_ROLE: ${VALIDATOR_ROLE}`);
 
-        updateDeployment(hre.network.name, "FCMAgentRegistry", addr);
-        return { address: addr, deployer: deployer.address, token: args.token };
-    });
+        updateDeployment(conn.networkName, "FCMAgentRegistry", addr);
+        return { address: addr, deployer: deployer.address, token: taskArgs.token };
+    })
+    .build();
 
 // ══════════════════════════════════════════════════════════════════
 // TASK: deploy:marketplace
 // ══════════════════════════════════════════════════════════════════
 
-task("deploy:marketplace", "Deploy FCMTaskMarketplace")
-    .addParam("registry", "FCMAgentRegistry contract address")
-    .addParam("token", "FCMToken contract address")
-    .setAction(async (args, hre) => {
-        const { ethers } = hre;
-        const [deployer] = await ethers.getSigners();
+export const deployMarketplaceTask = task("deploy:marketplace", "Deploy FCMTaskMarketplace")
+    .addOption({
+        name: "registry",
+        description: "FCMAgentRegistry contract address",
+        defaultValue: "",
+        type: ArgumentType.STRING,
+    })
+    .addOption({
+        name: "token",
+        description: "FCMToken contract address",
+        defaultValue: "",
+        type: ArgumentType.STRING,
+    })
+    .setInlineAction(async (taskArgs, hre) => {
+        if (!taskArgs.registry || !taskArgs.token) { log("❌ --registry and --token are required"); return; }
+        const conn = await hre.network.connect();
+        const { ethers } = conn;
+        const signers = await conn.provider.request({ method: "eth_accounts" });
+        const deployer = await ethers.getSigner(signers[0]);
 
         logHeader("Deploying FCMTaskMarketplace");
         log(`Deployer:  ${deployer.address}`);
-        log(`Registry:  ${args.registry}`);
-        log(`Token:     ${args.token}`);
+        log(`Registry:  ${taskArgs.registry}`);
+        log(`Token:     ${taskArgs.token}`);
 
         const FCMTaskMarketplace = await ethers.getContractFactory("FCMTaskMarketplace");
-        const marketplace = await FCMTaskMarketplace.deploy(args.registry, args.token);
+        const marketplace = await FCMTaskMarketplace.deploy(taskArgs.registry, taskArgs.token);
         await marketplace.waitForDeployment();
         const addr = await marketplace.getAddress();
 
@@ -146,39 +180,48 @@ task("deploy:marketplace", "Deploy FCMTaskMarketplace")
 
         const mktRegistry = await marketplace.registry();
         const mktToken = await marketplace.fcmToken();
-        log(`  registry: ${mktRegistry} ${mktRegistry.toLowerCase() === args.registry.toLowerCase() ? "✅" : "❌"}`);
-        log(`  fcmToken: ${mktToken} ${mktToken.toLowerCase() === args.token.toLowerCase() ? "✅" : "❌"}`);
+        log(`  registry: ${mktRegistry} ${mktRegistry.toLowerCase() === taskArgs.registry.toLowerCase() ? "✅" : "❌"}`);
+        log(`  fcmToken: ${mktToken} ${mktToken.toLowerCase() === taskArgs.token.toLowerCase() ? "✅" : "❌"}`);
 
         const LISTING_ROLE = await marketplace.LISTING_ROLE();
         log(`  LISTING_ROLE: ${LISTING_ROLE}`);
 
-        updateDeployment(hre.network.name, "FCMTaskMarketplace", addr);
-        return { address: addr, deployer: deployer.address, registry: args.registry, token: args.token };
-    });
+        updateDeployment(conn.networkName, "FCMTaskMarketplace", addr);
+        return { address: addr, deployer: deployer.address, registry: taskArgs.registry, token: taskArgs.token };
+    })
+    .build();
 
 // ══════════════════════════════════════════════════════════════════
 // TASK: deploy:tier-staking
 // ══════════════════════════════════════════════════════════════════
 
-task("deploy:tier-staking", "Deploy FCMTierStaking")
-    .addParam("token", "FCMToken contract address")
-    .setAction(async (args, hre) => {
-        const { ethers } = hre;
-        const [deployer] = await ethers.getSigners();
+export const deployTierStakingTask = task("deploy:tier-staking", "Deploy FCMTierStaking")
+    .addOption({
+        name: "token",
+        description: "FCMToken contract address",
+        defaultValue: "",
+        type: ArgumentType.STRING,
+    })
+    .setInlineAction(async (taskArgs, hre) => {
+        if (!taskArgs.token) { log("❌ --token is required"); return; }
+        const conn = await hre.network.connect();
+        const { ethers } = conn;
+        const signers = await conn.provider.request({ method: "eth_accounts" });
+        const deployer = await ethers.getSigner(signers[0]);
 
         logHeader("Deploying FCMTierStaking");
         log(`Deployer: ${deployer.address}`);
-        log(`Token:    ${args.token}`);
+        log(`Token:    ${taskArgs.token}`);
 
         const FCMTierStaking = await ethers.getContractFactory("FCMTierStaking");
-        const tierStaking = await FCMTierStaking.deploy(args.token);
+        const tierStaking = await FCMTierStaking.deploy(taskArgs.token);
         await tierStaking.waitForDeployment();
         const addr = await tierStaking.getAddress();
 
         log(`\n  ✅ FCMTierStaking deployed to: ${addr}`);
 
         const tsToken = await tierStaking.fcmToken();
-        log(`  fcmToken: ${tsToken} ${tsToken.toLowerCase() === args.token.toLowerCase() ? "✅" : "❌"}`);
+        log(`  fcmToken: ${tsToken} ${tsToken.toLowerCase() === taskArgs.token.toLowerCase() ? "✅" : "❌"}`);
 
         const ORACLE_ROLE = await tierStaking.ORACLE_ROLE();
         log(`  ORACLE_ROLE: ${ORACLE_ROLE}`);
@@ -190,28 +233,42 @@ task("deploy:tier-staking", "Deploy FCMTierStaking")
             log(`    T${t}: ${cfg.name} | minStake: ${ethers.formatEther(cfg.minStake)} | mult: ${cfg.rewardMultiplier / 100}x | feeDiscount: ${cfg.feeDiscount / 100}%`);
         }
 
-        updateDeployment(hre.network.name, "FCMTierStaking", addr);
-        return { address: addr, deployer: deployer.address, token: args.token };
-    });
+        updateDeployment(conn.networkName, "FCMTierStaking", addr);
+        return { address: addr, deployer: deployer.address, token: taskArgs.token };
+    })
+    .build();
 
 // ══════════════════════════════════════════════════════════════════
 // TASK: deploy:governance
 // ══════════════════════════════════════════════════════════════════
 
-task("deploy:governance", "Deploy FCMGovernance")
-    .addParam("token", "FCMToken contract address")
-    .addParam("tierStaking", "FCMTierStaking contract address")
-    .setAction(async (args, hre) => {
-        const { ethers } = hre;
-        const [deployer] = await ethers.getSigners();
+export const deployGovernanceTask = task("deploy:governance", "Deploy FCMGovernance")
+    .addOption({
+        name: "token",
+        description: "FCMToken contract address",
+        defaultValue: "",
+        type: ArgumentType.STRING,
+    })
+    .addOption({
+        name: "tierStaking",
+        description: "FCMTierStaking contract address",
+        defaultValue: "",
+        type: ArgumentType.STRING,
+    })
+    .setInlineAction(async (taskArgs, hre) => {
+        if (!taskArgs.token || !taskArgs.tierStaking) { log("❌ --token and --tierStaking are required"); return; }
+        const conn = await hre.network.connect();
+        const { ethers } = conn;
+        const signers = await conn.provider.request({ method: "eth_accounts" });
+        const deployer = await ethers.getSigner(signers[0]);
 
         logHeader("Deploying FCMGovernance");
         log(`Deployer:    ${deployer.address}`);
-        log(`Token:       ${args.token}`);
-        log(`TierStaking: ${args.tierStaking}`);
+        log(`Token:       ${taskArgs.token}`);
+        log(`TierStaking: ${taskArgs.tierStaking}`);
 
         const FCMGovernance = await ethers.getContractFactory("FCMGovernance");
-        const governance = await FCMGovernance.deploy(args.token, args.tierStaking);
+        const governance = await FCMGovernance.deploy(taskArgs.token, taskArgs.tierStaking);
         await governance.waitForDeployment();
         const addr = await governance.getAddress();
 
@@ -219,8 +276,8 @@ task("deploy:governance", "Deploy FCMGovernance")
 
         const govToken = await governance.fcmToken();
         const govTS = await governance.tierStaking();
-        log(`  fcmToken:    ${govToken} ${govToken.toLowerCase() === args.token.toLowerCase() ? "✅" : "❌"}`);
-        log(`  tierStaking: ${govTS} ${govTS.toLowerCase() === args.tierStaking.toLowerCase() ? "✅" : "❌"}`);
+        log(`  fcmToken:    ${govToken} ${govToken.toLowerCase() === taskArgs.token.toLowerCase() ? "✅" : "❌"}`);
+        log(`  tierStaking: ${govTS} ${govTS.toLowerCase() === taskArgs.tierStaking.toLowerCase() ? "✅" : "❌"}`);
 
         const votingDuration = await governance.votingDuration();
         const timelockDuration = await governance.timelockDuration();
@@ -229,33 +286,42 @@ task("deploy:governance", "Deploy FCMGovernance")
         log(`  Timelock: ${Number(timelockDuration) / 86400} days`);
         log(`  Quorum: ${Number(quorum) / 100}%`);
 
-        updateDeployment(hre.network.name, "FCMGovernance", addr);
-        return { address: addr, deployer: deployer.address, token: args.token, tierStaking: args.tierStaking };
-    });
+        updateDeployment(conn.networkName, "FCMGovernance", addr);
+        return { address: addr, deployer: deployer.address, token: taskArgs.token, tierStaking: taskArgs.tierStaking };
+    })
+    .build();
 
 // ══════════════════════════════════════════════════════════════════
 // TASK: deploy:escrow
 // ══════════════════════════════════════════════════════════════════
 
-task("deploy:escrow", "Deploy FCMEscrow")
-    .addParam("token", "FCMToken contract address")
-    .setAction(async (args, hre) => {
-        const { ethers } = hre;
-        const [deployer] = await ethers.getSigners();
+export const deployEscrowTask = task("deploy:escrow", "Deploy FCMEscrow")
+    .addOption({
+        name: "token",
+        description: "FCMToken contract address",
+        defaultValue: "",
+        type: ArgumentType.STRING,
+    })
+    .setInlineAction(async (taskArgs, hre) => {
+        if (!taskArgs.token) { log("❌ --token is required"); return; }
+        const conn = await hre.network.connect();
+        const { ethers } = conn;
+        const signers = await conn.provider.request({ method: "eth_accounts" });
+        const deployer = await ethers.getSigner(signers[0]);
 
         logHeader("Deploying FCMEscrow");
         log(`Deployer: ${deployer.address}`);
-        log(`Token:    ${args.token}`);
+        log(`Token:    ${taskArgs.token}`);
 
         const FCMEscrow = await ethers.getContractFactory("FCMEscrow");
-        const escrow = await FCMEscrow.deploy(args.token);
+        const escrow = await FCMEscrow.deploy(taskArgs.token);
         await escrow.waitForDeployment();
         const addr = await escrow.getAddress();
 
         log(`\n  ✅ FCMEscrow deployed to: ${addr}`);
 
         const escToken = await escrow.fcmToken();
-        log(`  fcmToken: ${escToken} ${escToken.toLowerCase() === args.token.toLowerCase() ? "✅" : "❌"}`);
+        log(`  fcmToken: ${escToken} ${escToken.toLowerCase() === taskArgs.token.toLowerCase() ? "✅" : "❌"}`);
 
         const ARBITRATOR_ROLE = await escrow.ARBITRATOR_ROLE();
         log(`  ARBITRATOR_ROLE: ${ARBITRATOR_ROLE}`);
@@ -265,18 +331,21 @@ task("deploy:escrow", "Deploy FCMEscrow")
         log(`  Multisig threshold: ${ethers.formatEther(multisigThreshold)} FCM`);
         log(`  Dispute window: ${Number(disputeWindow) / 86400} days`);
 
-        updateDeployment(hre.network.name, "FCMEscrow", addr);
-        return { address: addr, deployer: deployer.address, token: args.token };
-    });
+        updateDeployment(conn.networkName, "FCMEscrow", addr);
+        return { address: addr, deployer: deployer.address, token: taskArgs.token };
+    })
+    .build();
 
 // ══════════════════════════════════════════════════════════════════
 // TASK: deploy:reputation
 // ══════════════════════════════════════════════════════════════════
 
-task("deploy:reputation", "Deploy FCMReputationNFT (soulbound badges)")
-    .setAction(async (args, hre) => {
-        const { ethers } = hre;
-        const [deployer] = await ethers.getSigners();
+export const deployReputationTask = task("deploy:reputation", "Deploy FCMReputationNFT (soulbound badges)")
+    .setInlineAction(async (taskArgs, hre) => {
+        const conn = await hre.network.connect();
+        const { ethers } = conn;
+        const signers = await conn.provider.request({ method: "eth_accounts" });
+        const deployer = await ethers.getSigner(signers[0]);
 
         logHeader("Deploying FCMReputationNFT");
         log(`Deployer: ${deployer.address}`);
@@ -296,28 +365,42 @@ task("deploy:reputation", "Deploy FCMReputationNFT (soulbound badges)")
         log(`    Approve: blocked`);
         log(`    Total badges: ${await nft.totalSupply()}`);
 
-        updateDeployment(hre.network.name, "FCMReputationNFT", addr);
+        updateDeployment(conn.networkName, "FCMReputationNFT", addr);
         return { address: addr, deployer: deployer.address };
-    });
+    })
+    .build();
 
 // ══════════════════════════════════════════════════════════════════
 // TASK: deploy:rewards-pool
 // ══════════════════════════════════════════════════════════════════
 
-task("deploy:rewards-pool", "Deploy FCMRewardsPool")
-    .addParam("token", "FCMToken contract address")
-    .addParam("tierStaking", "FCMTierStaking contract address")
-    .setAction(async (args, hre) => {
-        const { ethers } = hre;
-        const [deployer] = await ethers.getSigners();
+export const deployRewardsPoolTask = task("deploy:rewards-pool", "Deploy FCMRewardsPool")
+    .addOption({
+        name: "token",
+        description: "FCMToken contract address",
+        defaultValue: "",
+        type: ArgumentType.STRING,
+    })
+    .addOption({
+        name: "tierStaking",
+        description: "FCMTierStaking contract address",
+        defaultValue: "",
+        type: ArgumentType.STRING,
+    })
+    .setInlineAction(async (taskArgs, hre) => {
+        if (!taskArgs.token || !taskArgs.tierStaking) { log("❌ --token and --tierStaking are required"); return; }
+        const conn = await hre.network.connect();
+        const { ethers } = conn;
+        const signers = await conn.provider.request({ method: "eth_accounts" });
+        const deployer = await ethers.getSigner(signers[0]);
 
         logHeader("Deploying FCMRewardsPool");
         log(`Deployer:    ${deployer.address}`);
-        log(`Token:       ${args.token}`);
-        log(`TierStaking: ${args.tierStaking}`);
+        log(`Token:       ${taskArgs.token}`);
+        log(`TierStaking: ${taskArgs.tierStaking}`);
 
         const FCMRewardsPool = await ethers.getContractFactory("FCMRewardsPool");
-        const pool = await FCMRewardsPool.deploy(args.token, args.tierStaking);
+        const pool = await FCMRewardsPool.deploy(taskArgs.token, taskArgs.tierStaking);
         await pool.waitForDeployment();
         const addr = await pool.getAddress();
 
@@ -325,36 +408,44 @@ task("deploy:rewards-pool", "Deploy FCMRewardsPool")
 
         const rpToken = await pool.fcmToken();
         const rpTS = await pool.tierStaking();
-        log(`  fcmToken:    ${rpToken} ${rpToken.toLowerCase() === args.token.toLowerCase() ? "✅" : "❌"}`);
-        log(`  tierStaking: ${rpTS} ${rpTS.toLowerCase() === args.tierStaking.toLowerCase() ? "✅" : "❌"}`);
+        log(`  fcmToken:    ${rpToken} ${rpToken.toLowerCase() === taskArgs.token.toLowerCase() ? "✅" : "❌"}`);
+        log(`  tierStaking: ${rpTS} ${rpTS.toLowerCase() === taskArgs.tierStaking.toLowerCase() ? "✅" : "❌"}`);
 
         const ORACLE_ROLE = await pool.ORACLE_ROLE();
         log(`  ORACLE_ROLE: ${ORACLE_ROLE}`);
 
-        updateDeployment(hre.network.name, "FCMRewardsPool", addr);
-        return { address: addr, deployer: deployer.address, token: args.token, tierStaking: args.tierStaking };
-    });
+        updateDeployment(conn.networkName, "FCMRewardsPool", addr);
+        return { address: addr, deployer: deployer.address, token: taskArgs.token, tierStaking: taskArgs.tierStaking };
+    })
+    .build();
 
 // ══════════════════════════════════════════════════════════════════
 // TASK: deploy:all
 // ══════════════════════════════════════════════════════════════════
 
-task("deploy:all", "Deploy all 8 FCM contracts in dependency order")
-    .addOptionalParam("safe", "Gnosis Safe address to grant roles to (overrides deployer)")
-    .setAction(async (args, hre) => {
-        const { ethers } = hre;
-        const [deployer] = await ethers.getSigners();
+export const deployAllTask = task("deploy:all", "Deploy all 8 FCM contracts in dependency order")
+    .addOption({
+        name: "safe",
+        description: "Gnosis Safe address to grant roles to (overrides deployer)",
+        defaultValue: "",
+        type: ArgumentType.STRING,
+    })
+    .setInlineAction(async (taskArgs, hre) => {
+        const conn = await hre.network.connect();
+        const { ethers } = conn;
+        const signers = await conn.provider.request({ method: "eth_accounts" });
+        const deployer = await ethers.getSigner(signers[0]);
 
         // Resolve Safe
         let roleGrantee = deployer.address;
         let safeInfo = null;
-        if (args.safe) {
+        if (taskArgs.safe) {
             try {
-                const { GnosisSafeManager } = require("../../lib/modules/gnosis-safe");
-                const safeMgr = new GnosisSafeManager(deployer, args.safe, hre.network.name);
+                const { GnosisSafeManager } = await import("../../lib/modules/gnosis-safe.js");
+                const safeMgr = new GnosisSafeManager(deployer, taskArgs.safe, conn.networkName);
                 safeInfo = await safeMgr.validate();
                 if (safeInfo.valid) {
-                    roleGrantee = args.safe;
+                    roleGrantee = taskArgs.safe;
                 } else {
                     log(`  ⚠️  Safe validation failed, falling back to deployer`);
                 }
@@ -363,9 +454,9 @@ task("deploy:all", "Deploy all 8 FCM contracts in dependency order")
             }
         }
 
-        logHeader(`DEPLOY ALL — ${hre.network.name}`);
+        logHeader(`DEPLOY ALL — ${conn.networkName}`);
         log(`Deployer: ${deployer.address}`);
-        if (args.safe) log(`Safe:     ${args.safe} ${safeInfo?.valid ? '(✅ valid)' : '(⚠️ validation failed)'}`);
+        if (taskArgs.safe) log(`Safe:     ${taskArgs.safe} ${safeInfo?.valid ? '(✅ valid)' : '(⚠️ validation failed)'}`);
         log(`Role grantee: ${roleGrantee === deployer.address ? 'Deployer' : 'Safe'}`);
 
         const deployed = {};
@@ -468,17 +559,17 @@ task("deploy:all", "Deploy all 8 FCM contracts in dependency order")
         // ── Save ──
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
         const data = {
-            network: hre.network.name,
-            chainId: hre.network.config.chainId,
+            network: conn.networkName,
+            chainId: conn.networkConfig.chainId,
             deployer: deployer.address,
-            safe: args.safe || null,
+            safe: taskArgs.safe || null,
             roleGrantee,
             timestamp: new Date().toISOString(),
             deploymentTime: `${elapsed}s`,
             contracts: deployed,
             roles: { MINTER, LISTING, VALIDATOR, ORACLE_TIER, ORACLE_REP, ORACLE_POOL, ARBITRATOR },
         };
-        saveDeployment(hre.network.name, data);
+        saveDeployment(conn.networkName, data);
 
         // ── Summary ──
         logHeader(`DEPLOYED IN ${elapsed}s`);
@@ -487,18 +578,19 @@ task("deploy:all", "Deploy all 8 FCM contracts in dependency order")
         }
 
         return deployed;
-    });
+    })
+    .build();
 
 // ══════════════════════════════════════════════════════════════════
 // TASK: deploy:status
 // ══════════════════════════════════════════════════════════════════
 
-task("deploy:status", "Check deployment status and contract state")
-    .setAction(async (args, hre) => {
-        const { ethers } = hre;
-        const data = loadDeployment(hre.network.name);
+export const deployStatusTask = task("deploy:status", "Check deployment status and contract state")
+    .setInlineAction(async (taskArgs, hre) => {
+        const conn = await hre.network.connect();
+        const data = loadDeployment(conn.networkName);
 
-        logHeader(`DEPLOYMENT STATUS — ${hre.network.name}`);
+        logHeader(`DEPLOYMENT STATUS — ${conn.networkName}`);
 
         if (!data.contracts || Object.keys(data.contracts).length === 0) {
             log("  No deployments found for this network.");
@@ -511,7 +603,7 @@ task("deploy:status", "Check deployment status and contract state")
 
         for (const [name, addr] of Object.entries(data.contracts)) {
             try {
-                const code = await ethers.provider.getCode(addr);
+                const code = await conn.provider.request({ method: "eth_getCode", params: [addr, "latest"] });
                 const hasCode = code !== "0x" && code !== "0x0";
                 const size = hasCode ? `${(code.length - 2) / 2} bytes` : "NO CODE";
                 log(`  ${hasCode ? "✅" : "❌"} ${name.padEnd(24)} ${addr} (${size})`);
@@ -521,52 +613,76 @@ task("deploy:status", "Check deployment status and contract state")
         }
 
         return data;
-    });
+    })
+    .build();
 
 // ══════════════════════════════════════════════════════════════════
 // TASK: deploy:grant-role
 // ══════════════════════════════════════════════════════════════════
 
-task("deploy:grant-role", "Grant a role on a deployed contract")
-    .addParam("contract", "Contract name (e.g., FCMToken, FCMAgentRegistry)")
-    .addParam("role", "Role name (e.g., MINTER_ROLE, VALIDATOR_ROLE)")
-    .addParam("account", "Address to grant the role to")
-    .addOptionalParam("safe", "Gnosis Safe to execute via (creates multi-sig tx)")
-    .setAction(async (args, hre) => {
-        const { ethers } = hre;
-        const data = loadDeployment(hre.network.name);
-        const addr = data.contracts[args.contract];
+export const deployGrantRoleTask = task("deploy:grant-role", "Grant a role on a deployed contract")
+    .addOption({
+        name: "contract",
+        description: "Contract name (e.g., FCMToken, FCMAgentRegistry)",
+        defaultValue: "",
+        type: ArgumentType.STRING,
+    })
+    .addOption({
+        name: "role",
+        description: "Role name (e.g., MINTER_ROLE, VALIDATOR_ROLE)",
+        defaultValue: "",
+        type: ArgumentType.STRING,
+    })
+    .addOption({
+        name: "account",
+        description: "Address to grant the role to",
+        defaultValue: "",
+        type: ArgumentType.STRING,
+    })
+    .addOption({
+        name: "safe",
+        description: "Gnosis Safe to execute via (creates multi-sig tx)",
+        defaultValue: "",
+        type: ArgumentType.STRING,
+    })
+    .setInlineAction(async (taskArgs, hre) => {
+        if (!taskArgs.contract || !taskArgs.role || !taskArgs.account) { log("❌ --contract, --role, and --account are required"); return; }
+        const conn = await hre.network.connect();
+        const { ethers } = conn;
+        const data = loadDeployment(conn.networkName);
+        const addr = data.contracts[taskArgs.contract];
 
         if (!addr) {
-            log(`  ❌ Contract ${args.contract} not found in deployment for ${hre.network.name}`);
+            log(`  ❌ Contract ${taskArgs.contract} not found in deployment for ${conn.networkName}`);
             return;
         }
 
-        logHeader(`Granting ${args.role} on ${args.contract}`);
+        logHeader(`Granting ${taskArgs.role} on ${taskArgs.contract}`);
         log(`Contract: ${addr}`);
-        log(`Role:     ${args.role}`);
-        log(`Account:  ${args.account}`);
+        log(`Role:     ${taskArgs.role}`);
+        log(`Account:  ${taskArgs.account}`);
 
-        const contract = await ethers.getContractAt(args.contract, addr);
-        const roleHash = await contract[args.role]();
+        const contract = await ethers.getContractAt(taskArgs.contract, addr);
+        const roleHash = await contract[taskArgs.role]();
 
         if (!roleHash) {
-            log(`  ❌ Role ${args.role} not found on contract`);
+            log(`  ❌ Role ${taskArgs.role} not found on contract`);
             return;
         }
 
-        const hasRole = await contract.hasRole(roleHash, args.account);
+        const hasRole = await contract.hasRole(roleHash, taskArgs.account);
         if (hasRole) {
-            log(`  ⚠️  Account already has ${args.role}`);
+            log(`  ⚠️  Account already has ${taskArgs.role}`);
             return;
         }
 
         // If Safe is specified, create a multi-sig transaction
-        if (args.safe) {
+        if (taskArgs.safe) {
             try {
-                const { GnosisSafeManager } = require("../../lib/modules/gnosis-safe");
-                const [signer] = await ethers.getSigners();
-                const safeMgr = new GnosisSafeManager(signer, args.safe, hre.network.name);
+                const { GnosisSafeManager } = await import("../../lib/modules/gnosis-safe.js");
+                const signers = await conn.provider.request({ method: "eth_accounts" });
+                const signer = await ethers.getSigner(signers[0]);
+                const safeMgr = new GnosisSafeManager(signer, taskArgs.safe, conn.networkName);
 
                 const safeInfo = await safeMgr.validate();
                 if (!safeInfo.valid) {
@@ -579,7 +695,7 @@ task("deploy:grant-role", "Grant a role on a deployed contract")
                 log(`  Nonce: ${safeInfo.nonce}`);
 
                 // Encode the grantRole call
-                const calldata = contract.interface.encodeFunctionData("grantRole", [roleHash, args.account]);
+                const calldata = contract.interface.encodeFunctionData("grantRole", [roleHash, taskArgs.account]);
                 const txHash = await safeMgr.getTransactionHash(addr, 0, calldata);
 
                 // Sign the transaction
@@ -600,6 +716,7 @@ task("deploy:grant-role", "Grant a role on a deployed contract")
         }
 
         // Direct grant (no Safe)
-        await (await contract.grantRole(roleHash, args.account)).wait();
-        log(`  ✅ Granted ${args.role} to ${args.account}`);
-    });
+        await (await contract.grantRole(roleHash, taskArgs.account)).wait();
+        log(`  ✅ Granted ${taskArgs.role} to ${taskArgs.account}`);
+    })
+    .build();

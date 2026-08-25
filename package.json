@@ -1,6 +1,7 @@
 {
   "name": "fcm-blocks-ai-deploy",
   "version": "1.0.0",
+  "type": "module",
   "description": "FCM Expert Agent Swarm — blocks.ai Network Deployment",
   "main": "cli/fcm-deploy.js",
   "bin": {
@@ -48,25 +49,25 @@
     "docker:search:compose": "docker compose -f docker/docker-compose.yml up obscura-search obscura-nginx -d",
     "docker:search:stop": "docker compose -f docker/docker-compose.yml down obscura-search obscura-nginx",
     "obscura:start": "obscura serve --port 9222 --stealth",
-    "dashboard": "node -e \"const {DashboardServer}=require('./lib/modules/dashboard-server');const d=new DashboardServer(null,{port:8080});d.start();\"",
-    "live": "node -e \"const {DashboardServer}=require('./lib/modules/dashboard-server');const d=new DashboardServer(null,{port:8080});d.start();console.log('Live dashboard: http://127.0.0.1:8080/gui.html');\"",
-    "api": "node -e \"const {RestApiServer}=require('./lib/modules/rest-api');const s=new RestApiServer(null,{port:3000});s.start();\"",
+    "dashboard": "node --input-type=module -e \"import('./lib/modules/dashboard-server.js').then(({DashboardServer}) => { const d = new DashboardServer(null, {port: 8080}); d.start(); })\"",
+    "live": "node --input-type=module -e \"import('./lib/modules/dashboard-server.js').then(({DashboardServer}) => { const d = new DashboardServer(null, {port: 8080}); d.start(); console.log('Live dashboard: http://127.0.0.1:8080/gui.html'); })\"",
+    "api": "node --input-type=module -e \"import('./lib/modules/rest-api.js').then(({RestApiServer}) => { const s = new RestApiServer(null, {port: 3000}); s.start(); })\"",
     "slither": "slither . --config-file slither.config.json",
     "slither:json": "slither . --config-file slither.config.json --json slither-report.json",
     "slither:sarif": "slither . --config-file slither.config.json --sarif slither-report.sarif"
   },
   "dependencies": {
     "dotenv": "^16.3.1",
-    "ethers": "^6.9.0"
+    "ethers": "^6.14.0"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.0",
     "@openzeppelin/contracts": "^4.9.6",
     "@types/node": "^20.19.43",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
     "eslint": "^8.55.0",
-    "hardhat": "^2.19.0",
+    "hardhat": "^3.14.0",
     "prettier": "^3.1.0",
     "ts-node": "^10.9.0",
     "typescript": "^5.3.0"

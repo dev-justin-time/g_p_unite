@@ -13,9 +13,13 @@
  *   npx hardhat run scripts/hardhat/verify-deployment.js --network localhost
  */
 
-const { ethers, network } = require("hardhat");
-const fs = require("fs");
-const path = require("path");
+import hre from "hardhat";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -52,9 +56,12 @@ function section(name) {
 // ── Main Verification ────────────────────────────────────────────
 
 async function main() {
-    const [signer] = await ethers.getSigners();
+    const conn = await hre.network.connect();
+    const { ethers } = conn;
+    const signers = await conn.provider.request({ method: "eth_accounts" });
+    const signer = await ethers.getSigner(signers[0]);
     const signerAddr = signer.address;
-    const networkName = network.name;
+    const networkName = conn.networkName;
 
     logHeader(`FCM DEPLOYMENT VERIFICATION — ${networkName}`);
     log(`Signer: ${signerAddr}`);
@@ -102,7 +109,7 @@ async function main() {
         }
 
         try {
-            const code = await ethers.provider.getCode(addr);
+            const code = await conn.provider.request({ method: "eth_getCode", params: [addr, "latest"] });
             if (code === "0x" || code === "0x0") {
                 fail(`${name} code`, `No code at ${addr}`);
             } else {
@@ -500,7 +507,7 @@ function printSummary() {
     const reportPath = path.join(__dirname, "../../deployments/verification-report.json");
     const report = {
         timestamp: new Date().toISOString(),
-        network: network.name,
+        network: "unknown",
         status: failed === 0 ? "passed" : "failed",
         summary: { total, passed, failed, warnings },
         checks: results,

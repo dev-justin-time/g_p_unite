@@ -15,14 +15,18 @@
  *   npx hardhat run scripts/hardhat/deploy.js --network sepolia
  */
 
-const { ethers, run, network } = require("hardhat");
-const fs = require("fs");
-const path = require("path");
+import hre from "hardhat";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Gnosis Safe manager (optional)
 let GnosisSafeManager;
 try {
-    ({ GnosisSafeManager } = require("../../lib/modules/gnosis-safe"));
+    ({ GnosisSafeManager } = await import("../../lib/modules/gnosis-safe.js"));
 } catch (e) {
     // Module not available, Safe support disabled
 }
@@ -33,30 +37,20 @@ function log(msg) { console.log(`  ${msg}`); }
 function logHeader(msg) { console.log(`\n${"═".repeat(60)}\n  ${msg}\n${"═".repeat(60)}`); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-async function verify(address, constructorArgs) {
-    try {
-        await run("verify:verify", { address, constructorArgs });
-        log(`  ✅ Verified: ${address}`);
-    } catch (e) {
-        if (e.message.includes("Already Verified")) {
-            log(`  ✅ Already verified: ${address}`);
-        } else {
-            log(`  ⚠️  Verification failed for ${address}: ${e.message}`);
-        }
-    }
-}
-
 // ── Deployment ───────────────────────────────────────────────────
 
 async function main() {
-    const [deployer] = await ethers.getSigners();
+    const conn = await hre.network.connect();
+    const { ethers } = conn;
+    const signers = await conn.provider.request({ method: "eth_accounts" });
+    const deployer = await ethers.getSigner(signers[0]);
     const deployerAddr = deployer.address;
-    const networkName = network.name;
-    const chainId = network.config.chainId;
+    const networkName = conn.networkName;
+    const chainId = conn.networkConfig.chainId;
 
     logHeader(`FCM DEPLOYMENT — ${networkName} (chain ${chainId})`);
     log(`Deployer: ${deployerAddr}`);
-    log(`Balance:  ${ethers.formatEther(await ethers.provider.getBalance(deployerAddr))} ETH`);
+    log(`Balance:  ${ethers.formatEther(await conn.provider.request({ method: "eth_getBalance", params: [deployerAddr, "latest"] }))} ETH`);
     log(`Time:     ${new Date().toISOString()}`);
 
     // ── Safe Configuration ──────────────────────────────────────
@@ -66,7 +60,7 @@ async function main() {
 
     if (safeAddress && GnosisSafeManager) {
         log(`\n  🔐 Gnosis Safe: ${safeAddress}`);
-        safeManager = new GnosisSafeManager(signer, safeAddress, networkName);
+        safeManager = new GnosisSafeManager(deployer, safeAddress, networkName);
         const safeInfo = await safeManager.validate();
         if (safeInfo.valid) {
             roleGrantee = safeAddress;
@@ -280,6 +274,19 @@ async function main() {
         log("Waiting 30s for Etherscan to index contracts...");
         await sleep(30000);
 
+        async function verify(address, constructorArgs) {
+            try {
+                await hre.run("verify:verify", { address, constructorArgs });
+                log(`  ✅ Verified: ${address}`);
+            } catch (e) {
+                if (e.message.includes("Already Verified")) {
+                    log(`  ✅ Already verified: ${address}`);
+                } else {
+                    log(`  ⚠️  Verification failed for ${address}: ${e.message}`);
+                }
+            }
+        }
+
         await verify(deployed.FCMToken, [deployerAddr]);
         await verify(deployed.FCMAgentRegistry, [deployed.FCMToken]);
         await verify(deployed.FCMTaskMarketplace, [deployed.FCMAgentRegistry, deployed.FCMToken]);
@@ -295,44 +302,7 @@ async function main() {
     // ══════════════════════════════════════════════════════════════
     logHeader("DEPLOYMENT COMPLETE");
 
-    console.log(`
-  Network:  ${networkName} (chain ${chainId})
-  Deployer: ${deployerAddr}
-  Time:     ${elapsed}s
-
-  ┌──────────────────────────┬─────────────────────────────────────────────┐
-  │ Contract                 │ Address                                     │
-  ├──────────────────────────┼─────────────────────────────────────────────┤
-  │ FCMToken                 │ ${deployed.FCMToken} │
-  │ FCMAgentRegistry         │ ${deployed.FCMAgentRegistry} │
-  │ FCMTaskMarketplace       │ ${deployed.FCMTaskMarketplace} │
-  │ FCMTierStaking           │ ${deployed.FCMTierStaking} │
-  │ FCMGovernance            │ ${deployed.FCMGovernance} │
-  │ FCMEscrow                │ ${deployed.FCMEscrow} │
-  │ FCMReputationNFT         │ ${deployed.FCMReputationNFT} │
-  │ FCMRewardsPool           │ ${deployed.FCMRewardsPool} │
-  └──────────────────────────┴─────────────────────────────────────────────┘
-
-  Add to .env:
-    FCM_TOKEN_CONTRACT=${deployed.FCMToken}
-    FCM_REGISTRY_CONTRACT=${deployed.FCMAgentRegistry}
-    FCM_MARKETPLACE_CONTRACT=${deployed.FCMTaskMarketplace}
-    FCM_TIER_STAKING_CONTRACT=${deployed.FCMTierStaking}
-    FCM_GOVERNANCE_CONTRACT=${deployed.FCMGovernance}
-    FCM_ESCROW_CONTRACT=${deployed.FCMEscrow}
-    FCM_REPUTATION_NFT_CONTRACT=${deployed.FCMReputationNFT}
-    FCM_REWARDS_POOL_CONTRACT=${deployed.FCMRewardsPool}
-
-  Etherscan:
-    https://sepolia.etherscan.io/address/${deployed.FCMToken}
-    https://sepolia.etherscan.io/address/${deployed.FCMAgentRegistry}
-    https://sepolia.etherscan.io/address/${deployed.FCMTaskMarketplace}
-    https://sepolia.etherscan.io/address/${deployed.FCMTierStaking}
-    https://sepolia.etherscan.io/address/${deployed.FCMGovernance}
-    https://sepolia.etherscan.io/address/${deployed.FCMEscrow}
-    https://sepolia.etherscan.io/address/${deployed.FCMReputationNFT}
-    https://sepolia.etherscan.io/address/${deployed.FCMRewardsPool}
-`);
+    console.log(`\n  Network:  ${networkName} (chain ${chainId})\n  Deployer: ${deployerAddr}\n  Time:     ${elapsed}s\n\n  ┌──────────────────────────┬─────────────────────────────────────────────┐\n  │ Contract                 │ Address                                     │\n  ├──────────────────────────┼─────────────────────────────────────────────┤\n  │ FCMToken                 │ ${deployed.FCMToken} │\n  │ FCMAgentRegistry         │ ${deployed.FCMAgentRegistry} │\n  │ FCMTaskMarketplace       │ ${deployed.FCMTaskMarketplace} │\n  │ FCMTierStaking           │ ${deployed.FCMTierStaking} │\n  │ FCMGovernance            │ ${deployed.FCMGovernance} │\n  │ FCMEscrow                │ ${deployed.FCMEscrow} │\n  │ FCMReputationNFT         │ ${deployed.FCMReputationNFT} │\n  │ FCMRewardsPool           │ ${deployed.FCMRewardsPool} │\n  └──────────────────────────┴─────────────────────────────────────────────┘\n\n  Add to .env:\n    FCM_TOKEN_CONTRACT=${deployed.FCMToken}\n    FCM_REGISTRY_CONTRACT=${deployed.FCMAgentRegistry}\n    FCM_MARKETPLACE_CONTRACT=${deployed.FCMTaskMarketplace}\n    FCM_TIER_STAKING_CONTRACT=${deployed.FCMTierStaking}\n    FCM_GOVERNANCE_CONTRACT=${deployed.FCMGovernance}\n    FCM_ESCROW_CONTRACT=${deployed.FCMEscrow}\n    FCM_REPUTATION_NFT_CONTRACT=${deployed.FCMReputationNFT}\n    FCM_REWARDS_POOL_CONTRACT=${deployed.FCMRewardsPool}\n\n  Etherscan:\n    https://sepolia.etherscan.io/address/${deployed.FCMToken}\n    https://sepolia.etherscan.io/address/${deployed.FCMAgentRegistry}\n    https://sepolia.etherscan.io/address/${deployed.FCMTaskMarketplace}\n    https://sepolia.etherscan.io/address/${deployed.FCMTierStaking}\n    https://sepolia.etherscan.io/address/${deployed.FCMGovernance}\n    https://sepolia.etherscan.io/address/${deployed.FCMEscrow}\n    https://sepolia.etherscan.io/address/${deployed.FCMReputationNFT}\n    https://sepolia.etherscan.io/address/${deployed.FCMRewardsPool}\n`);
 }
 
 main().catch((error) => {

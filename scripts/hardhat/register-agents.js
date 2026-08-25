@@ -1,5 +1,5 @@
-const { ethers } = require("hardhat");
-const fs = require("fs");
+import hre from "hardhat";
+import fs from "fs";
 
 const AGENTS = [
     { name: "Inference Router", type: 0, stake: "500", capabilities: "0x01", geohash: "0x7534707275" },
@@ -13,10 +13,13 @@ const AGENTS = [
 ];
 
 async function main() {
+    const conn = await hre.network.connect();
+    const { ethers } = conn;
     const deployment = JSON.parse(fs.readFileSync("deployments/latest.json", "utf8"));
     const registry = await ethers.getContractAt("FCMAgentRegistry", deployment.contracts.FCMAgentRegistry);
     const token = await ethers.getContractAt("FCMToken", deployment.contracts.FCMToken);
-    const [deployer] = await ethers.getSigners();
+    const signers = await conn.provider.request({ method: "eth_accounts" });
+    const deployer = await ethers.getSigner(signers[0]);
 
     console.log("Registering 8 FCM Expert Agents...\n");
 
