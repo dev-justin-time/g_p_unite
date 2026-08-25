@@ -460,6 +460,7 @@
               <div id="scWsStatus" style="display:flex;align-items:center;gap:6px;font-size:var(--font-xs);color:var(--text-muted);"><span id="scWsDot" style="width:8px;height:8px;border-radius:50%;background:var(--text-muted);"></span><span id="scWsLabel">WS Offline</span></div>
               <button class="btn btn-sm btn-secondary" onclick="scWsConnect()" id="scWsBtn">🔌 Connect WS</button>
               <div style="display:flex;align-items:center;gap:6px;">
+                <button class="btn btn-sm btn-secondary" onclick="scTogglePush()" id="scPushBtn" title="Toggle desktop notifications">🔕</button>
                 <button class="btn btn-sm btn-secondary" onclick="scToggleSound()" id="scSoundBtn" title="Toggle notification sound">🔊</button>
                 <input type="range" id="scVolume" min="0" max="100" value="50" style="width:60px;accent-color:var(--accent);" oninput="scSetVolume(this.value)" title="Volume">
               </div>
@@ -867,6 +868,62 @@
       }
       var vol = document.getElementById('scVolume');
       if (vol) vol.value = Math.round(scSoundVolume * 100);
+      var pushBtn = document.getElementById('scPushBtn');
+      if (pushBtn) {
+        pushBtn.textContent = scPushEnabled ? '🔔' : '🔕';
+        pushBtn.style.opacity = scPushEnabled ? '1' : '0.5';
+      }
+    }
+
+    // ── Desktop Push Notifications (Notification API) ──
+    var scPushEnabled = localStorage.getItem('obscura_push') === 'true';
+
+    async function scRequestPushPermission() {
+      if (!('Notification' in window)) {
+        showToast('Browser does not support notifications', 'error');
+        return false;
+      }
+      if (Notification.permission === 'granted') return true;
+      if (Notification.permission === 'denied') {
+        showToast('Notifications blocked. Enable in browser settings.', 'error');
+        return false;
+      }
+      var result = await Notification.requestPermission();
+      return result === 'granted';
+    }
+
+    async function scTogglePush() {
+      if (!scPushEnabled) {
+        var granted = await scRequestPushPermission();
+        if (!granted) return;
+        scPushEnabled = true;
+        showToast('Desktop notifications enabled', 'success');
+      } else {
+        scPushEnabled = false;
+        showToast('Desktop notifications disabled', 'info');
+      }
+      localStorage.setItem('obscura_push', scPushEnabled.toString());
+      scInitSoundUI();
+    }
+
+    function scSendDesktopNotif(n) {
+      if (!scPushEnabled || Notification.permission !== 'granted') return;
+      var keywords = Array.isArray(n.keywords) ? n.keywords : [n.keywords];
+      var typeLabel = n.type === 'first' ? 'New Alert' : n.type === 'new' ? 'Update' : 'Check';
+      try {
+        var notif = new Notification(typeLabel + ': ' + keywords.join(', '), {
+          body: (n.count || 0) + ' results found',
+          icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔍</text></svg>',
+          tag: 'obscura-' + (n.alertId || Date.now()),
+          requireInteraction: n.type === 'first'
+        });
+        notif.onclick = function() {
+          window.focus();
+          navigateTo('search-console');
+          notif.close();
+        };
+        setTimeout(function() { notif.close(); }, 10000);
+      } catch (e) { /* ignore */ }
     }
 
     var scNotifCache = [];
@@ -954,6 +1011,7 @@
         if (feed.children.length > 50) feed.removeChild(feed.lastChild);
         showToast('🔔 ' + (n.type === 'first' ? 'New Alert' : n.type === 'new' ? 'Update' : 'Check') + ': ' + keywords.join(', ') + ' (' + n.count + ' results)', 'success');
         scPlayNotifSound(n.type);
+        scSendDesktopNotif(n);
       }
       if (msg.type === 'alert:new' || msg.type === 'alert:first') {
         var kw = msg.keywords || [];
