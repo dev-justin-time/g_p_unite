@@ -16,12 +16,95 @@ const { StealthManager } = require('./stealth');
 
 const PORT = parseInt(process.env.OBSCURA_PORT || '3001');
 const CDP_PORT = parseInt(process.env.OBSCURA_CDP || '9222');
+const AUTH_ENABLED = process.env.OBSCURA_AUTH !== 'false';
+const API_KEY = process.env.OBSCURA_API_KEY || ''; // master API key
+const ADMIN_KEY = process.env.OBSCURA_ADMIN_KEY || ''; // admin API key
 
 const engine = new SearchEngine();
 const proxyRotator = new ProxyRotator();
 const stealth = new StealthManager();
 
 let cdpConnected = false;
+
+// ─── Authentication ──────────────────────────────────────────
+const sessions = new Map(); // token -> { ip, role, createdAt, expiresAt }
+const SESSION_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+function generateToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function createSession(ip, role = 'admin') {
+  const token = generateToken();
+  sessions.set(token, {
+    ip,
+    role,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + SESSION_TTL
+  });
+  return token;
+}
+
+function validateSession(token) {
+  if (!token) return null;
+  const session = sessions.get(token);
+  if (!session) return null;
+  if (Date.now() > session.expiresAt) {
+    sessions.delete(token);
+    return null;
+  }
+  return session;
+}
+
+function extractAuth(req) {
+  // Check Authorization header: Bearer <token> or ApiKey <key>
+  const authHeader = req.headers['authorization'] || '';
+  if (authHeader.startsWith('Bearer ')) {
+    return { type: 'session', token: authHeader.slice(7) };
+  }
+  if (authHeader.startsWith('ApiKey ')) {
+    return { type: 'apikey', key: authHeader.slice(7) };
+  }
+  // Check query parameter
+  const url = new URL(req.url, `http://localhost:${PORT}`);
+  const tokenParam = url.searchParams.get('token');
+  if (tokenParam) return { type: 'session', token: tokenParam };
+  const keyParam = url.searchParams.get('api_key');
+  if (keyParam) return { type: 'apikey', key: keyParam };
+  return null;
+}
+
+function checkAuth(req, requiredRole = 'admin') {
+  if (!AUTH_ENABLED) return { ok: true, role: 'admin' };
+
+  const auth = extractAuth(req);
+  if (!auth) return { ok: false, error: 'Authentication required' };
+
+  if (auth.type === 'session') {
+    const session = validateSession(auth.token);
+    if (!session) return { ok: false, error: 'Invalid or expired session' };
+    if (requiredRole === 'admin' && session.role !== 'admin') {
+      return { ok: false, error: 'Admin access required' };
+    }
+    return { ok: true, role: session.role };
+  }
+
+  if (auth.type === 'apikey') {
+    if (auth.key === ADMIN_KEY) return { ok: true, role: 'admin' };
+    if (auth.key === API_KEY) return { ok: true, role: requiredRole === 'admin' ? 'user' : 'user' };
+    return { ok: false, error: 'Invalid API key' };
+  }
+
+  return { ok: false, error: 'Invalid auth format' };
+}
+
+function cleanupSessions() {
+  const now = Date.now();
+  for (const [token, session] of sessions) {
+    if (now > session.expiresAt) sessions.delete(token);
+  }
+}
+setInterval(cleanupSessions, 60_000);
 
 // ─── Data Persistence ────────────────────────────────────────
 const DATA_DIR = process.env.OBSCURA_DATA_DIR || path.join(__dirname, 'data');
@@ -237,14 +320,84 @@ function startAlertAutoCheck() {
 const server = http.createServer(async (req, res) => {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
   const url = new URL(req.url, `http://localhost:${PORT}`);
 
+  // Public endpoints (no auth required)
+  const publicPaths = ['/api/obscura/auth/login', '/api/obscura/auth/logout', '/api/obscura/status', '/health'];
+  const isPublic = publicPaths.includes(url.pathname);
+
+  // Auth check (skip public endpoints)
+  if (!isPublic) {
+    const authResult = checkAuth(req);
+    if (!authResult.ok) {
+      json(res, 401, { error: authResult.error, code: 'UNAUTHORIZED' });
+      return;
+    }
+    req._authRole = authResult.role;
+  }
+
   try {
     let handled = false;
+
+    // ── Auth: Login ──
+    if (req.method === 'POST' && url.pathname === '/api/obscura/auth/login') {
+      const body = await readBody(req);
+      const { password, api_key } = JSON.parse(body);
+      const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+
+      if (api_key) {
+        // API key login
+        if (api_key === ADMIN_KEY) {
+          const token = createSession(ip, 'admin');
+          json(res, 200, { success: true, token, role: 'admin', expiresAt: new Date(Date.now() + SESSION_TTL).toISOString() });
+        } else if (api_key === API_KEY) {
+          const token = createSession(ip, 'user');
+          json(res, 200, { success: true, token, role: 'user', expiresAt: new Date(Date.now() + SESSION_TTL).toISOString() });
+        } else {
+          json(res, 401, { error: 'Invalid API key' });
+        }
+        handled = true;
+      } else if (password) {
+        // Password login (password = admin key or API key)
+        if (password === ADMIN_KEY && ADMIN_KEY) {
+          const token = createSession(ip, 'admin');
+          json(res, 200, { success: true, token, role: 'admin', expiresAt: new Date(Date.now() + SESSION_TTL).toISOString() });
+        } else if (password === API_KEY && API_KEY) {
+          const token = createSession(ip, 'user');
+          json(res, 200, { success: true, token, role: 'user', expiresAt: new Date(Date.now() + SESSION_TTL).toISOString() });
+        } else {
+          json(res, 401, { error: 'Invalid credentials' });
+        }
+        handled = true;
+      } else {
+        json(res, 400, { error: 'password or api_key required' });
+        handled = true;
+      }
+    }
+
+    // ── Auth: Logout ──
+    if (req.method === 'POST' && url.pathname === '/api/obscura/auth/logout') {
+      const auth = extractAuth(req);
+      if (auth && auth.type === 'session') sessions.delete(auth.token);
+      json(res, 200, { success: true });
+      handled = true;
+    }
+
+    // ── Auth: Check session ──
+    if (req.method === 'GET' && url.pathname === '/api/obscura/auth/me') {
+      const auth = extractAuth(req);
+      const session = auth ? validateSession(auth.token) : null;
+      if (session) {
+        json(res, 200, { authenticated: true, role: session.role, expiresAt: new Date(session.expiresAt).toISOString() });
+      } else {
+        json(res, 200, { authenticated: false });
+      }
+      handled = true;
+    }
 
     // ── Status ──
     if (req.method === 'GET' && url.pathname === '/api/obscura/status') {
@@ -670,6 +823,29 @@ server.on('upgrade', (req, socket, head) => {
   // Extract client IP (support nginx X-Forwarded-For)
   const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
                     req.socket.remoteAddress?.replace(/^::ffff:/, '') || 'unknown';
+
+  // Auth check for WebSocket
+  if (AUTH_ENABLED) {
+    const auth = extractAuth(req);
+    if (!auth) {
+      console.log(`  🔒 WS auth failed: ${clientIP} — no credentials`);
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+    let valid = false;
+    if (auth.type === 'session') {
+      valid = !!validateSession(auth.token);
+    } else if (auth.type === 'apikey') {
+      valid = auth.key === API_KEY || auth.key === ADMIN_KEY;
+    }
+    if (!valid) {
+      console.log(`  🔒 WS auth failed: ${clientIP} — invalid credentials`);
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+  }
 
   // Rate limit check
   const rateCheck = wsRateCheckConnect(clientIP);

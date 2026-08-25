@@ -22,7 +22,12 @@ const state = {
   monitors: JSON.parse(localStorage.getItem('obscura-monitors') || '[]'),
   history: JSON.parse(localStorage.getItem('obscura-history') || '[]'),
 
-  stats: { pages: 0, latency: 0, proxyCount: 0 }
+  stats: { pages: 0, latency: 0, proxyCount: 0 },
+
+  // Auth
+  authToken: localStorage.getItem('obscura-auth-token') || null,
+  authRole: localStorage.getItem('obscura-auth-role') || null,
+  authRequired: false // will be set after first API call
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -31,15 +36,26 @@ const state = {
 
 async function api(path, options = {}) {
   try {
+    const headers = { 'Content-Type': 'application/json', ...options.headers };
+    // Add auth token if available
+    if (state.authToken) headers['Authorization'] = `Bearer ${state.authToken}`;
+
     const res = await fetch(`${state.apiURL}${path}`, {
       method: options.method || 'GET',
-      headers: { 'Content-Type': 'application/json', ...options.headers },
+      headers,
       body: options.body ? JSON.stringify(options.body) : undefined,
       signal: AbortSignal.timeout(options.timeout || 30000)
     });
+
+    // Handle 401 — show login
+    if (res.status === 401) {
+      state.authRequired = true;
+      showLogin();
+      throw new Error('Authentication required');
+    }
+
     return await res.json();
   } catch (e) {
-    // Fallback to direct scraping if API unavailable
     if (options.fallback) return options.fallback(e);
     throw e;
   }
