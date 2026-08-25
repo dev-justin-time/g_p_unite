@@ -317,6 +317,57 @@ function startAlertAutoCheck() {
   }, ALERT_CHECK_INTERVAL);
 }
 
+// ─── Application Rate Limiting ───────────────────────────────
+const RATE_LIMITS = {
+  search:       { windowMs: 60_000, max: 20,  key: 'rl:search' },
+  scrape:       { windowMs: 60_000, max: 10,  key: 'rl:scrape' },
+  bulk:         { windowMs: 60_000, max: 3,   key: 'rl:bulk' },
+  extract:      { windowMs: 60_000, max: 15,  key: 'rl:extract' },
+  alerts:       { windowMs: 60_000, max: 30,  key: 'rl:alerts' },
+  general:      { windowMs: 60_000, max: 60,  key: 'rl:general' },
+};
+
+const rateBuckets = new Map(); // key -> { count, resetAt }
+
+function rateLimitCheck(identifier, category) {
+  const config = RATE_LIMITS[category] || RATE_LIMITS.general;
+  const bucketKey = `${config.key}:${identifier}`;
+  const now = Date.now();
+  let bucket = rateBuckets.get(bucketKey);
+
+  if (!bucket || now > bucket.resetAt) {
+    bucket = { count: 0, resetAt: now + config.windowMs };
+    rateBuckets.set(bucketKey, bucket);
+  }
+
+  bucket.count++;
+  const remaining = Math.max(0, config.max - bucket.count);
+  const retryAfter = bucket.count > config.max ? Math.ceil((bucket.resetAt - now) / 1000) : 0;
+
+  return {
+    allowed: bucket.count <= config.max,
+    limit: config.max,
+    remaining,
+    resetAt: bucket.resetAt,
+    retryAfter
+  };
+}
+
+function setRateLimitHeaders(res, rl) {
+  res.setHeader('X-RateLimit-Limit', rl.limit);
+  res.setHeader('X-RateLimit-Remaining', rl.remaining);
+  res.setHeader('X-RateLimit-Reset', Math.ceil(rl.resetAt / 1000));
+  if (!rl.allowed) res.setHeader('Retry-After', rl.retryAfter);
+}
+
+// Cleanup stale buckets every 60s
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, bucket] of rateBuckets) {
+    if (now > bucket.resetAt + 60_000) rateBuckets.delete(key);
+  }
+}, 60_000);
+
 // ─── HTTP Server ──────────────────────────────────────────────
 
 const server = http.createServer(async (req, res) => {
@@ -329,7 +380,7 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
 
   // Public endpoints (no auth required)
-  const publicPaths = ['/api/obscura/auth/login', '/api/obscura/auth/logout', '/api/obscura/status', '/health'];
+  const publicPaths = ['/api/obscura/auth/login', '/api/obscura/auth/logout', '/api/obscura/status', '/api/obscura/rate-limit/status', '/health'];
   const isPublic = publicPaths.includes(url.pathname);
 
   // Auth check (skip public endpoints)
@@ -416,6 +467,11 @@ const server = http.createServer(async (req, res) => {
 
     // ── Search ──
     if (req.method === 'POST' && url.pathname === '/api/obscura/search') {
+      const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress?.replace(/^::ffff:/, '') || 'anon';
+      const rl = rateLimitCheck(clientIP, 'search');
+      setRateLimitHeaders(res, rl);
+      if (!rl.allowed) { json(res, 429, { error: 'Search rate limit exceeded', retryAfter: rl.retryAfter, limit: rl.limit, remaining: 0 }); return; }
+
       const body = await readBody(req);
       const { query, engine: eng = 'duckduckgo', limit = 25, region = 'wt-wt', stealth: useStealth = true, dedup = true } = JSON.parse(body);
       if (!query) { json(res, 400, { error: 'query required' }); return; }
@@ -424,12 +480,17 @@ const server = http.createServer(async (req, res) => {
       const results = await engine.search(query, { engine: eng, limit, region, proxy });
       const deduped = dedup ? engine.deduplicate(results) : results;
 
-      json(res, 200, { results: deduped, total: deduped.length, engine: eng });
+      json(res, 200, { results: deduped, total: deduped.length, engine: eng, rateLimit: { limit: rl.limit, remaining: rl.remaining } });
       handled = true;
     }
 
     // ── Scrape ──
     if (req.method === 'POST' && url.pathname === '/api/obscura/scrape') {
+      const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress?.replace(/^::ffff:/, '') || 'anon';
+      const rl = rateLimitCheck(clientIP, 'scrape');
+      setRateLimitHeaders(res, rl);
+      if (!rl.allowed) { json(res, 429, { error: 'Scrape rate limit exceeded', retryAfter: rl.retryAfter, limit: rl.limit, remaining: 0 }); return; }
+
       const body = await readBody(req);
       const opts = JSON.parse(body);
       if (!opts.url) { json(res, 400, { error: 'url required' }); return; }
@@ -441,20 +502,25 @@ const server = http.createServer(async (req, res) => {
       } else {
         const proxy = opts.stealth ? proxyRotator.next() : null;
         const result = await engine.scrapeURL(opts.url, { ...opts, proxy });
-        json(res, 200, result);
+        json(res, 200, { ...result, rateLimit: { limit: rl.limit, remaining: rl.remaining } });
         handled = true;
       }
     }
 
     // ── Extract ──
     if (req.method === 'POST' && url.pathname === '/api/obscura/extract') {
+      const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress?.replace(/^::ffff:/, '') || 'anon';
+      const rl = rateLimitCheck(clientIP, 'extract');
+      setRateLimitHeaders(res, rl);
+      if (!rl.allowed) { json(res, 429, { error: 'Extract rate limit exceeded', retryAfter: rl.retryAfter, limit: rl.limit, remaining: 0 }); return; }
+
       const body = await readBody(req);
       const { url: targetUrl, schema = {} } = JSON.parse(body);
       if (!targetUrl) { json(res, 400, { error: 'url required' }); return; }
 
       const proxy = proxyRotator.next();
       const extracted = await engine.extractData(targetUrl, schema, { proxy });
-      json(res, 200, { extracted });
+      json(res, 200, { extracted, rateLimit: { limit: rl.limit, remaining: rl.remaining } });
       handled = true;
     }
 
@@ -501,6 +567,24 @@ const server = http.createServer(async (req, res) => {
       handled = true;
     }
 
+    // ── Rate Limit Status ──
+    if (req.method === 'GET' && url.pathname === '/api/obscura/rate-limit/status') {
+      const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress?.replace(/^::ffff:/, '') || 'anon';
+      const status = {};
+      for (const [category, config] of Object.entries(RATE_LIMITS)) {
+        const bucketKey = `${config.key}:${clientIP}`;
+        const bucket = rateBuckets.get(bucketKey);
+        const now = Date.now();
+        if (bucket && now <= bucket.resetAt) {
+          status[category] = { limit: config.max, remaining: Math.max(0, config.max - bucket.count), resetIn: Math.ceil((bucket.resetAt - now) / 1000) };
+        } else {
+          status[category] = { limit: config.max, remaining: config.max, resetIn: 0 };
+        }
+      }
+      json(res, 200, { ip: clientIP, limits: RATE_LIMITS, current: status });
+      handled = true;
+    }
+
     // ── WebSocket Status ──
     if (req.method === 'GET' && url.pathname === '/api/obscura/ws/status') {
       const ipStats = {};
@@ -518,6 +602,11 @@ const server = http.createServer(async (req, res) => {
 
     // ── Bulk Scrape ──
     if (req.method === 'POST' && url.pathname === '/api/obscura/bulk-scrape') {
+      const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress?.replace(/^::ffff:/, '') || 'anon';
+      const rl = rateLimitCheck(clientIP, 'bulk');
+      setRateLimitHeaders(res, rl);
+      if (!rl.allowed) { json(res, 429, { error: 'Bulk scrape rate limit exceeded', retryAfter: rl.retryAfter, limit: rl.limit, remaining: 0 }); return; }
+
       const body = await readBody(req);
       const { urls, dump = 'text', concurrency = 3 } = JSON.parse(body);
       if (!Array.isArray(urls) || urls.length === 0) { json(res, 400, { error: 'urls array required' }); return; }
