@@ -771,7 +771,7 @@
         scWs.onopen = function() {
           document.getElementById('scWsDot').style.background = 'var(--green)';
           document.getElementById('scWsDot').classList.add('live-pulse');
-          document.getElementById('scWsLabel').textContent = 'WS Live';
+          document.getElementById('scWsLabel').textContent = 'Live · ' + scNotifCache.length + ' cached';
           document.getElementById('scWsLabel').style.color = 'var(--green)';
           document.getElementById('scWsBtn').textContent = '✅ Connected';
           // Send existing filter if set
@@ -788,13 +788,13 @@
         scWs.onclose = function() {
           document.getElementById('scWsDot').style.background = 'var(--text-muted)';
           document.getElementById('scWsDot').classList.remove('live-pulse');
-          document.getElementById('scWsLabel').textContent = 'WS Offline';
+          document.getElementById('scWsLabel').textContent = 'Offline · ' + scNotifCache.length + ' cached';
           document.getElementById('scWsLabel').style.color = 'var(--text-muted)';
           document.getElementById('scWsBtn').textContent = '🔌 Connect WS';
           scWsReconnectTimer = setTimeout(scWsConnect, 5000);
         };
         scWs.onerror = function() {
-          document.getElementById('scWsLabel').textContent = 'WS Error';
+          document.getElementById('scWsLabel').textContent = 'Error · ' + scNotifCache.length + ' cached';
           document.getElementById('scWsLabel').style.color = 'var(--red)';
         };
       } catch (e) {
@@ -802,9 +802,70 @@
       }
     }
 
+    var scNotifCache = [];
+    var SC_NOTIF_KEY = 'obscura_notifications';
+    var SC_NOTIF_MAX = 200;
+
+    function scLoadNotifCache() {
+      try {
+        var raw = localStorage.getItem(SC_NOTIF_KEY);
+        if (raw) scNotifCache = JSON.parse(raw);
+      } catch (e) { scNotifCache = []; }
+    }
+
+    function scSaveNotifCache() {
+      try {
+        localStorage.setItem(SC_NOTIF_KEY, JSON.stringify(scNotifCache.slice(0, SC_NOTIF_MAX)));
+      } catch (e) { /* quota exceeded — trim older */
+        scNotifCache = scNotifCache.slice(0, Math.floor(SC_NOTIF_MAX / 2));
+        try { localStorage.setItem(SC_NOTIF_KEY, JSON.stringify(scNotifCache)); } catch (e2) {}
+      }
+    }
+
+    function scAddNotifToCache(n) {
+      scNotifCache.unshift({ keywords: n.keywords, type: n.type, count: n.count, results: (n.results || []).slice(0, 5), timestamp: n.timestamp || new Date().toISOString() });
+      if (scNotifCache.length > SC_NOTIF_MAX) scNotifCache.length = SC_NOTIF_MAX;
+      scSaveNotifCache();
+    }
+
+    function scRenderNotifEntry(n) {
+      var keywords = Array.isArray(n.keywords) ? n.keywords : [n.keywords];
+      var typeColor = n.type === 'first' ? 'var(--green)' : n.type === 'new' ? 'var(--amber)' : 'var(--accent)';
+      var typeLabel = n.type === 'first' ? 'New Alert' : n.type === 'new' ? 'Update' : 'Check';
+      var timeStr = n.timestamp ? scTimeAgo(n.timestamp) : 'just now';
+      var resultsHtml = '';
+      if (n.results && n.results.length > 0) {
+        resultsHtml = '<div style="margin-top:8px;">' + n.results.slice(0, 3).map(function(r) {
+          return '<a href="' + (r.url || '#') + '" target="_blank" style="display:block;font-size:var(--font-xs);color:var(--accent);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;">' + (r.title || r.url || 'Untitled') + '</a>';
+        }).join('') + (n.results.length > 3 ? '<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">+' + (n.results.length - 3) + ' more</div>' : '') + '</div>';
+      }
+      return '<div style="padding:10px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--radius-sm);border-left:3px solid ' + typeColor + ';"><div style="display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;gap:4px;flex-wrap:wrap;">' + keywords.map(function(k) { return '<span class="badge" style="background:' + typeColor + '20;color:' + typeColor + ';border:1px solid ' + typeColor + '40;font-size:10px;">' + k + '</span>'; }).join('') + '<span class="badge" style="background:' + typeColor + '20;color:' + typeColor + ';border:1px solid ' + typeColor + '40;font-size:10px;">' + typeLabel + '</span></div><span style="font-size:10px;color:var(--text-muted);">' + timeStr + '</span></div><div style="font-size:var(--font-xs);color:var(--text-muted);margin-top:4px;">' + (n.count || 0) + ' results</div>' + resultsHtml + '</div>';
+    }
+
+    function scTimeAgo(ts) {
+      var diff = Date.now() - new Date(ts).getTime();
+      if (diff < 60000) return 'just now';
+      if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+      if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+      return Math.floor(diff / 86400000) + 'd ago';
+    }
+
+    function scRenderCachedFeed() {
+      var feed = document.getElementById('scNotifFeed');
+      if (scNotifCache.length === 0) {
+        feed.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:24px;font-size:var(--font-sm);">No cached notifications</div>';
+        return;
+      }
+      feed.innerHTML = scNotifCache.slice(0, 50).map(scRenderNotifEntry).join('');
+      var badge = document.getElementById('scNotifBadge');
+      badge.textContent = scNotifCache.length;
+      badge.style.display = '';
+    }
+
     function scHandleWsMessage(msg) {
       if (msg.type === 'connected') {
         console.log('Search WS connected, ID:', msg.clientId);
+        document.getElementById('scWsStatus')?.querySelector('.badge')?.remove();
         return;
       }
       if (msg.type === 'notification' && msg.notification) {
@@ -815,20 +876,16 @@
         var count = parseInt(badge.textContent || '0') + 1;
         badge.textContent = count;
         badge.style.display = '';
-        var typeColor = n.type === 'first' ? 'var(--green)' : n.type === 'new' ? 'var(--amber)' : 'var(--accent)';
-        var typeLabel = n.type === 'first' ? 'New Alert' : n.type === 'new' ? 'Update' : 'Check';
-        var resultsHtml = '';
-        if (n.results && n.results.length > 0) {
-          resultsHtml = '<div style="margin-top:8px;">' + n.results.slice(0, 3).map(function(r) {
-            return '<a href="' + (r.url || '#') + '" target="_blank" style="display:block;font-size:var(--font-xs);color:var(--accent);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;">' + (r.title || r.url || 'Untitled') + '</a>';
-          }).join('') + (n.results.length > 3 ? '<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">+' + (n.results.length - 3) + ' more</div>' : '') + '</div>';
-        }
+
+        // Persist to localStorage
+        scAddNotifToCache(n);
+
+        // Render live entry
         var entry = document.createElement('div');
-        entry.style.cssText = 'padding:10px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--radius-sm);border-left:3px solid ' + typeColor + ';';
-        entry.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;gap:4px;flex-wrap:wrap;">' + keywords.map(function(k) { return '<span class="badge" style="background:' + typeColor + '20;color:' + typeColor + ';border:1px solid ' + typeColor + '40;font-size:10px;">' + k + '</span>'; }).join('') + '<span class="badge" style="background:' + typeColor + '20;color:' + typeColor + ';border:1px solid ' + typeColor + '40;font-size:10px;">' + typeLabel + '</span></div><span style="font-size:10px;color:var(--text-muted);">just now</span></div><div style="font-size:var(--font-xs);color:var(--text-muted);margin-top:4px;">' + (n.count || 0) + ' results</div>' + resultsHtml;
-        feed.insertBefore(entry, feed.firstChild);
+        entry.innerHTML = scRenderNotifEntry(n);
+        feed.insertBefore(entry.firstElementChild, feed.firstChild);
         if (feed.children.length > 50) feed.removeChild(feed.lastChild);
-        showToast('🔔 ' + typeLabel + ': ' + keywords.join(', ') + ' (' + n.count + ' results)', 'success');
+        showToast('🔔 ' + (n.type === 'first' ? 'New Alert' : n.type === 'new' ? 'Update' : 'Check') + ': ' + keywords.join(', ') + ' (' + n.count + ' results)', 'success');
       }
       if (msg.type === 'alert:new' || msg.type === 'alert:first') {
         var kw = msg.keywords || [];
@@ -911,14 +968,18 @@
       var badge = document.getElementById('scNotifBadge');
       badge.textContent = '0';
       badge.style.display = 'none';
+      scNotifCache = [];
+      scSaveNotifCache();
     }
 
-    // Load alerts when search console page is shown
+    // Load cached notifications and alerts when search console page is shown
+    scLoadNotifCache();
     var origNav = window.navigateTo;
     window.navigateTo = function(page) {
       origNav(page);
       if (page === 'search-console') {
         scLoadAlerts();
+        scRenderCachedFeed();
         if (!scWs || scWs.readyState !== WebSocket.OPEN) scWsConnect();
       }
     };
