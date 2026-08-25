@@ -1,0 +1,43 @@
+# Obscura Search — Web Intelligence Console
+# Lightweight pure Node.js (zero npm deps)
+# Multi-stage build for minimal image size
+
+# ─── Build ────────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy only the search module (no npm install needed — pure Node.js)
+COPY search/ ./search/
+
+# ─── Production ───────────────────────────────────────────────
+FROM node:20-alpine AS production
+
+# Security: run as non-root
+RUN addgroup -g 1001 -S obscura && \
+    adduser -S obscura -u 1001
+
+WORKDIR /app
+
+# Copy search module
+COPY --from=builder /app/search ./search
+
+# Create data directory for any future persistent state
+RUN mkdir -p /app/data && chown -R obscura:obscura /app
+
+USER obscura
+
+# Environment defaults
+ENV OBSCURA_PORT=3001
+ENV OBSCURA_CDP=9222
+ENV NODE_ENV=production
+
+# Expose API port
+EXPOSE 3001
+
+# Health check — hit the status endpoint
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=10s \
+    CMD wget -q --spider http://localhost:3001/api/obscura/status || exit 1
+
+# Start the server
+CMD ["node", "search/server.js"]
