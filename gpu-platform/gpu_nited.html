@@ -459,6 +459,10 @@
             <div style="display:flex;align-items:center;gap:12px;">
               <div id="scWsStatus" style="display:flex;align-items:center;gap:6px;font-size:var(--font-xs);color:var(--text-muted);"><span id="scWsDot" style="width:8px;height:8px;border-radius:50%;background:var(--text-muted);"></span><span id="scWsLabel">WS Offline</span></div>
               <button class="btn btn-sm btn-secondary" onclick="scWsConnect()" id="scWsBtn">🔌 Connect WS</button>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <button class="btn btn-sm btn-secondary" onclick="scToggleSound()" id="scSoundBtn" title="Toggle notification sound">🔊</button>
+                <input type="range" id="scVolume" min="0" max="100" value="50" style="width:60px;accent-color:var(--accent);" oninput="scSetVolume(this.value)" title="Volume">
+              </div>
             </div>
           </div>
           <div class="card" style="margin-bottom:24px;">
@@ -802,6 +806,69 @@
       }
     }
 
+    // ── Notification Sound (Web Audio API) ──────
+    var scAudioCtx = null;
+    var scSoundEnabled = localStorage.getItem('obscura_sound') !== 'false';
+    var scSoundVolume = parseInt(localStorage.getItem('obscura_volume') || '50') / 100;
+
+    function scInitAudio() {
+      if (!scAudioCtx) {
+        scAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (scAudioCtx.state === 'suspended') scAudioCtx.resume();
+    }
+
+    function scPlayNotifSound(type) {
+      if (!scSoundEnabled) return;
+      scInitAudio();
+      var ctx = scAudioCtx;
+      var now = ctx.currentTime;
+      var vol = scSoundVolume;
+
+      // Different tones for different notification types
+      var freqs = type === 'first' ? [523, 659, 784] : type === 'new' ? [440, 554, 659] : [392, 494, 587];
+      var duration = type === 'first' ? 0.6 : 0.4;
+
+      freqs.forEach(function(freq, i) {
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.1);
+        gain.gain.setValueAtTime(0, now + i * 0.1);
+        gain.gain.linearRampToValueAtTime(vol * 0.3, now + i * 0.1 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.1);
+        osc.stop(now + i * 0.1 + duration + 0.05);
+      });
+    }
+
+    function scToggleSound() {
+      scSoundEnabled = !scSoundEnabled;
+      localStorage.setItem('obscura_sound', scSoundEnabled.toString());
+      document.getElementById('scSoundBtn').textContent = scSoundEnabled ? '🔊' : '🔇';
+      document.getElementById('scSoundBtn').style.opacity = scSoundEnabled ? '1' : '0.5';
+      if (scSoundEnabled) scPlayNotifSound('check');
+      showToast(scSoundEnabled ? 'Sound enabled' : 'Sound muted', 'info');
+    }
+
+    function scSetVolume(val) {
+      scSoundVolume = parseInt(val) / 100;
+      localStorage.setItem('obscura_volume', val);
+    }
+
+    // Init sound button state
+    function scInitSoundUI() {
+      var btn = document.getElementById('scSoundBtn');
+      if (btn) {
+        btn.textContent = scSoundEnabled ? '🔊' : '🔇';
+        btn.style.opacity = scSoundEnabled ? '1' : '0.5';
+      }
+      var vol = document.getElementById('scVolume');
+      if (vol) vol.value = Math.round(scSoundVolume * 100);
+    }
+
     var scNotifCache = [];
     var SC_NOTIF_KEY = 'obscura_notifications';
     var SC_NOTIF_MAX = 200;
@@ -886,6 +953,7 @@
         feed.insertBefore(entry.firstElementChild, feed.firstChild);
         if (feed.children.length > 50) feed.removeChild(feed.lastChild);
         showToast('🔔 ' + (n.type === 'first' ? 'New Alert' : n.type === 'new' ? 'Update' : 'Check') + ': ' + keywords.join(', ') + ' (' + n.count + ' results)', 'success');
+        scPlayNotifSound(n.type);
       }
       if (msg.type === 'alert:new' || msg.type === 'alert:first') {
         var kw = msg.keywords || [];
@@ -974,12 +1042,14 @@
 
     // Load cached notifications and alerts when search console page is shown
     scLoadNotifCache();
+    scInitSoundUI();
     var origNav = window.navigateTo;
     window.navigateTo = function(page) {
       origNav(page);
       if (page === 'search-console') {
         scLoadAlerts();
         scRenderCachedFeed();
+        scInitSoundUI();
         if (!scWs || scWs.readyState !== WebSocket.OPEN) scWsConnect();
       }
     };
