@@ -836,33 +836,20 @@ void main() {
   // ── Step Navigation ────────────────────────────────────────
   function goToStep(step) {
     if (step < 1 || step > 5) return;
-    // Wallet must be connected for steps 2+
     if (step > 1 && !wallet.connected) {
       showModal('Connect your wallet first.');
       setTimeout(closeConnectModal, 2000);
       return;
     }
-
     currentStep = step;
-
-    // Hide all step panels (including step-1)
-    document.getElementById('step-2').classList.add('hidden');
-    document.getElementById('step-3').classList.add('hidden');
-    document.getElementById('step-4').classList.add('hidden');
-    document.getElementById('step-5').classList.add('hidden');
+    // Hide all step panels
+    for (let i = 1; i <= 5; i++) {
+      const el = document.getElementById('step-' + i);
+      if (el) el.classList.add('hidden');
     }
     // Show selected step
-    for (let i = 1; i <= 5; i++) {
-      const el = document.getElementById("step-" + i);
-      if (el) el.classList.add("hidden");
-    }
-    const target = document.getElementById("step-" + step);
-    if (target) target.classList.remove("hidden");
-n    // Show selected step
-    if (step > 1) {
-      document.getElementById('step-' + step).classList.remove('hidden');
-    }
-
+    const target = document.getElementById('step-' + step);
+    if (target) target.classList.remove('hidden');
     // Update sidebar active state
     document.querySelectorAll('.nav-tab').forEach(tab => {
       tab.classList.remove('text-primary', 'border-l-2', 'border-primary', 'font-bold', 'bg-primary/5');
@@ -873,16 +860,9 @@ void main() {
       activeTab.classList.add('text-primary', 'border-l-2', 'border-primary', 'font-bold', 'bg-primary/5');
       activeTab.classList.remove('text-on-surface-variant');
     }
-
-    // Update main content title
-    if (step === 1) {
-      document.querySelector('.mb-stack-lg h2').textContent = 'Initialize Connection';
-    }
-
     // Scroll to top
     document.querySelector('.overflow-y-auto').scrollTop = 0;
   }
-
   // ── Workload Selection (Step 3) ────────────────────────────
   function renderWorkloadGrid() {
     const grid = document.getElementById('workload-grid');
