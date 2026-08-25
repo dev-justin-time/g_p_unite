@@ -1,10 +1,12 @@
 /**
  * Obscura Search — API Server
  * Proxies requests to Obscura browser, manages proxy pool
+ * WebSocket for real-time alert notifications
  */
 
 const http = require('http');
 const https = require('https');
+const crypto = require('crypto');
 const { URL } = require('url');
 const { SearchEngine } = require('./engine');
 const { ProxyRotator } = require('./proxy-rotator');
@@ -22,6 +24,115 @@ let cdpConnected = false;
 // ─── In-memory stores ───────────────────────────────────────
 const alertKeywords = new Map(); // id -> { keywords, engine, lastResults, createdAt }
 const scheduledSearches = new Map(); // id -> { query, engine, interval, active, lastRun, results }
+
+// ─── WebSocket Clients ───────────────────────────────────────
+const wsClients = new Set();
+
+function wsBroadcast(data) {
+  const msg = wsEncode(data);
+  for (const client of wsClients) {
+    try { client.socket.write(msg); } catch (e) { wsClients.delete(client); }
+  }
+}
+
+// Minimal WebSocket framing (RFC 6455) — no external deps
+function wsEncode(data) {
+  const payload = Buffer.from(JSON.stringify(data));
+  const len = payload.length;
+  let header;
+  if (len < 126) {
+    header = Buffer.alloc(2);
+    header[0] = 0x81; // FIN + text frame
+    header[1] = len;
+  } else if (len < 65536) {
+    header = Buffer.alloc(4);
+    header[0] = 0x81;
+    header[1] = 126;
+    header.writeUInt16BE(len, 2);
+  } else {
+    header = Buffer.alloc(10);
+    header[0] = 0x81;
+    header[1] = 127;
+    header.writeBigUInt64BE(BigInt(len), 2);
+  }
+  return Buffer.concat([header, payload]);
+}
+
+function wsDecode(buffer) {
+  if (buffer.length < 2) return null;
+  const opcode = buffer[0] & 0x0f;
+  const masked = (buffer[1] & 0x80) !== 0;
+  let payloadLen = buffer[1] & 0x7f;
+  let offset = 2;
+  if (payloadLen === 126) { payloadLen = buffer.readUInt16BE(2); offset = 4; }
+  else if (payloadLen === 127) { payloadLen = Number(buffer.readBigUInt64BE(2)); offset = 10; }
+  if (masked) {
+    const mask = buffer.slice(offset, offset + 4); offset += 4;
+    const data = buffer.slice(offset, offset + payloadLen);
+    for (let i = 0; i < data.length; i++) data[i] ^= mask[i % 4];
+    return { opcode, payload: data.toString(), totalLen: offset + payloadLen };
+  }
+  return { opcode, payload: buffer.slice(offset, offset + payloadLen).toString(), totalLen: offset + payloadLen };
+}
+
+function wsHandshake(req, socket) {
+  const key = req.headers['sec-websocket-key'];
+  if (!key) { socket.destroy(); return; }
+  const accept = crypto.createHash('sha1')
+    .update(key + '258EAFA5-E914-47DA-95CA-5AB5DC65C740')
+    .digest('base64');
+  socket.write(
+    'HTTP/1.1 101 Switching Protocols\r\n' +
+    'Upgrade: websocket\r\n' +
+    'Connection: Upgrade\r\n' +
+    `Sec-WebSocket-Accept: ${accept}\r\n` +
+    '\r\n'
+  );
+  return socket;
+}
+
+// ─── Auto-check Alerts ───────────────────────────────────────
+const ALERT_CHECK_INTERVAL = 60_000; // check every 60s
+let alertCheckTimer = null;
+
+function startAlertAutoCheck() {
+  alertCheckTimer = setInterval(async () => {
+    if (wsClients.size === 0) return; // no listeners, skip
+    for (const [id, alert] of alertKeywords) {
+      try {
+        const allResults = [];
+        for (const kw of alert.keywords) {
+          const results = await engine.search(kw, { engine: alert.engine, limit: alert.limit || 10 });
+          allResults.push(...results);
+        }
+        const deduped = engine.deduplicate(allResults);
+        const prevCount = (alert.lastResults || []).length;
+        const newCount = deduped.length;
+        if (prevCount > 0 && newCount > prevCount) {
+          // New results found — notify clients
+          wsBroadcast({
+            type: 'alert:new',
+            alertId: id,
+            keywords: alert.keywords,
+            newResults: deduped.slice(0, newCount - prevCount),
+            totalResults: newCount,
+            timestamp: new Date().toISOString()
+          });
+        } else if (prevCount === 0 && newCount > 0) {
+          wsBroadcast({
+            type: 'alert:first',
+            alertId: id,
+            keywords: alert.keywords,
+            results: deduped,
+            totalResults: newCount,
+            timestamp: new Date().toISOString()
+          });
+        }
+        alert.lastResults = deduped;
+      } catch (e) { /* skip failed checks */ }
+    }
+  }, ALERT_CHECK_INTERVAL);
+}
 
 // ─── HTTP Server ──────────────────────────────────────────────
 
@@ -302,10 +413,66 @@ function sanitizeSched(s) {
   return rest;
 }
 
+// ─── WebSocket Upgrade ────────────────────────────────────────
+
+server.on('upgrade', (req, socket, head) => {
+  const url = new URL(req.url, `http://localhost:${PORT}`);
+  if (url.pathname !== '/ws') { socket.destroy(); return; }
+
+  const wsSocket = wsHandshake(req, socket);
+  if (!wsSocket) return;
+
+  const client = { socket: wsSocket, id: Date.now() };
+  wsClients.add(client);
+  console.log(`  🔌 WS client connected (${wsClients.size} total)`);
+
+  // Send welcome
+  wsSocket.write(wsEncode({ type: 'connected', clientId: client.id, timestamp: new Date().toISOString() }));
+
+  // Handle incoming messages
+  let buffer = Buffer.alloc(0);
+  wsSocket.on('data', (chunk) => {
+    buffer = Buffer.concat([buffer, chunk]);
+    while (buffer.length >= 2) {
+      const result = wsDecode(buffer);
+      if (!result || result.totalLen > buffer.length) break;
+      buffer = buffer.slice(result.totalLen);
+      if (result.opcode === 0x08) { // close frame
+        wsSocket.end();
+        wsClients.delete(client);
+        console.log(`  🔌 WS client disconnected (${wsClients.size} total)`);
+        return;
+      }
+      if (result.opcode === 0x01) { // text frame
+        try {
+          const msg = JSON.parse(result.payload);
+          if (msg.type === 'ping') {
+            wsSocket.write(wsEncode({ type: 'pong', timestamp: new Date().toISOString() }));
+          } else if (msg.type === 'subscribe:alerts') {
+            client.subscribed = true;
+            wsSocket.write(wsEncode({ type: 'subscribed', channel: 'alerts' }));
+          }
+        } catch (e) { /* ignore malformed messages */ }
+      }
+    }
+  });
+
+  wsSocket.on('close', () => {
+    wsClients.delete(client);
+    console.log(`  🔌 WS client disconnected (${wsClients.size} total)`);
+  });
+
+  wsSocket.on('error', () => {
+    wsClients.delete(client);
+  });
+});
+
 // ─── Start ────────────────────────────────────────────────────
 
 server.listen(PORT, () => {
   console.log(`\n  🕸️  Obscura Search API running on http://localhost:${PORT}`);
   console.log(`  📡  CDP target port: ${CDP_PORT}`);
+  console.log(`  📡  WebSocket: ws://localhost:${PORT}/ws`);
   console.log(`  🛡️  Stealth: ON | SSRF protection: ON\n`);
+  startAlertAutoCheck();
 });

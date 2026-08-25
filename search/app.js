@@ -9,6 +9,8 @@
 
 const state = {
   connected: false,
+  wsConnected: false,
+  ws: null,
   apiURL: localStorage.getItem('obscura-api') || 'http://localhost:3001',
   cdpPort: parseInt(localStorage.getItem('obscura-cdp') || '9222'),
   userAgent: localStorage.getItem('obscura-ua') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -42,6 +44,120 @@ async function api(path, options = {}) {
     throw e;
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// WEBSOCKET CLIENT
+// ═══════════════════════════════════════════════════════════════
+
+function connectWebSocket() {
+  if (state.ws && (state.ws.readyState === WebSocket.OPEN || state.ws.readyState === WebSocket.CONNECTING)) return;
+
+  const wsUrl = state.apiURL.replace(/^http/, 'ws') + '/ws';
+  try {
+    state.ws = new WebSocket(wsUrl);
+  } catch (e) {
+    console.warn('WebSocket connection failed:', e.message);
+    return;
+  }
+
+  state.ws.onopen = () => {
+    state.wsConnected = true;
+    updateWSIndicator();
+    // Subscribe to alerts channel
+    state.ws.send(JSON.stringify({ type: 'subscribe:alerts' }));
+    console.log('WebSocket connected');
+  };
+
+  state.ws.onmessage = (event) => {
+    try {
+      const msg = JSON.parse(event.data);
+      handleWSMessage(msg);
+    } catch (e) { /* ignore */ }
+  };
+
+  state.ws.onclose = () => {
+    state.wsConnected = false;
+    updateWSIndicator();
+    console.log('WebSocket disconnected, reconnecting in 5s...');
+    setTimeout(connectWebSocket, 5000);
+  };
+
+  state.ws.onerror = () => {
+    state.wsConnected = false;
+    updateWSIndicator();
+  };
+}
+
+function disconnectWebSocket() {
+  if (state.ws) {
+    state.ws.close();
+    state.ws = null;
+  }
+  state.wsConnected = false;
+  updateWSIndicator();
+}
+
+function handleWSMessage(msg) {
+  switch (msg.type) {
+    case 'connected':
+      showToast('wifi', `WebSocket connected (ID: ${msg.clientId})`);
+      break;
+
+    case 'alert:first':
+    case 'alert:new': {
+      const isNew = msg.type === 'alert:new';
+      const count = isNew ? msg.newResults.length : msg.totalResults;
+      const title = isNew ? `🔔 New alert results!` : `🔔 Alert: ${msg.keywords.join(', ')}`;
+      const body = isNew
+        ? `${count} new results found for "${msg.keywords.join(', ')}"`
+        : `${count} results found for "${msg.keywords.join(', ')}"`;
+      showToast('notifications', body);
+      // Update local alert data
+      const alert = state.alerts.find(a => a.id === msg.alertId);
+      if (alert) {
+        alert.lastResults = isNew ? [...(alert.lastResults || []), ...msg.newResults] : msg.results;
+        alert.lastCheck = msg.timestamp;
+        localStorage.setItem('obscura-alerts', JSON.stringify(state.alerts));
+        renderAlerts();
+      }
+      // Play notification sound (if available)
+      try {
+        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH+JkI2LhX12dHN1eXt7enl4d3d5e3x9fX18e3p5eHd4eXp7fH19fHt6eXh3eHl6e3x9fXx7enl4d3h5ent8fX18e3p5eHd4eXp7fH19fHt6eXh3eHl6e3x9fXx7e3p5eHd4eXp7fH19fHt6eXh3eHl6e3x9fXx7e3p5eHd4eXp7fH19fHt7enl4d3h5ent8fX19fHt6eXh3eHl6e3x9fX18e3p5eHd4eXp7fH19fHt6eXh3eHl6e3x9fXx7enl4d3h5ent8fX18e3p5eHd4eXp7fH18fA==');
+        audio.play().catch(() => {});
+      } catch (e) {}
+      break;
+    }
+
+    case 'pong':
+      // heartbeat response
+      break;
+
+    default:
+      console.log('WS message:', msg);
+  }
+}
+
+function updateWSIndicator() {
+  const dot = document.getElementById('ws-dot');
+  const label = document.getElementById('ws-label');
+  if (!dot || !label) return;
+  if (state.wsConnected) {
+    dot.className = 'w-2 h-2 rounded-full bg-secondary status-pulse';
+    label.className = 'font-code-sm text-code-sm text-secondary';
+    label.textContent = 'LIVE';
+  } else {
+    dot.className = 'w-2 h-2 rounded-full bg-outline-variant';
+    label.className = 'font-code-sm text-code-sm text-outline-variant';
+    label.textContent = 'OFFLINE';
+  }
+}
+
+// Heartbeat to keep connection alive
+setInterval(() => {
+  if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+    state.ws.send(JSON.stringify({ type: 'ping' }));
+  }
+}, 30000);
 
 // ═══════════════════════════════════════════════════════════════
 // CONNECTION
@@ -1037,6 +1153,7 @@ function init() {
   renderBookmarks();
   renderScheduled();
   updateStats();
+  connectWebSocket();
 
   // Auto-start active monitors
   state.monitors.forEach(m => {
