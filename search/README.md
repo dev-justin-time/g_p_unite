@@ -176,9 +176,25 @@ const extracted = await engine.extractData('https://circuit.market', {
 });
 ```
 
+## Data Persistence
+
+Scheduled searches and keyword alerts are persisted to disk as JSON files:
+
+```
+data/
+├── scheduled.json   # Scheduled search configs + last results
+└── alerts.json      # Keyword alert configs + last results
+```
+
+- Auto-saved on every create/update/delete
+- Auto-loaded on server startup (timers restarted for active schedules)
+- Docker: mounted as `obscura-data` named volume at `/app/data`
+- Local: stored in `search/data/` directory
+
 ## Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OBSCURA_PORT` | 3001 | API server port |
+| `OBSCURA_DATA_DIR` | `./data` | Data directory for persistence |
 | `OBSCURA_CDP` | 9222 | Chrome DevTools Protocol port |

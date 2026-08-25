@@ -7,6 +7,8 @@
 const http = require('http');
 const https = require('https');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const { URL } = require('url');
 const { SearchEngine } = require('./engine');
 const { ProxyRotator } = require('./proxy-rotator');
@@ -20,6 +22,63 @@ const proxyRotator = new ProxyRotator();
 const stealth = new StealthManager();
 
 let cdpConnected = false;
+
+// ─── Data Persistence ────────────────────────────────────────
+const DATA_DIR = process.env.OBSCURA_DATA_DIR || path.join(__dirname, 'data');
+const SCHED_FILE = path.join(DATA_DIR, 'scheduled.json');
+const ALERTS_FILE = path.join(DATA_DIR, 'alerts.json');
+
+function ensureDataDir() {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+function saveScheduled() {
+  try {
+    ensureDataDir();
+    const data = Array.from(scheduledSearches.values()).map(sanitizeSched);
+    fs.writeFileSync(SCHED_FILE, JSON.stringify(data, null, 2));
+  } catch (e) { console.error('Failed to save scheduled:', e.message); }
+}
+
+function loadScheduled() {
+  try {
+    if (!fs.existsSync(SCHED_FILE)) return;
+    const data = JSON.parse(fs.readFileSync(SCHED_FILE, 'utf8'));
+    for (const s of data) {
+      scheduledSearches.set(s.id, { ...s, _timer: null });
+      // Restart active timers
+      if (s.active) {
+        const sched = scheduledSearches.get(s.id);
+        sched._timer = setInterval(async () => {
+          try {
+            const results = await engine.search(sched.query, { engine: sched.engine, limit: sched.limit });
+            sched.lastRun = new Date().toISOString();
+            sched.results = engine.deduplicate(results);
+            saveScheduled();
+          } catch (e) {}
+        }, sched.interval * 1000);
+      }
+    }
+    console.log(`  📂 Loaded ${data.length} scheduled searches from disk`);
+  } catch (e) { console.error('Failed to load scheduled:', e.message); }
+}
+
+function saveAlerts() {
+  try {
+    ensureDataDir();
+    const data = Array.from(alertKeywords.values());
+    fs.writeFileSync(ALERTS_FILE, JSON.stringify(data, null, 2));
+  } catch (e) { console.error('Failed to save alerts:', e.message); }
+}
+
+function loadAlerts() {
+  try {
+    if (!fs.existsSync(ALERTS_FILE)) return;
+    const data = JSON.parse(fs.readFileSync(ALERTS_FILE, 'utf8'));
+    for (const a of data) alertKeywords.set(a.id, a);
+    console.log(`  📂 Loaded ${data.length} alerts from disk`);
+  } catch (e) { console.error('Failed to load alerts:', e.message); }
+}
 
 // ─── In-memory stores ───────────────────────────────────────
 const alertKeywords = new Map(); // id -> { keywords, engine, lastResults, createdAt }
@@ -283,6 +342,7 @@ const server = http.createServer(async (req, res) => {
       const id = Date.now();
       const alert = { id, keywords, engine: eng, limit, lastResults: [], createdAt: new Date().toISOString() };
       alertKeywords.set(id, alert);
+      saveAlerts();
       json(res, 200, alert);
       handled = true;
     }
@@ -302,6 +362,7 @@ const server = http.createServer(async (req, res) => {
       }
       const deduped = engine.deduplicate(allResults);
       alert.lastResults = deduped;
+      saveAlerts();
       json(res, 200, { alert, results: deduped, total: deduped.length });
       handled = true;
     }
@@ -311,6 +372,7 @@ const server = http.createServer(async (req, res) => {
       const body = await readBody(req);
       const { id: alertId } = JSON.parse(body);
       alertKeywords.delete(alertId);
+      saveAlerts();
       json(res, 200, { success: true });
       handled = true;
     }
@@ -345,6 +407,7 @@ const server = http.createServer(async (req, res) => {
         sched.results = engine.deduplicate(results);
       }).catch(() => {});
 
+      saveScheduled();
       json(res, 200, sanitizeSched(sched));
       handled = true;
     }
@@ -356,6 +419,7 @@ const server = http.createServer(async (req, res) => {
       const sched = scheduledSearches.get(schedId);
       if (sched && sched._timer) clearInterval(sched._timer);
       scheduledSearches.delete(schedId);
+      saveScheduled();
       json(res, 200, { success: true });
       handled = true;
     }
@@ -377,11 +441,12 @@ const server = http.createServer(async (req, res) => {
         }, sched.interval * 1000);
       } else {
         if (sched._timer) clearInterval(sched._timer);
-        sched._timer = null;
-      }
+        sched._timer = null;      }
+      saveScheduled();
       json(res, 200, sanitizeSched(sched));
       handled = true;
     }
+
 
     if (!handled) {
       json(res, 404, { error: 'Not found', path: url.pathname });
@@ -473,6 +538,9 @@ server.listen(PORT, () => {
   console.log(`\n  🕸️  Obscura Search API running on http://localhost:${PORT}`);
   console.log(`  📡  CDP target port: ${CDP_PORT}`);
   console.log(`  📡  WebSocket: ws://localhost:${PORT}/ws`);
-  console.log(`  🛡️  Stealth: ON | SSRF protection: ON\n`);
+  console.log(`  🛡️  Stealth: ON | SSRF protection: ON`);
+  console.log(`  📂  Data directory: ${DATA_DIR}\n`);
+  loadAlerts();
+  loadScheduled();
   startAlertAutoCheck();
 });

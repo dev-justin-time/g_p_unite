@@ -409,7 +409,10 @@ services:
     environment:
       - OBSCURA_PORT=3001
       - OBSCURA_CDP=${OBSCURA_CDP:-9222}
+      - OBSCURA_DATA_DIR=/app/data
       - NODE_ENV=production
+    volumes:
+      - obscura-data:/app/data
     networks:
       - fcm-mesh
     healthcheck:
@@ -480,6 +483,7 @@ services:
       - fcm-mesh
 
 volumes:
+  obscura-data:
   gpu-data:
   ipfs-data:
   model-cache:
