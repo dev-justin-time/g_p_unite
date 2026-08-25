@@ -19,6 +19,10 @@ const stealth = new StealthManager();
 
 let cdpConnected = false;
 
+// ─── In-memory stores ───────────────────────────────────────
+const alertKeywords = new Map(); // id -> { keywords, engine, lastResults, createdAt }
+const scheduledSearches = new Map(); // id -> { query, engine, interval, active, lastRun, results }
+
 // ─── HTTP Server ──────────────────────────────────────────────
 
 const server = http.createServer(async (req, res) => {
@@ -124,6 +128,150 @@ const server = http.createServer(async (req, res) => {
       handled = true;
     }
 
+    // ── Bulk Scrape ──
+    if (req.method === 'POST' && url.pathname === '/api/obscura/bulk-scrape') {
+      const body = await readBody(req);
+      const { urls, dump = 'text', concurrency = 3 } = JSON.parse(body);
+      if (!Array.isArray(urls) || urls.length === 0) { json(res, 400, { error: 'urls array required' }); return; }
+
+      const results = [];
+      const total = urls.length;
+      // Process in batches
+      for (let i = 0; i < total; i += concurrency) {
+        const batch = urls.slice(i, i + concurrency);
+        const batchResults = await Promise.allSettled(
+          batch.map(async (u) => {
+            if (!stealth.validateURL(u)) {
+              return { url: u, error: 'Blocked by SSRF protection', status: 'blocked' };
+            }
+            const proxy = proxyRotator.next();
+            const result = await engine.scrapeURL(u, { dump, proxy, timeout: 30 });
+            return { url: u, output: result.output || '', status: 'ok' };
+          })
+        );
+        batchResults.forEach((r, idx) => {
+          if (r.status === 'fulfilled') results.push(r.value);
+          else results.push({ url: batch[idx], error: r.reason?.message || 'Failed', status: 'error' });
+        });
+      }
+      json(res, 200, { results, total: results.length, completed: results.filter(r => r.status === 'ok').length });
+      handled = true;
+    }
+
+    // ── Keyword Alerts: list ──
+    if (req.method === 'GET' && url.pathname === '/api/obscura/alerts') {
+      json(res, 200, { alerts: Array.from(alertKeywords.values()) });
+      handled = true;
+    }
+
+    // ── Keyword Alerts: add ──
+    if (req.method === 'POST' && url.pathname === '/api/obscura/alerts') {
+      const body = await readBody(req);
+      const { keywords = [], engine: eng = 'duckduckgo', limit = 10 } = JSON.parse(body);
+      if (keywords.length === 0) { json(res, 400, { error: 'keywords required' }); return; }
+      const id = Date.now();
+      const alert = { id, keywords, engine: eng, limit, lastResults: [], createdAt: new Date().toISOString() };
+      alertKeywords.set(id, alert);
+      json(res, 200, alert);
+      handled = true;
+    }
+
+    // ── Keyword Alerts: check ──
+    if (req.method === 'POST' && url.pathname === '/api/obscura/alerts/check') {
+      const body = await readBody(req);
+      const { id: alertId } = JSON.parse(body);
+      const alert = alertKeywords.get(alertId);
+      if (!alert) { json(res, 404, { error: 'Alert not found' }); return; }
+
+      // Search for each keyword
+      const allResults = [];
+      for (const kw of alert.keywords) {
+        const results = await engine.search(kw, { engine: alert.engine, limit: alert.limit });
+        allResults.push(...results);
+      }
+      const deduped = engine.deduplicate(allResults);
+      alert.lastResults = deduped;
+      json(res, 200, { alert, results: deduped, total: deduped.length });
+      handled = true;
+    }
+
+    // ── Keyword Alerts: delete ──
+    if (req.method === 'DELETE' && url.pathname === '/api/obscura/alerts') {
+      const body = await readBody(req);
+      const { id: alertId } = JSON.parse(body);
+      alertKeywords.delete(alertId);
+      json(res, 200, { success: true });
+      handled = true;
+    }
+
+    // ── Scheduled Searches: list ──
+    if (req.method === 'GET' && url.pathname === '/api/obscura/scheduled') {
+      json(res, 200, { scheduled: Array.from(scheduledSearches.values()).map(sanitizeSched) });
+      handled = true;
+    }
+
+    // ── Scheduled Searches: add ──
+    if (req.method === 'POST' && url.pathname === '/api/obscura/scheduled') {
+      const body = await readBody(req);
+      const { query, engine: eng = 'duckduckgo', interval = 300, limit = 25 } = JSON.parse(body);
+      if (!query) { json(res, 400, { error: 'query required' }); return; }
+      const id = Date.now();
+      const sched = { id, query, engine: eng, interval, limit, active: true, lastRun: null, results: [], createdAt: new Date().toISOString() };
+      scheduledSearches.set(id, sched);
+
+      // Start the timer
+      sched._timer = setInterval(async () => {
+        try {
+          const results = await engine.search(sched.query, { engine: sched.engine, limit: sched.limit });
+          sched.lastRun = new Date().toISOString();
+          sched.results = engine.deduplicate(results);
+        } catch (e) { /* skip failed runs */ }
+      }, sched.interval * 1000);
+
+      // Run immediately
+      engine.search(sched.query, { engine: sched.engine, limit: sched.limit }).then(results => {
+        sched.lastRun = new Date().toISOString();
+        sched.results = engine.deduplicate(results);
+      }).catch(() => {});
+
+      json(res, 200, sanitizeSched(sched));
+      handled = true;
+    }
+
+    // ── Scheduled Searches: delete ──
+    if (req.method === 'DELETE' && url.pathname === '/api/obscura/scheduled') {
+      const body = await readBody(req);
+      const { id: schedId } = JSON.parse(body);
+      const sched = scheduledSearches.get(schedId);
+      if (sched && sched._timer) clearInterval(sched._timer);
+      scheduledSearches.delete(schedId);
+      json(res, 200, { success: true });
+      handled = true;
+    }
+
+    // ── Scheduled Searches: toggle ──
+    if (req.method === 'POST' && url.pathname === '/api/obscura/scheduled/toggle') {
+      const body = await readBody(req);
+      const { id: schedId } = JSON.parse(body);
+      const sched = scheduledSearches.get(schedId);
+      if (!sched) { json(res, 404, { error: 'Scheduled search not found' }); return; }
+      sched.active = !sched.active;
+      if (sched.active) {
+        sched._timer = setInterval(async () => {
+          try {
+            const results = await engine.search(sched.query, { engine: sched.engine, limit: sched.limit });
+            sched.lastRun = new Date().toISOString();
+            sched.results = engine.deduplicate(results);
+          } catch (e) {}
+        }, sched.interval * 1000);
+      } else {
+        if (sched._timer) clearInterval(sched._timer);
+        sched._timer = null;
+      }
+      json(res, 200, sanitizeSched(sched));
+      handled = true;
+    }
+
     if (!handled) {
       json(res, 404, { error: 'Not found', path: url.pathname });
     }
@@ -146,6 +294,12 @@ function readBody(req) {
     req.on('data', c => body += c.toString());
     req.on('end', () => resolve(body));
   });
+}
+
+/** Strip non-serializable timer refs from scheduled objects */
+function sanitizeSched(s) {
+  const { _timer, ...rest } = s;
+  return rest;
 }
 
 // ─── Start ────────────────────────────────────────────────────

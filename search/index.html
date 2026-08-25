@@ -103,6 +103,22 @@
     ::-webkit-scrollbar-thumb:hover { background: rgba(139,144,160,0.5); }
     .tab-active { color: #adc6ff; border-bottom: 2px solid #adc6ff; }
     .tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+    /* Light theme overrides */
+    html.light { background: #f5f5f5; }
+    html.light body { background: #f5f5f5; color: #1c1b1b; }
+    html.light .glass-panel { background: rgba(255,255,255,0.85); border-color: rgba(0,0,0,0.08); }
+    html.light .bg-surface-dim\/80 { background: rgba(255,255,255,0.95); }
+    html.light .bg-surface-container-low { background: #f0f0f0; }
+    html.light .bg-surface-container-low\/border { border-color: #d0d0d0; }
+    html.light #search-input, html.light input[type=text], html.light input[type=url], html.light input[type=number], html.light textarea, html.light select {
+      background: #f0f0f0; color: #1c1b1b; border-color: #d0d0d0;
+    }
+    html.light input::placeholder, html.light textarea::placeholder { color: #888; }
+    html.light .text-on-surface { color: #1c1b1b; }
+    html.light .text-on-surface-variant { color: #555; }
+    html.light .text-outline-variant { color: #999; }
+    html.light .scanlines { display: none; }
+    html.light .border-outline-variant\/30 { border-color: rgba(0,0,0,0.08); }
   </style>
 </head>
 <body class="bg-background text-on-surface font-body-md min-h-screen overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container">
@@ -162,6 +178,30 @@
           </button>
         </li>
         <li>
+          <button onclick="switchTab('alerts')" id="nav-alerts" class="w-full flex items-center gap-3 px-4 py-3 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-200">
+            <span class="material-symbols-outlined">notifications</span>
+            <span class="font-label-caps text-label-caps">Alerts</span>
+          </button>
+        </li>
+        <li>
+          <button onclick="switchTab('bulk')" id="nav-bulk" class="w-full flex items-center gap-3 px-4 py-3 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-200">
+            <span class="material-symbols-outlined">batch_prediction</span>
+            <span class="font-label-caps text-label-caps">Bulk Scrape</span>
+          </button>
+        </li>
+        <li>
+          <button onclick="switchTab('bookmarks')" id="nav-bookmarks" class="w-full flex items-center gap-3 px-4 py-3 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-200">
+            <span class="material-symbols-outlined">bookmark</span>
+            <span class="font-label-caps text-label-caps">Bookmarks</span>
+          </button>
+        </li>
+        <li>
+          <button onclick="switchTab('scheduled')" id="nav-scheduled" class="w-full flex items-center gap-3 px-4 py-3 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-200">
+            <span class="material-symbols-outlined">schedule</span>
+            <span class="font-label-caps text-label-caps">Scheduled</span>
+          </button>
+        </li>
+        <li>
           <button onclick="switchTab('proxies')" id="nav-proxies" class="w-full flex items-center gap-3 px-4 py-3 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-200">
             <span class="material-symbols-outlined">lan</span>
             <span class="font-label-caps text-label-caps">Proxies</span>
@@ -205,6 +245,9 @@
           <span>Proxies: <span id="stat-proxies" class="text-tertiary">0</span></span>
         </div>
         <div class="flex gap-4">
+          <button onclick="toggleTheme()" id="btn-theme" class="text-on-surface-variant hover:text-primary transition-all duration-300" title="Toggle theme">
+            <span class="material-symbols-outlined">dark_mode</span>
+          </button>
           <button onclick="openSettings()" class="text-on-surface-variant hover:text-primary transition-all duration-300">
             <span class="material-symbols-outlined">settings</span>
           </button>
@@ -408,6 +451,145 @@
         </div>
 
         <!-- ═══════════════════════════════════════════════ -->
+        <!-- TAB: KEYWORD ALERTS -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div id="tab-alerts" class="tab-content hidden fade-in">
+          <div class="mb-stack-lg">
+            <h2 class="font-display-lg text-display-lg text-on-surface mb-2">Keyword Alerts</h2>
+            <p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">Get notified when specific keywords appear in search results.</p>
+          </div>
+          <div class="glass-panel rounded-xl p-6 mb-4">
+            <div class="flex gap-3">
+              <input id="alert-keywords" type="text" placeholder="e.g. quantum computing, AI agent, GPU shortage"
+                class="flex-1 bg-surface-container-low border border-outline-variant rounded-DEFAULT px-4 py-3 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-primary/50 transition-all"/>
+              <select id="alert-engine" class="bg-surface-container-low border border-outline-variant rounded-DEFAULT px-3 py-1.5 font-code-sm text-code-sm text-on-surface focus:outline-none">
+                <option value="duckduckgo">DuckDuckGo</option>
+                <option value="google">Google</option>
+                <option value="bing">Bing</option>
+                <option value="brave">Brave</option>
+              </select>
+              <button onclick="addAlert()" class="bg-tertiary-container/20 hover:bg-tertiary-container/30 text-tertiary border border-tertiary-container/50 px-6 py-3 rounded-DEFAULT font-label-caps text-label-caps transition-all flex items-center gap-2">
+                <span class="material-symbols-outlined text-[18px]">add_alert</span>
+                CREATE ALERT
+              </button>
+            </div>
+          </div>
+          <div id="alert-list" class="space-y-3"></div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- TAB: BULK SCRAPE -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div id="tab-bulk" class="tab-content hidden fade-in">
+          <div class="mb-stack-lg">
+            <h2 class="font-display-lg text-display-lg text-on-surface mb-2">Bulk Scraper</h2>
+            <p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">Scrape multiple URLs at once with progress tracking.</p>
+          </div>
+          <div class="glass-panel rounded-xl p-6 mb-4">
+            <div class="mb-4">
+              <label class="font-code-sm text-code-sm text-on-surface-variant mb-1 block">URLs (one per line)</label>
+              <textarea id="bulk-urls" rows="8" placeholder="https://example.com/page1
+https://example.com/page2
+https://example.com/page3"
+                class="w-full bg-surface-container-low border border-outline-variant rounded-DEFAULT px-4 py-3 font-code-sm text-code-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary/50 transition-all"></textarea>
+            </div>
+            <div class="flex items-center gap-4">
+              <select id="bulk-mode" class="bg-surface-container-low border border-outline-variant rounded-DEFAULT px-3 py-1.5 font-code-sm text-code-sm text-on-surface focus:outline-none">
+                <option value="text">Text Only</option>
+                <option value="html">Full HTML</option>
+              </select>
+              <select id="bulk-concurrency" class="bg-surface-container-low border border-outline-variant rounded-DEFAULT px-3 py-1.5 font-code-sm text-code-sm text-on-surface focus:outline-none">
+                <option value="1">1 at a time</option>
+                <option value="3" selected>3 concurrent</option>
+                <option value="5">5 concurrent</option>
+              </select>
+              <button onclick="performBulkScrape()" id="btn-bulk" class="bg-secondary/20 hover:bg-secondary/30 text-secondary border border-secondary/50 px-6 py-3 rounded-DEFAULT font-label-caps text-label-caps transition-all flex items-center gap-2">
+                <span class="material-symbols-outlined text-[18px]">play_arrow</span>
+                SCRAPE ALL
+              </button>
+              <button onclick="exportBulkCSV()" class="text-on-surface-variant hover:text-primary transition-colors font-code-sm text-code-sm flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px]">download</span>
+                Export CSV
+              </button>
+            </div>
+          </div>
+          <div id="bulk-status" class="hidden mb-4">
+            <div class="glass-panel rounded-xl p-4">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="w-5 h-5 border-2 border-secondary border-t-transparent rounded-full animate-spin"></div>
+                <span id="bulk-status-text" class="font-code-sm text-code-sm text-on-surface-variant">Scraping...</span>
+              </div>
+              <div class="w-full bg-surface-container-low rounded-full h-2">
+                <div id="bulk-progress" class="bg-secondary h-2 rounded-full transition-all duration-300" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+          <div id="bulk-results" class="space-y-2"></div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- TAB: BOOKMARKS -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div id="tab-bookmarks" class="tab-content hidden fade-in">
+          <div class="mb-stack-lg">
+            <h2 class="font-display-lg text-display-lg text-on-surface mb-2">Bookmarks</h2>
+            <p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">Save and re-run your favorite search queries.</p>
+          </div>
+          <div class="glass-panel rounded-xl p-6 mb-4">
+            <div class="flex gap-3">
+              <input id="bookmark-name" type="text" placeholder="Bookmark name"
+                class="w-1/4 bg-surface-container-low border border-outline-variant rounded-DEFAULT px-4 py-3 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-primary/50 transition-all"/>
+              <input id="bookmark-query" type="text" placeholder="Search query to save"
+                class="flex-1 bg-surface-container-low border border-outline-variant rounded-DEFAULT px-4 py-3 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-primary/50 transition-all"/>
+              <select id="bookmark-engine" class="bg-surface-container-low border border-outline-variant rounded-DEFAULT px-3 py-1.5 font-code-sm text-code-sm text-on-surface focus:outline-none">
+                <option value="duckduckgo">DuckDuckGo</option>
+                <option value="google">Google</option>
+                <option value="bing">Bing</option>
+                <option value="brave">Brave</option>
+              </select>
+              <button onclick="addBookmark()" class="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/50 px-6 py-3 rounded-DEFAULT font-label-caps text-label-caps transition-all flex items-center gap-2">
+                <span class="material-symbols-outlined text-[18px]">bookmark_add</span>
+                SAVE
+              </button>
+            </div>
+          </div>
+          <div id="bookmark-list" class="space-y-2"></div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- TAB: SCHEDULED SEARCHES -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <div id="tab-scheduled" class="tab-content hidden fade-in">
+          <div class="mb-stack-lg">
+            <h2 class="font-display-lg text-display-lg text-on-surface mb-2">Scheduled Searches</h2>
+            <p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">Run searches on a recurring schedule and store results.</p>
+          </div>
+          <div class="glass-panel rounded-xl p-6 mb-4">
+            <div class="flex gap-3">
+              <input id="sched-query" type="text" placeholder="Search query to run periodically"
+                class="flex-1 bg-surface-container-low border border-outline-variant rounded-DEFAULT px-4 py-3 font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-primary/50 transition-all"/>
+              <select id="sched-engine" class="bg-surface-container-low border border-outline-variant rounded-DEFAULT px-3 py-1.5 font-code-sm text-code-sm text-on-surface focus:outline-none">
+                <option value="duckduckgo">DuckDuckGo</option>
+                <option value="google">Google</option>
+                <option value="bing">Bing</option>
+                <option value="brave">Brave</option>
+              </select>
+              <select id="sched-interval" class="bg-surface-container-low border border-outline-variant rounded-DEFAULT px-3 py-1.5 font-code-sm text-code-sm text-on-surface focus:outline-none">
+                <option value="60">Every 1 min</option>
+                <option value="300" selected>Every 5 min</option>
+                <option value="900">Every 15 min</option>
+                <option value="3600">Every 1 hour</option>
+              </select>
+              <button onclick="addScheduled()" class="bg-tertiary-container/20 hover:bg-tertiary-container/30 text-tertiary border border-tertiary-container/50 px-6 py-3 rounded-DEFAULT font-label-caps text-label-caps transition-all flex items-center gap-2">
+                <span class="material-symbols-outlined text-[18px]">schedule_send</span>
+                SCHEDULE
+              </button>
+            </div>
+          </div>
+          <div id="scheduled-list" class="space-y-3"></div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════ -->
         <!-- TAB: PROXIES -->
         <!-- ═══════════════════════════════════════════════ -->
         <div id="tab-proxies" class="tab-content hidden fade-in">
@@ -445,10 +627,16 @@
 
           <div class="flex justify-between items-center mb-4">
             <span id="history-count" class="font-code-sm text-code-sm text-on-surface-variant">0 entries</span>
-            <button onclick="clearHistory()" class="text-error/70 hover:text-error transition-colors font-code-sm text-code-sm flex items-center gap-1">
-              <span class="material-symbols-outlined text-[16px]">delete</span>
-              Clear
-            </button>
+            <div class="flex gap-3">
+              <button onclick="exportHistoryCSV()" class="text-on-surface-variant hover:text-primary transition-colors font-code-sm text-code-sm flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px]">download</span>
+                Export CSV
+              </button>
+              <button onclick="clearHistory()" class="text-error/70 hover:text-error transition-colors font-code-sm text-code-sm flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px]">delete</span>
+                Clear
+              </button>
+            </div>
           </div>
 
           <div id="history-list" class="space-y-2"></div>

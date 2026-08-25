@@ -557,6 +557,359 @@ function renderHistory() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// KEYWORD ALERTS
+// ═══════════════════════════════════════════════════════════════
+
+state.alerts = JSON.parse(localStorage.getItem('obscura-alerts') || '[]');
+
+async function addAlert() {
+  const input = document.getElementById('alert-keywords').value.trim();
+  if (!input) return;
+  const keywords = input.split(',').map(k => k.trim()).filter(Boolean);
+  const engine = document.getElementById('alert-engine').value;
+
+  try {
+    const data = await api('/api/obscura/alerts', { method: 'POST', body: { keywords, engine } });
+    state.alerts.push({ ...data, keywords, engine });
+    localStorage.setItem('obscura-alerts', JSON.stringify(state.alerts));
+    document.getElementById('alert-keywords').value = '';
+    renderAlerts();
+    showToast('add_alert', `Alert created for: ${keywords.join(', ')}`);
+  } catch (e) {
+    showToast('error', 'Failed to create alert: ' + e.message);
+  }
+}
+
+async function checkAlert(id) {
+  try {
+    const data = await api('/api/obscura/alerts/check', { method: 'POST', body: { id } });
+    const alert = state.alerts.find(a => a.id === id);
+    if (alert) {
+      alert.lastResults = data.results;
+      alert.lastCheck = new Date().toISOString();
+      localStorage.setItem('obscura-alerts', JSON.stringify(state.alerts));
+    }
+    renderAlerts();
+    if (data.total > 0) showToast('notifications', `Alert found ${data.total} results!`);
+    else showToast('check_circle', 'No new results for this alert');
+  } catch (e) {
+    showToast('error', 'Check failed: ' + e.message);
+  }
+}
+
+function removeAlert(id) {
+  api('/api/obscura/alerts', { method: 'DELETE', body: { id } }).catch(() => {});
+  state.alerts = state.alerts.filter(a => a.id !== id);
+  localStorage.setItem('obscura-alerts', JSON.stringify(state.alerts));
+  renderAlerts();
+}
+
+function renderAlerts() {
+  const list = document.getElementById('alert-list');
+  if (state.alerts.length === 0) {
+    list.innerHTML = `<div class="glass-panel rounded-xl p-8 text-center">
+      <span class="material-symbols-outlined text-[48px] text-outline-variant">notifications_off</span>
+      <p class="font-body-md text-body-md text-on-surface-variant mt-3">No keyword alerts configured</p>
+    </div>`;
+    return;
+  }
+  list.innerHTML = state.alerts.map(a => {
+    const results = a.lastResults || [];
+    const keywords = Array.isArray(a.keywords) ? a.keywords : [a.keywords];
+    return `
+      <div class="glass-panel rounded-xl p-5">
+        <div class="flex items-center gap-4 mb-3">
+          <span class="material-symbols-outlined text-[20px] text-tertiary">notifications</span>
+          <div class="flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              ${keywords.map(k => `<span class="tag bg-tertiary-container/20 text-tertiary border border-tertiary-container/30">${escapeHtml(k)}</span>`).join('')}
+            </div>
+            <p class="font-code-sm text-code-sm text-on-surface-variant mt-1">Engine: ${a.engine} · ${results.length} results${a.lastCheck ? ' · Last check: ' + timeAgo(a.lastCheck) : ''}</p>
+          </div>
+          <button onclick="checkAlert(${a.id})" class="p-2 rounded hover:bg-surface-container-high transition-colors" title="Check now">
+            <span class="material-symbols-outlined text-[18px] text-on-surface-variant">refresh</span>
+          </button>
+          <button onclick="removeAlert(${a.id})" class="p-2 rounded hover:bg-error-container/30 transition-colors" title="Remove">
+            <span class="material-symbols-outlined text-[18px] text-error/70">delete</span>
+          </button>
+        </div>
+        ${results.length > 0 ? `<div class="space-y-2 mt-3">${results.slice(0, 3).map(r => 
+          `<a href="${escapeHtml(r.url || '#')}" target="_blank" class="block glass-panel rounded p-3 hover:bg-surface-container-high transition-colors">
+            <p class="font-body-md text-body-md text-primary truncate">${escapeHtml(r.title || 'Untitled')}</p>
+            <p class="font-code-sm text-code-sm text-on-surface-variant mt-1 line-clamp-1">${escapeHtml(r.snippet || '')}</p>
+          </a>`
+        ).join('')}${results.length > 3 ? `<p class="font-code-sm text-code-sm text-on-surface-variant text-center">+${results.length - 3} more</p>` : ''}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BULK SCRAPE
+// ═══════════════════════════════════════════════════════════════
+
+state.bulkResults = [];
+
+async function performBulkScrape() {
+  const urlsText = document.getElementById('bulk-urls').value.trim();
+  if (!urlsText) return;
+  const urls = urlsText.split('\n').map(u => u.trim()).filter(Boolean);
+  const mode = document.getElementById('bulk-mode').value;
+  const concurrency = parseInt(document.getElementById('bulk-concurrency').value);
+
+  const status = document.getElementById('bulk-status');
+  const statusText = document.getElementById('bulk-status-text');
+  const progressBar = document.getElementById('bulk-progress');
+  const btn = document.getElementById('btn-bulk');
+  const resultsDiv = document.getElementById('bulk-results');
+
+  status.classList.remove('hidden');
+  btn.disabled = true;
+  resultsDiv.innerHTML = '';
+  statusText.textContent = `Scraping ${urls.length} URLs (${concurrency} concurrent)...`;
+  progressBar.style.width = '0%';
+
+  try {
+    const data = await api('/api/obscura/bulk-scrape', {
+      method: 'POST',
+      body: { urls, dump: mode, concurrency },
+      timeout: urls.length * 30000
+    });
+
+    state.bulkResults = data.results || [];
+    status.classList.add('hidden');
+    progressBar.style.width = '100%';
+
+    let html = `<div class="flex items-center justify-between mb-4">
+      <span class="font-code-sm text-code-sm text-on-surface-variant">${data.completed}/${data.total} URLs scraped successfully</span>
+    </div>`;
+
+    state.bulkResults.forEach((r, i) => {
+      const statusColor = r.status === 'ok' ? 'bg-secondary' : r.status === 'blocked' ? 'bg-tertiary' : 'bg-error';
+      html += `
+        <div class="glass-panel rounded-xl p-4">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-3 h-3 rounded-full ${statusColor}"></div>
+            <span class="font-code-sm text-code-sm text-on-surface truncate flex-1">${escapeHtml(r.url)}</span>
+            <span class="tag ${r.status === 'ok' ? 'bg-secondary/20 text-secondary border-secondary/30' : 'bg-error/20 text-error border-error/30'}">${r.status}</span>
+          </div>
+          <pre class="font-code-sm text-code-sm text-on-surface-variant bg-surface-container-low rounded p-3 overflow-auto max-h-[200px] whitespace-pre-wrap break-all text-xs">${escapeHtml((r.output || r.error || '').substring(0, 2000))}</pre>
+        </div>`;
+    });
+
+    resultsDiv.innerHTML = html;
+    state.stats.pages += data.completed;
+    updateStats();
+  } catch (e) {
+    statusText.textContent = 'Error: ' + e.message;
+    statusText.className = 'font-code-sm text-code-sm text-error';
+    setTimeout(() => {
+      status.classList.add('hidden');
+      statusText.className = 'font-code-sm text-code-sm text-on-surface-variant';
+    }, 3000);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function exportBulkCSV() {
+  if (state.bulkResults.length === 0) { showToast('warning', 'No results to export'); return; }
+  const rows = [['URL', 'Status', 'Output']];
+  state.bulkResults.forEach(r => rows.push([r.url, r.status, (r.output || r.error || '').replace(/\n/g, ' ')]));
+  downloadCSV(rows, 'obscura-bulk-scrape.csv');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BOOKMARKS
+// ═══════════════════════════════════════════════════════════════
+
+state.bookmarks = JSON.parse(localStorage.getItem('obscura-bookmarks') || '[]');
+
+function addBookmark() {
+  const name = document.getElementById('bookmark-name').value.trim();
+  const query = document.getElementById('bookmark-query').value.trim();
+  const engine = document.getElementById('bookmark-engine').value;
+  if (!query) { showToast('warning', 'Enter a search query'); return; }
+
+  const bookmark = { id: Date.now(), name: name || query, query, engine, createdAt: new Date().toISOString() };
+  state.bookmarks.push(bookmark);
+  localStorage.setItem('obscura-bookmarks', JSON.stringify(state.bookmarks));
+  document.getElementById('bookmark-name').value = '';
+  document.getElementById('bookmark-query').value = '';
+  renderBookmarks();
+  showToast('bookmark', `Bookmark saved: ${bookmark.name}`);
+}
+
+function removeBookmark(id) {
+  state.bookmarks = state.bookmarks.filter(b => b.id !== id);
+  localStorage.setItem('obscura-bookmarks', JSON.stringify(state.bookmarks));
+  renderBookmarks();
+}
+
+function runBookmark(id) {
+  const bm = state.bookmarks.find(b => b.id === id);
+  if (!bm) return;
+  document.getElementById('search-input').value = bm.query;
+  document.getElementById('opt-engine').value = bm.engine;
+  switchTab('search');
+  performSearch();
+}
+
+function renderBookmarks() {
+  const list = document.getElementById('bookmark-list');
+  if (state.bookmarks.length === 0) {
+    list.innerHTML = `<div class="glass-panel rounded-xl p-8 text-center">
+      <span class="material-symbols-outlined text-[48px] text-outline-variant">bookmark_border</span>
+      <p class="font-body-md text-body-md text-on-surface-variant mt-3">No bookmarks saved</p>
+    </div>`;
+    return;
+  }
+  list.innerHTML = state.bookmarks.map(b => `
+    <div class="glass-panel rounded-xl p-4 flex items-center gap-4">
+      <span class="material-symbols-outlined text-[20px] text-primary">bookmark</span>
+      <div class="flex-1 min-w-0">
+        <p class="font-body-md text-body-md text-on-surface truncate">${escapeHtml(b.name)}</p>
+        <p class="font-code-sm text-code-sm text-on-surface-variant">${escapeHtml(b.query)} · ${b.engine}</p>
+      </div>
+      <button onclick="runBookmark(${b.id})" class="p-2 rounded hover:bg-primary/10 transition-colors" title="Run search">
+        <span class="material-symbols-outlined text-[18px] text-primary">play_arrow</span>
+      </button>
+      <button onclick="removeBookmark(${b.id})" class="p-2 rounded hover:bg-error-container/30 transition-colors" title="Remove">
+        <span class="material-symbols-outlined text-[18px] text-error/70">delete</span>
+      </button>
+    </div>`
+  ).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCHEDULED SEARCHES
+// ═══════════════════════════════════════════════════════════════
+
+state.scheduled = JSON.parse(localStorage.getItem('obscura-scheduled') || '[]');
+
+async function addScheduled() {
+  const query = document.getElementById('sched-query').value.trim();
+  if (!query) return;
+  const engine = document.getElementById('sched-engine').value;
+  const interval = parseInt(document.getElementById('sched-interval').value);
+
+  try {
+    const data = await api('/api/obscura/scheduled', { method: 'POST', body: { query, engine, interval } });
+    state.scheduled.push(data);
+    localStorage.setItem('obscura-scheduled', JSON.stringify(state.scheduled));
+    document.getElementById('sched-query').value = '';
+    renderScheduled();
+    showToast('schedule', `Scheduled: "${query}" every ${formatInterval(interval)}`);
+  } catch (e) {
+    showToast('error', 'Failed to schedule: ' + e.message);
+  }
+}
+
+async function removeScheduled(id) {
+  await api('/api/obscura/scheduled', { method: 'DELETE', body: { id } }).catch(() => {});
+  state.scheduled = state.scheduled.filter(s => s.id !== id);
+  localStorage.setItem('obscura-scheduled', JSON.stringify(state.scheduled));
+  renderScheduled();
+}
+
+async function toggleScheduled(id) {
+  try {
+    const data = await api('/api/obscura/scheduled/toggle', { method: 'POST', body: { id } });
+    const sched = state.scheduled.find(s => s.id === id);
+    if (sched) sched.active = data.active;
+    localStorage.setItem('obscura-scheduled', JSON.stringify(state.scheduled));
+    renderScheduled();
+  } catch (e) {
+    showToast('error', 'Toggle failed: ' + e.message);
+  }
+}
+
+function renderScheduled() {
+  const list = document.getElementById('scheduled-list');
+  if (state.scheduled.length === 0) {
+    list.innerHTML = `<div class="glass-panel rounded-xl p-8 text-center">
+      <span class="material-symbols-outlined text-[48px] text-outline-variant">schedule</span>
+      <p class="font-body-md text-body-md text-on-surface-variant mt-3">No scheduled searches</p>
+    </div>`;
+    return;
+  }
+  list.innerHTML = state.scheduled.map(s => {
+    const results = s.results || [];
+    return `
+      <div class="glass-panel rounded-xl p-5 ${s.active ? 'glow-green' : ''}">
+        <div class="flex items-center gap-4 mb-3">
+          <div class="w-3 h-3 rounded-full ${s.active ? 'bg-secondary status-pulse' : 'bg-outline-variant'}"></div>
+          <div class="flex-1">
+            <p class="font-body-md text-body-md text-on-surface">${escapeHtml(s.query)}</p>
+            <p class="font-code-sm text-code-sm text-on-surface-variant">${s.engine} · Every ${formatInterval(s.interval)} · ${results.length} results${s.lastRun ? ' · Last: ' + timeAgo(s.lastRun) : ''}</p>
+          </div>
+          <button onclick="toggleScheduled(${s.id})" class="p-2 rounded hover:bg-surface-container-high transition-colors">
+            <span class="material-symbols-outlined text-[18px] text-on-surface-variant">${s.active ? 'pause' : 'play_arrow'}</span>
+          </button>
+          <button onclick="removeScheduled(${s.id})" class="p-2 rounded hover:bg-error-container/30 transition-colors">
+            <span class="material-symbols-outlined text-[18px] text-error/70">delete</span>
+          </button>
+        </div>
+        ${results.length > 0 ? `<div class="space-y-1 mt-2">${results.slice(0, 3).map(r => 
+          `<a href="${escapeHtml(r.url || '#')}" target="_blank" class="block text-sm text-primary hover:text-primary-fixed-dim truncate">${escapeHtml(r.title || r.url || '')}</a>`
+        ).join('')}${results.length > 3 ? `<p class="font-code-sm text-code-sm text-on-surface-variant">+${results.length - 3} more</p>` : ''}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// THEME TOGGLE
+// ═══════════════════════════════════════════════════════════════
+
+state.theme = localStorage.getItem('obscura-theme') || 'dark';
+
+function toggleTheme() {
+  state.theme = state.theme === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('obscura-theme', state.theme);
+  applyTheme();
+  showToast('palette', `Theme: ${state.theme}`);
+}
+
+function applyTheme() {
+  const html = document.documentElement;
+  const btn = document.getElementById('btn-theme');
+  if (state.theme === 'light') {
+    html.classList.add('light');
+    html.classList.remove('dark');
+    btn.innerHTML = '<span class="material-symbols-outlined">light_mode</span>';
+  } else {
+    html.classList.remove('light');
+    html.classList.add('dark');
+    btn.innerHTML = '<span class="material-symbols-outlined">dark_mode</span>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CSV EXPORT HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+function downloadCSV(rows, filename) {
+  const csv = rows.map(row => row.map(cell => {
+    const s = String(cell || '');
+    return s.includes(',') || s.includes('\"') || s.includes('\n') ? '\"' + s.replace(/\"/g, '\"\"') + '\"' : s;
+  }).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportHistoryCSV() {
+  if (state.history.length === 0) { showToast('warning', 'No history to export'); return; }
+  const rows = [['Type', 'Query', 'Results', 'Latency (ms)', 'Timestamp']];
+  state.history.forEach(h => rows.push([h.type, h.query, h.resultCount, h.latency, h.timestamp]));
+  downloadCSV(rows, 'obscura-history.csv');
+  showToast('download', 'History exported as CSV');
+}
+
+// ═══════════════════════════════════════════════════════════════
 // SETTINGS
 // ═══════════════════════════════════════════════════════════════
 
@@ -648,6 +1001,11 @@ function copyOutput(elementId) {
 }
 
 function exportResults(type) {
+  if (type === 'search') {
+    // Export history as CSV
+    exportHistoryCSV();
+    return;
+  }
   const data = type === 'search' ? state.history.filter(h => h.type === 'search') : [];
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -671,9 +1029,13 @@ document.getElementById('scrape-mode')?.addEventListener('change', function() {
 // ═══════════════════════════════════════════════════════════════
 
 function init() {
+  applyTheme();
   renderMonitors();
   renderProxies();
   renderHistory();
+  renderAlerts();
+  renderBookmarks();
+  renderScheduled();
   updateStats();
 
   // Auto-start active monitors
