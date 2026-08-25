@@ -126,4 +126,3 @@ How to View
 // bash
 npm run gpu        # Start server on port 9090
 # Open http://127.0.0.1:9090/gpu_nited.html
-Suggested followups:

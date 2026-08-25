@@ -414,6 +414,19 @@ services:
       - OBSCURA_API_KEY=${OBSCURA_API_KEY:-}
       - OBSCURA_ADMIN_KEY=${OBSCURA_ADMIN_KEY:-}
       - NODE_ENV=production
+    networks:
+      - fcm-mesh
+    volumes:
+      - obscura-data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/api/obscura/status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  obscura-nginx:
     volumes:
       - obscura-data:/app/data
     networks:
@@ -441,8 +454,11 @@ services:
     cpus: 0.5
     ports:
       - "${OBSCURA_PORT:-3001}:80"
+      - "${NGINX_STATUS_PORT:-8080}:8080"
     volumes:
       - ./nginx/search.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/logging.conf:/etc/nginx/logging.conf:ro
+      - obscura-nginx-logs:/var/log/nginx
     depends_on:
       obscura-search:
         condition: service_healthy
@@ -487,6 +503,7 @@ services:
 
 volumes:
   obscura-data:
+  obscura-nginx-logs:
   gpu-data:
   ipfs-data:
   model-cache:
