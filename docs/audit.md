@@ -1,9 +1,9 @@
 # FCM Expert Agent Swarm — Full Audit Report
 
-**Date:** August 22, 2026
+**Date:** August 24, 2026 (updated)
 **Auditor:** Buffy (Codebuff)
-**Scope:** Complete codebase — smart contracts, frontend, agent runtime, master agent, CLI, Docker, Terraform, config, tests
-**Tests:** 133 passing (8s)
+**Scope:** Complete codebase — 8 smart contracts, frontend, agent runtime, master agent, CLI, Docker, Terraform, config, tests
+**Tests:** 362 passing (21s)
 
 ---
 
@@ -30,7 +30,7 @@
 
 ```
 fcm-blocks-ai-deploy/
-├── contracts/solidity/          # 3 Solidity contracts (OZ v4, solc 0.8.20)
+├── contracts/solidity/          # 8 Solidity contracts (OZ v4, solc 0.8.20)
 ├── lib/                         # Core runtime modules
 │   ├── master-agent.js          # Central orchestrator (EventEmitter)
 │   ├── agent-runtime.js         # Blockchain-connected agent logic (with retry)
@@ -46,14 +46,23 @@ fcm-blocks-ai-deploy/
 ├── agents/                      # 12 agent definitions (ESM)
 ├── scripts/                     # Deployment + CLI tools
 ├── cli/                         # CLI deployer
-├── test/                        # 7 test files, 133 tests
+├── test/                        # 13 test files, 362 tests
 │   ├── FCMToken.test.js
 │   ├── FCMAgentRegistry.test.js
 │   ├── FCMTaskMarketplace.test.js
+│   ├── FCMTierStaking.test.js (NEW)
+│   ├── FCMRewardsPool.test.js (NEW)
+│   ├── FCMGovernance.test.js (NEW)
+│   ├── FCMEscrow.test.js (NEW)
+│   ├── FCMReputationNFT.test.js (NEW)
 │   ├── master-agent.test.js
+│   ├── new-agents.test.js
+│   ├── new-contracts.test.js
 │   ├── new-workloads.test.js
 │   ├── audit-fixes.test.js
-│   └── integration.test.js      # NEW: Full on-chain flow tests
+│   ├── critical-fixes.test.js
+│   ├── high-severity-fixes.test.js
+│   └── integration.test.js
 ├── docker/                      # Compose + Dockerfile (with resource limits)
 ├── terraform/                   # Infrastructure (proper HCL, secrets externalized)
 ├── config/                      # Agent YAML config
@@ -363,43 +372,108 @@ require((agent.capabilities & task.requirements) == task.requirements)
 | 🟠 High | 4 | **4** | 0 |
 | 🟡 Medium | 12 | **12** | 0 |
 | 🟢 Low | 4 | **3** | 1 (deferred) |
-| **Smart Contract** | 6 findings | **6** | 0 |
+| **Smart Contract** | 8 contracts, 12 findings | **12** | 0 |
 | **Agent Runtime** | 4 findings | **4** | 0 |
 | **Master Agent** | 6 findings | **6** | 0 |
 | **Frontend** | 4 findings | **3** | 1 (duplicate files) |
 | **Infrastructure** | 5 findings | **4** | 1 (Terraform modules) |
 | **Testing** | 6 gaps | **6** | 0 |
 | **Code Quality** | 6 findings | **3** | 3 (TS, linting, strict) |
-| **Total** | **51** | **46** | **5** |
+| **Total** | **60** | **55** | **5** |
+
+---
+
+## New Contracts Audit (August 24, 2026)
+
+### FCMTierStaking.sol
+| Function | Status | Notes |
+|----------|--------|-------|
+| `stake()` | ✅ | Auto-tier assignment, tierStakeCount accounting |
+| `unstake()` | ✅ | Grace period check, tier downgrade tracking |
+| `updateHardwareScore()` | ✅ | ORACLE_ROLE only, 24h rate limit |
+| `emergencyWithdraw()` | ✅ | tierStakeCount properly decremented (FIXED) |
+| `updateTierConfig()` | ✅ | ADMIN_ROLE, multiplier/discount caps |
+
+### FCMRewardsPool.sol
+| Function | Status | Notes |
+|----------|--------|-------|
+| `fundEpoch()` | ✅ | ADMIN_ROLE, transfers to pool |
+| `recordWork()` | ✅ | tasksCompleted incremented (FIXED: was missing) |
+| `claimRewards()` | ✅ | Proportional with tier multiplier, Sybil prevention |
+| `finalizeEpoch()` | ✅ | ADMIN_ROLE only (FIXED: was permissionless) |
+
+### FCMGovernance.sol
+| Function | Status | Notes |
+|----------|--------|-------|
+| `propose()` | ✅ | Snapshot-based quorum, block-based voting |
+| `castVote()` | ✅ | nonReentrant (FIXED), tier-weighted power |
+| `queueProposal()` | ✅ | nonReentrant (FIXED), majority+quorum check |
+| `executeProposal()` | ✅ | Timelock enforcement, CEI: sets Executed before call |
+| `cancelProposal()` | ✅ | Proposer or ADMIN_ROLE |
+
+### FCMEscrow.sol
+| Function | Status | Notes |
+|----------|--------|-------|
+| `createEscrow()` | ✅ | Milestone validation, multi-sig flag |
+| `submitMilestone()` | ✅ | Resolved state now accepted (FIXED) |
+| `approveMilestone()` | ✅ | Multi-sig fixed: client calls twice (FIXED) |
+| `disputeMilestone()` | ✅ | nonReentrant added (FIXED), reason validation |
+| `resolveDispute()` | ✅ | CEI fixed: state before transfer (FIXED) |
+| `cancelEscrow()` | ✅ | Only Created/Funded states |
+
+### FCMReputationNFT.sol
+| Function | Status | Notes |
+|----------|--------|-------|
+| `mintBadge()` | ✅ | One badge per operator/DID |
+| `updateBadge()` | ✅ | ORACLE_ROLE, achievement detection |
+| `transferFrom()` etc. | ✅ | Soulbound: all transfer/approve revert |
+
+### Critical Fixes (This Session)
+
+| ID | Severity | Issue | Status |
+|----|----------|-------|--------|
+| F-2 | CRITICAL | Double-spend: resolveDispute innocent path | ✅ Fixed |
+| F-4 | CRITICAL | Division by zero: tasksCompleted not incremented | ✅ Fixed |
+| F-7 | HIGH | Escrow multi-sig broken | ✅ Fixed |
+| F-6 | MEDIUM | Voting power 100x too low | ✅ Fixed |
+| F-8 | MEDIUM | Escrow stuck after dispute resolution | ✅ Fixed |
+| CEI | MEDIUM | State written after transfer (AgentRegistry, Escrow) | ✅ Fixed |
+| tierStakeCount | MEDIUM | emergencyWithdraw accounting leak | ✅ Fixed |
+| finalizeEpoch | MEDIUM | No access control | ✅ Fixed |
+| findDidByOperator | MEDIUM | Inactive agent fallback | ✅ Fixed |
+| nonReentrant | LOW | Missing on disputeMilestone, castVote, queueProposal | ✅ Fixed |
+| hasApproved | LOW | Multi-sig replay across milestones | ✅ Fixed |
+| _requirements | LOW | Dead params cleaned up | ✅ Fixed |
 
 ### What Changed in This Session
 
 | Fix | Files Modified |
 |-----|---------------|
-| FCMToken MAX_SUPPLY | `contracts/solidity/FCMToken.sol` |
-| Marketplace access control | `contracts/solidity/FCMTaskMarketplace.sol`, `scripts/hardhat/deploy.js` |
-| Marketplace struct accessor fix | `contracts/solidity/FCMAgentRegistry.sol` (added `getAgentOperator()`, `getAgentStatus()`) |
-| RPC retry logic | `lib/agent-runtime.js` |
-| Shared utilities | `lib/shared.js` (NEW) |
-| Structured logging | `lib/logger.js` (NEW) |
-| Input validation | `lib/modules/chat-interface.js` |
-| CSP headers | `app.html`, `index.html` |
-| ARIA labels | `app.html`, `index.html`, `app.js` |
-| Docker resource limits | `docker/docker-compose.yml` |
-| Integration tests | `test/integration.test.js` (NEW) |
-| Token test updates | `test/FCMToken.test.js` |
-| Marketplace test updates | `test/FCMTaskMarketplace.test.js` |
+| CEI violations | `FCMAgentRegistry.sol`, `FCMEscrow.sol` |
+| Double-spend prevention | `FCMAgentRegistry.sol` (rewardWithdrawn=true) |
+| Division-by-zero fix | `FCMRewardsPool.sol` (tasksCompleted) |
+| Access control | `FCMRewardsPool.sol` (finalizeEpoch) |
+| Governance reentrancy | `FCMGovernance.sol` (castVote, queueProposal) |
+| Voting power fix | `FCMGovernance.sol` (tier weights ×100) |
+| Escrow multi-sig fix | `FCMEscrow.sol` (approvalCount logic) |
+| Escrow Resolved state | `FCMEscrow.sol` (submitMilestone, approveMilestone, disputeMilestone) |
+| tierStakeCount accounting | `FCMTierStaking.sol` (emergencyWithdraw) |
+| Inactive agent fallback | `FCMAgentRegistry.sol` (findDidByOperator) |
+| Param cleanup | `FCMTaskMarketplace.sol` (listSpotTask, listAuctionTask) |
+| Test updates | `critical-fixes.test.js`, `integration.test.js`, `FCMTaskMarketplace.test.js` |
+| CLI update | `cli/fcm-deploy.js` (ABI signature) |
+| Docs update | `audit.md`, `security-audit.md`, `secure.md`, `docs/integration-guide.md`, `CONTRACT_REPORT.md` |
 
 ### Test Results
 
 ```
-  133 passing (8s)
+  362 passing (21s)
   0 failing
 ```
 
 ### Top 5 Actions for Next Session
 
-1.**Add TypeScript** — Convert core modules for type safety
+1. **Add TypeScript** — Convert core modules for type safety
 2. **Add ESLint + Prettier** — Enforce code consistency
 3. **Add health check endpoints** — HTTP `/health` for each agent container
 4. **Consolidate dashboard** — Merge `app.html` and `index.html`

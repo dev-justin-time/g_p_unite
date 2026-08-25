@@ -16,6 +16,11 @@ import { governanceAgent } from './governance-agent.js';
 import { escrowManager } from './escrow-manager.js';
 import { reputationOracle } from './reputation-oracle.js';
 import { agentCoordinator } from './agent-coordinator.js';
+import { ObscuraAgent } from './obscura/index.js';
+import { bootstrapAllAgents } from './obscura-cross.js';
+
+// Create obscura agent singleton for use in categories and exports
+const obscuraAgent = new ObscuraAgent();
 
 export const agents = [
   // Core compute agents (types 0-7)
@@ -38,12 +43,16 @@ export const agents = [
   governanceAgent,
   escrowManager,
   reputationOracle,
-  agentCoordinator
+  agentCoordinator,
+  obscuraAgent
 ];
+
+// Attach web intelligence capabilities to all agents
+bootstrapAllAgents(agents);
 
 // Agent categories for UI grouping
 export const agentCategories = {
-  compute: [inferenceRouter, renderSplitter, flCoordinator, edgeRunner, zkProver, gameHost, scienceGrid, privacyMesh],
+  compute: [inferenceRouter, renderSplitter, flCoordinator, edgeRunner, zkProver, gameHost, scienceGrid, privacyMesh, obscuraAgent],
   infrastructure: [nodeRunner, storageProvider, fileServer, rewardedWorker],
   platform: [tierManager, rewardsDistributor, governanceAgent, escrowManager, reputationOracle, agentCoordinator]
 };

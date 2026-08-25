@@ -1,55 +1,58 @@
 # FCM Expert Agent Swarm
 
-**Federated Compute Mesh — Built-in Logic Agents**
+**Federated Compute Mesh — 8 Smart Contracts · 18 Agents · 362 Tests**
 
-A self-contained dashboard + 8 expert agents that operate with **zero LLM calls** on hot paths. All routing, scheduling, privacy, and game logic is handled by deterministic algorithms, cryptographic protocols, and mathematical decomposition.
+A decentralized compute platform with on-chain staking, task marketplace, tiered rewards, governance, milestone escrow, and soulbound reputation NFTs.
 
 ## Quick Start
 
 ```bash
-# Serve locally
+# Install & compile
+npm install
+npx hardhat compile
+
+# Run 362 tests
+npx hardhat test
+
+# Serve dashboard
 python3 -m http.server 8080
-# Open http://localhost:8080
 ```
 
-Or simply open `index.html` in any modern browser.
+## Contracts (Solidity ^0.8.20, OpenZeppelin)
 
-## Architecture
+| Contract | Purpose |
+|----------|---------|
+| **FCMToken** | ERC20 with 1% burn + 2% treasury fees, 1B max supply |
+| **FCMAgentRegistry** | Agent registration, task lifecycle, dispute resolution, staking |
+| **FCMTaskMarketplace** | Spot tasks, Dutch auctions, bid escrow, refunds |
+| **FCMTierStaking** | 6-tier staking (Free→Elite) with hardware score + grace periods |
+| **FCMGovernance** | On-chain proposals, tier-weighted voting, timelock execution |
+| **FCMEscrow** | Milestone-based payments, multi-sig for high-value, dispute arbitration |
+| **FCMReputationNFT** | Soulbound ERC721 badges with 8 achievement flags |
+| **FCMRewardsPool** | Epoch-based reward distribution with Sybil resistance |
 
-```
-index.html          — Main dashboard UI
-app.js              — App orchestrator + live metrics
-agents/
-  index.js          — Agent registry
-  inference-router.js   — AI model scheduling (batching, KV-cache, VRAM guard)
-  render-splitter.js    — Frame decomposition (tile splitting, DAG solver)
-  fl-coordinator.js     — Federated learning (DP + MPC + BFT)
-  edge-runner.js        — WASM serverless (trie routing, pool checkout)
-  zk-prover.js          — Zero-knowledge proofs (GPU Groth16, BLS aggregation)
-  game-host.js          — Game server (lockstep, hitreg, anti-cheat)
-  science-grid.js       — Scientific computing (domain decomposition, validation)
-  privacy-mesh.js       — Mixnet routing (Sphinx, reputation-weighted paths)
-```
+## Security
 
-## Agent Logic Summary
+All contracts have been audited for:
+- ✅ CEI (Checks-Effects-Interactions) compliance
+- ✅ Reentrancy protection (OpenZeppelin ReentrancyGuard)
+- ✅ Access control (OpenZeppelin AccessControl)
+- ✅ Integer overflow/underflow (Solidity ^0.8.20 built-in)
+- ✅ Double-spend prevention
+- ✅ Division-by-zero guards
+- ✅ Emergency pause (OpenZeppelin Pausable)
 
-| Agent | Core Algorithm | LLM Replacement |
-|-------|---------------|-----------------|
-| Inference Router | Hard-coded decision tree (VRAM → latency → batch → least-loaded) | Model selection LLM |
-| Render Splitter | Cartesian tile grid + Kahn topological sort | Scene analysis LLM |
-| FL Coordinator | Gaussian mechanism + Shamir MPC + trimmed mean | Trust arbiter LLM |
-| Edge Runner | Trie path match + LRU module cache + instance pool | API gateway LLM |
-| ZK Prover | Circuit hash → cached PK → GPU MSM/FFT | Proof strategy LLM |
-| Game Host | Fixed-timestep lockstep + speed limit heuristics | Game state prediction LLM |
-| Science Grid | PDE-order stencil splitting + statistical consensus | Workload characterization LLM |
-| Privacy Mesh | Weighted random sample + Sphinx layer encryption | Routing optimization LLM |
+## Platform Dashboard
 
-## Performance Targets
+Open `dashboard.html` for the full 18-agent dashboard with live metrics, tier rankings, and role-based access control.
 
-- **Logic cache hit rate:** 99.7%
-- **Average latency:** 12ms (vs 200-800ms for LLM-based orchestration)
-- **LLM calls saved:** 2.4M/hr at scale
+### Agent Tiers
 
-## License
-
-MIT — FCM Architecture Working Group
+| Tier | Name | Min Stake | Score | Multiplier | Fee Discount |
+|------|------|-----------|-------|------------|-------------|
+| 0 | Free | 0 FCM | 0 | 0.5x | 0% |
+| 1 | Starter | 100 FCM | 2,000 | 1x | 5% |
+| 2 | Standard | 500 FCM | 4,000 | 1.5x | 10% |
+| 3 | Advanced | 2,000 FCM | 6,000 | 2x | 15% |
+| 4 | Pro | 10,000 FCM | 8,000 | 3x | 20% |
+| 5 | Elite | 50,000 FCM | 9,000 | 5x | 25% |

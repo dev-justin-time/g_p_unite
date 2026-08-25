@@ -96,9 +96,9 @@ describe("FCMAgentRegistry", function () {
             await token.connect(operator1).approve(await registry.getAddress(), MIN_STAKE);
             await expect(
                 registry.connect(operator1).registerAgent(
-                    didHash, "/ipns/test", capabilities, geohash, 12 // Invalid type (>11)
+                    didHash, "/ipns/test", capabilities, geohash, 13 // Invalid type (>12)
                 )
-            ).to.be.revertedWith("Invalid agent type");
+            ).to.be.revertedWith("Invalid agent type (max 12)");
         });
 
         it("should reject registration without sufficient stake", async function () {

@@ -89,19 +89,19 @@ describe("Critical Vulnerability Fixes", function () {
             }
         });
 
-        it("should reject agent type 12 and above", async function () {
+        it("should reject agent type 13 and above", async function () {
             const geo = ethers.encodeBytes32String("u4pru");
             const caps = ethers.encodeBytes32String("gpu");
             const did = ethers.keccak256(ethers.toUtf8Bytes("agent-type-invalid"));
 
             await expect(
-                registry.connect(agent1).registerAgent(did, "/ipns/test", caps, geo, 12)
-            ).to.be.revertedWith("Invalid agent type");
+                registry.connect(agent1).registerAgent(did, "/ipns/test", caps, geo, 13)
+            ).to.be.revertedWith("Invalid agent type (max 12)");
 
             const did2 = ethers.keccak256(ethers.toUtf8Bytes("agent-type-invalid-2"));
             await expect(
                 registry.connect(agent1).registerAgent(did2, "/ipns/test", caps, geo, 255)
-            ).to.be.revertedWith("Invalid agent type");
+            ).to.be.revertedWith("Invalid agent type (max 12)");
         });
     });
 

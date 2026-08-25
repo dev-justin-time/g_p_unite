@@ -160,6 +160,12 @@ contract FCMTaskMarketplace is ReentrancyGuard, AccessControl {
 
         auction.settled = true;
 
+        // Refund the difference between maxPrice and winning bid to the lister
+        uint256 listerRefund = auction.maxPrice - bestBid.price;
+        if (listerRefund > 0) {
+            require(fcmToken.transfer(auction.lister, listerRefund), "Lister refund failed");
+        }
+
         // Refund all non-winning bids using stored bidder address
         for (uint i = 0; i < auction.bids.length; i++) {
             if (i != bestIdx && !auction.bids[i].withdrawn) {

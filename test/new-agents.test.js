@@ -65,8 +65,8 @@ describe("New Feature Agents", function () {
 
     // ── Agent Index Tests ──────────────────────────────────────
     describe("Agent Index", function () {
-        it("should export all 18 agents", function () {
-            expect(agents).to.have.length(18);
+        it("should export all 19 agents", function () {
+            expect(agents).to.have.length(19);
         });
 
         it("should have unique IDs for all agents", function () {
@@ -82,7 +82,7 @@ describe("New Feature Agents", function () {
         });
 
         it("should categorize agents correctly", function () {
-            expect(agentCategories.compute).to.have.length(8);
+            expect(agentCategories.compute).to.have.length(9);
             expect(agentCategories.infrastructure).to.have.length(4);
             expect(agentCategories.platform).to.have.length(6);
         });
@@ -100,7 +100,7 @@ describe("New Feature Agents", function () {
     // ── TierManager Specific Tests ─────────────────────────────
     describe("TierManager Logic", function () {
         it("should have 6 rules", function () {
-            expect(tierManager.rules).to.have.length(5);
+            expect(tierManager.rules).to.have.length(6);
         });
 
         it("should have 3 metrics", function () {

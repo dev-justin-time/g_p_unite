@@ -236,10 +236,12 @@ contract FCMEscrow is AccessControl, ReentrancyGuard, Pausable {
             if (e.milestones[i].submitted && !e.milestones[i].approved) {
                 uint256 milestoneAmount = e.milestones[i].amount;
                 if (clientWins) {
-                    e.remainingAmount += milestoneAmount;
+                    // Refund ALL remaining escrow to client (not just the disputed milestone)
+                    uint256 remaining = e.remainingAmount;
+                    e.remainingAmount = 0;
                     e.state = EscrowState.Refunded;
-                    emit DisputeResolved(escrowId, clientWins, milestoneAmount, resolution);
-                    require(fcmToken.transfer(e.client, milestoneAmount), "Refund failed");
+                    emit DisputeResolved(escrowId, clientWins, remaining, resolution);
+                    require(fcmToken.transfer(e.client, remaining), "Refund failed");
                 } else {
                     e.releasedAmount += milestoneAmount;
                     e.remainingAmount -= milestoneAmount;

@@ -66,10 +66,9 @@ g_p_unite User submits job
 ```js
 const marketplace = new ethers.Contract(MARKETPLACE_ADDR, MARKETPLACE_ABI, wallet);
 
-// List a spot task
+// List a spot task (note: no requirements param since security audit cleanup)
 await marketplace.listSpotTask(
     taskId,
-    ethers.encodeBytes32String("gpu,cuda"),
     ethers.parseEther("10"),  // max price
     deadline,
     1  // priority: Normal

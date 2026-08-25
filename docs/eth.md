@@ -9,7 +9,7 @@ Step-by-step guide to deploy all 8 FCM smart contracts to the Ethereum Sepolia t
 | Requirement | Details |
 |-------------|---------|
 | **Node.js** | v18+ required |
-| **Sepolia ETH** | ~0.5 ETH for gas (8 deploys + role grants) |
+| **Sepolia ETH** | ~0.8 ETH for gas (8 deploys + role grants) |
 | **Private Key** | Throwaway wallet — never use your main key |
 | **Etherscan API Key** | For contract verification |
 
@@ -78,7 +78,7 @@ npx hardhat compile
 
 Expected output:
 ```
-Compiled 11 Solidity files successfully
+Compiled 29 Solidity files successfully
 ```
 
 ## Step 5: Deploy All 8 Contracts
@@ -88,14 +88,14 @@ npm run deploy:sepolia
 ```
 
 This deploys in order:
-1. **FCMToken** — ERC20 with fees, 500M initial supply
-2. **FCMAgentRegistry** — Agent registration, tasks, heartbeats
-3. **FCMTaskMarketplace** — Spot tasks, auctions, escrow
-4. **FCMTierStaking** — 6-tier staking system
-5. **FCMGovernance** — On-chain proposal voting
-6. **FCMEscrow** — Milestone payment escrow
+1. **FCMToken** — ERC20 with fees, 500M initial supply, 500M reserve
+2. **FCMAgentRegistry** — Agent registration, tasks, heartbeats, disputes
+3. **FCMTaskMarketplace** — Spot tasks, auctions, escrow (no requirements param)
+4. **FCMTierStaking** — 6-tier staking with hardware verification
+5. **FCMGovernance** — On-chain proposal voting (tier-weighted, snapshots)
+6. **FCMEscrow** — Milestone payment escrow with multi-sig
 7. **FCMReputationNFT** — Soulbound reputation badges
-8. **FCMRewardsPool** — Epoch reward distribution
+8. **FCMRewardsPool** — Epoch reward distribution (ADMIN-only finalize)
 
 The script also:
 - Grants 8 cross-contract roles
@@ -253,7 +253,7 @@ npm run deploy:local
 |------|----------|---------|---------|
 | `MINTER_ROLE` | FCMToken | Registry | Mint task rewards |
 | `MINTER_ROLE` | FCMToken | RewardsPool | Mint epoch rewards |
-| `LISTING_ROLE` | Marketplace | Deployer | List spot tasks |
+| `LISTING_ROLE` | Marketplace | Deployer | List spot/auction tasks |
 | `VALIDATOR_ROLE` | Registry | Deployer | Resolve disputes |
 | `ORACLE_ROLE` | TierStaking | Deployer | Update HW scores |
 | `ORACLE_ROLE` | ReputationNFT | Deployer | Update badges |

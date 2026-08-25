@@ -9,7 +9,7 @@ import type {
 } from './types';
 
 // ═══════════════════════════════════════════
-// COMPUTE AGENTS (8)
+// COMPUTE AGENTS (9)
 // ═══════════════════════════════════════════
 
 const INF_AGENT: AgentDefinition = {
@@ -213,6 +213,47 @@ const PRIV_AGENT: AgentDefinition = {
   return ensure_geo_diversity(path, min_hops=3);
 }`,
   tick(v) { v.throughput = (2 + Math.random() * 0.4).toFixed(1) + 'Gbps'; }
+};
+
+const OBSCURA_AGENT: AgentDefinition = {
+  id: 'obscura', name: 'Obscura Browser', icon: '🕸️',
+  role: 'Web scraping, monitoring & browser automation', category: 'compute', tier: 3, status: 'active',
+  rules: [
+    { name: 'Anti-Detection Mode', on: true },
+    { name: 'Tracker Blocking', on: true },
+    { name: 'Stealth Fingerprinting', on: true },
+    { name: 'Parallel Scraping', on: true },
+    { name: 'SSRF Protection', on: true }
+  ],
+  metrics: [
+    { key: 'pages', label: 'Pages Scraped', value: 0 },
+    { key: 'success', label: 'Success Rate', value: '100%' },
+    { key: 'latency', label: 'Avg Latency', value: '85ms' }
+  ],
+  source: `fn scrape_url(url, opts) {
+  let browser = obscura.connect(CDP_PORT);
+  let page = browser.new_page();
+  // Apply stealth patches before navigation
+  if opts.stealth { page.apply_stealth(); }
+  page.goto(url, wait_until=opts.wait);
+  if opts.eval { return page.evaluate(opts.eval); }
+  return page.dump(opts.dump || 'html');
+}
+
+fn monitor_page(url, interval) {
+  loop {
+    let snap = scrape_url(url, {dump: 'text'});
+    if snap != last_snapshot
+      notify_operator(url, diff(last_snapshot, snap));
+    last_snapshot = snap;
+    sleep(interval);
+  }
+}`,
+  tick(v) {
+    v.pages = (v.pages as number) + (Math.random() > 0.8 ? 1 : 0);
+    v.success = (99 + Math.random()).toFixed(1) + '%';
+    v.latency = (70 + Math.floor(Math.random() * 30)) + 'ms';
+  }
 };
 
 // ═══════════════════════════════════════════
@@ -482,7 +523,7 @@ const COORD_AGENT: AgentDefinition = {
 // ═══════════════════════════════════════════
 
 export const AGENTS: AgentDefinition[] = [
-  INF_AGENT, REN_AGENT, FL_AGENT, EDGE_AGENT, ZK_AGENT, GAME_AGENT, SCI_AGENT, PRIV_AGENT,
+  INF_AGENT, REN_AGENT, FL_AGENT, EDGE_AGENT, ZK_AGENT, GAME_AGENT, SCI_AGENT, PRIV_AGENT, OBSCURA_AGENT,
   NODE_AGENT, STOR_AGENT, FSRV_AGENT, RWRD_AGENT,
   TIER_AGENT, REWARD_AGENT, GOV_AGENT, ESCROW_AGENT, REP_AGENT, COORD_AGENT
 ];
@@ -558,22 +599,23 @@ export const PERMISSION_MATRIX: PermissionMatrixRow[] = [
   { name: 'Manage Roles', admin: 'yes', operator: 'no', viewer: 'no' },
   { name: 'Pause Contracts', admin: 'yes', operator: 'no', viewer: 'no' },
   { name: 'Emergency Actions', admin: 'yes', operator: 'no', viewer: 'no' },
-  { name: 'Configure Multi-Sig', admin: 'yes', operator: 'no', viewer: 'no' }
+  { name: 'Configure Multi-Sig', admin: 'yes', operator: 'no', viewer: 'no' },
+  { name: 'Use Obscura Browser', admin: 'yes', operator: 'yes', viewer: 'yes' }
 ];
 
 export const RBAC_PERMISSIONS: Record<UserRole, RolePermissions> = {
   admin: {
     label: 'Admin', icon: '🛡', cssClass: 'admin', nav: NAV_ITEMS,
-    actions: { stake: true, unstake: true, claim_task: true, create_proposal: true, vote: true, approve_milestone: true, send_chat: true, manage_roles: true, pause_contracts: true, emergency_actions: true, edit_settings: true, launch_node: true, configure_multi_sig: true }
+    actions: { stake: true, unstake: true, claim_task: true, create_proposal: true, vote: true, approve_milestone: true, send_chat: true, manage_roles: true, pause_contracts: true, emergency_actions: true, edit_settings: true, launch_node: true, configure_multi_sig: true, use_obscura: true }
   },
   operator: {
     label: 'Operator', icon: '⚙', cssClass: 'operator',
     nav: ['onboarding', 'dashboard', 'agents', 'marketplace', 'staking', 'escrow', 'governance', 'reputation', 'chat', 'obscura', 'resources', 'settings'],
-    actions: { stake: true, unstake: true, claim_task: true, create_proposal: true, vote: true, approve_milestone: true, send_chat: true, manage_roles: false, pause_contracts: false, emergency_actions: false, edit_settings: true, launch_node: true, configure_multi_sig: false }
+    actions: { stake: true, unstake: true, claim_task: true, create_proposal: true, vote: true, approve_milestone: true, send_chat: true, manage_roles: false, pause_contracts: false, emergency_actions: false, edit_settings: true, launch_node: true, configure_multi_sig: false, use_obscura: true }
   },
   viewer: {
     label: 'Viewer', icon: '👁', cssClass: 'viewer',
     nav: ['dashboard', 'agents', 'marketplace', 'governance', 'reputation', 'obscura', 'resources'],
-    actions: { stake: false, unstake: false, claim_task: false, create_proposal: false, vote: false, approve_milestone: false, send_chat: false, manage_roles: false, pause_contracts: false, emergency_actions: false, edit_settings: false, launch_node: false, configure_multi_sig: false }
+    actions: { stake: false, unstake: false, claim_task: false, create_proposal: false, vote: false, approve_milestone: false, send_chat: false, manage_roles: false, pause_contracts: false, emergency_actions: false, edit_settings: false, launch_node: false, configure_multi_sig: false, use_obscura: true }
   }
 };

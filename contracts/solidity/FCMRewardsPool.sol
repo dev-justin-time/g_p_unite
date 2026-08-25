@@ -127,7 +127,10 @@ contract FCMRewardsPool is AccessControl, ReentrancyGuard, Pausable {
         uint256 claimEpoch = currentEpoch - 1; // Claim from last finalized epoch
 
         AgentReward storage reward = agentRewards[msg.sender];
-        require(reward.lastClaimEpoch < claimEpoch, "Already claimed");
+        // First-ever claim targets epoch 0 where lastClaimEpoch defaults to 0 —
+        // allow it via the totalEarned sentinel, then the epoch check applies normally.
+        bool firstClaim = (claimEpoch == 0 && reward.totalEarned == 0);
+        require(reward.lastClaimEpoch < claimEpoch || firstClaim, "Already claimed");
         require(reward.epochWork > 0, "No work recorded");
 
         EpochReward storage epoch = epochs[claimEpoch];
@@ -148,6 +151,7 @@ contract FCMRewardsPool is AccessControl, ReentrancyGuard, Pausable {
         reward.lastClaimEpoch = claimEpoch;
         reward.epochClaimed = actualClaim;
         reward.totalEarned += actualClaim;
+        reward.epochWork = 0; // Reset work counter for next epoch
         reward.consecutiveEpochs++;
         totalPoolBalance -= actualClaim;
         epoch.totalDistributed += actualClaim;
@@ -204,7 +208,8 @@ contract FCMRewardsPool is AccessControl, ReentrancyGuard, Pausable {
 
     function getAgentPendingRewards(address agent) external view returns (uint256) {
         uint256 claimEpoch = currentEpoch > 0 ? currentEpoch - 1 : 0;
-        if (agentRewards[agent].lastClaimEpoch >= claimEpoch) return 0;
+        bool firstClaim = (claimEpoch == 0 && agentRewards[agent].totalEarned == 0);
+        if (agentRewards[agent].lastClaimEpoch >= claimEpoch && !firstClaim) return 0;
 
         EpochReward storage epoch = epochs[claimEpoch];
         if (!epoch.finalized || epoch.tasksCompleted == 0) return 0;

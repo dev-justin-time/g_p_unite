@@ -44,6 +44,7 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard, Pausable {
         bytes32 proofHash;
         bool rewardWithdrawn;
         uint256 disputedAt;
+        bytes32 assignedDid; // L-5: DID that performed the task (survives unstake)
     }
 
     // M-6: Added Cancelled status for semantic clarity
@@ -117,7 +118,7 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard, Pausable {
         uint8 _agentType
     ) external nonReentrant whenNotPaused {
         require(agents[_didHash].operator == address(0), "Agent exists");
-        require(_agentType <= 11, "Invalid agent type");
+        require(_agentType <= 12, "Invalid agent type (max 12)");
         require(fcmToken.transferFrom(msg.sender, address(this), MIN_STAKE), "Stake required");
 
         agents[_didHash] = Agent({
@@ -178,7 +179,8 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard, Pausable {
             status: TaskStatus.Open,
             proofHash: bytes32(0),
             rewardWithdrawn: false,
-            disputedAt: 0
+            disputedAt: 0,
+            assignedDid: bytes32(0)
         });
 
         taskList.push(_taskId);
@@ -196,6 +198,7 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard, Pausable {
         require(block.timestamp < task.deadline, "Deadline passed");
 
         task.assignedAgent = msg.sender;
+        task.assignedDid = _didHash;
         task.status = TaskStatus.Assigned;
         operatorActiveTasks[msg.sender]++;
         emit TaskAssigned(_taskId, _didHash);
@@ -228,8 +231,11 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard, Pausable {
         task.rewardWithdrawn = true;
         require(fcmToken.transfer(msg.sender, task.reward), "Transfer failed");
 
-        bytes32 didHash = findDidByOperator(msg.sender);
-        agents[didHash].reputation = min(agents[didHash].reputation + 100, 10000);
+        // L-5: Credit the exact DID that performed the task — survives unstake
+        bytes32 didHash = task.assignedDid;
+        if (didHash != bytes32(0) && agents[didHash].operator != address(0)) {
+            agents[didHash].reputation = min(agents[didHash].reputation + 100, 10000);
+        }
     }
 
     // ── Disputes ──
@@ -251,7 +257,9 @@ contract FCMAgentRegistry is AccessControl, ReentrancyGuard, Pausable {
         require(block.timestamp <= task.disputedAt + disputeResolutionDeadline, "Dispute deadline exceeded");
 
         if (_agentFault) {
-            bytes32 didHash = findDidByOperator(task.assignedAgent);
+            // L-5: slash the exact DID that performed the task — survives unstake
+            bytes32 didHash = task.assignedDid;
+            require(didHash != bytes32(0), "No assigned DID");
             uint256 slashAmount = (agents[didHash].stake * SLASH_PERCENT) / 10000;
             agents[didHash].stake -= slashAmount;
             agents[didHash].reputation = max(agents[didHash].reputation - 500, 0);

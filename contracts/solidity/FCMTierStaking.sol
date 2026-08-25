@@ -105,6 +105,8 @@ contract FCMTierStaking is AccessControl, ReentrancyGuard, Pausable {
             info.tierChangedAt = block.timestamp;
             emit TierUpgraded(msg.sender, 0, newTier);
         }
+        // Keep targetTier in sync — no pending downgrade after a stake
+        info.targetTier = info.currentTier;
 
         emit Staked(msg.sender, amount, info.currentTier);
     }
@@ -131,6 +133,8 @@ contract FCMTierStaking is AccessControl, ReentrancyGuard, Pausable {
             tierStakeCount[newTier]++;
             emit TierDowngraded(msg.sender, info.currentTier, newTier);
         }
+        // Keep targetTier in sync — no pending downgrade after an unstake
+        info.targetTier = info.currentTier;
 
         emit Unstaked(msg.sender, amount);
     }
@@ -174,6 +178,7 @@ contract FCMTierStaking is AccessControl, ReentrancyGuard, Pausable {
                 info.currentTier = newTier;
                 tierStakeCount[newTier]++;
                 info.tierChangedAt = block.timestamp;
+                info.targetTier = newTier; // No pending downgrade after upgrade
                 emit TierUpgraded(operator, oldTier, newTier);
             }
         }
@@ -236,15 +241,42 @@ contract FCMTierStaking is AccessControl, ReentrancyGuard, Pausable {
 
     // ── Internal ────────────────────────────────────────────────
 
-    function _computeTier(uint256 stake, uint256 combinedScore) internal view returns (uint8) {
+    function _computeTier(uint256 _stake, uint256 combinedScore) internal view returns (uint8) {
         uint8 bestTier = 0;
         for (uint8 t = 5; t >= 1; t--) {
-            if (stake >= tiers[t].minStake && combinedScore >= tiers[t].minScore) {
+            if (_stake >= tiers[t].minStake && combinedScore >= tiers[t].minScore) {
                 bestTier = t;
                 break;
             }
         }
         return bestTier;
+    }
+
+    // ── Pending Tier Downgrade ──────────────────────────────────
+
+    /**
+     * @notice Apply a pending tier downgrade after the grace period has passed.
+     *         Callable by anyone. Safe to call even if no downgrade is pending.
+     */
+    function applyPendingDowngrade(address operator) external {
+        StakeInfo storage info = stakes[operator];
+        require(info.exists, "No stake");
+
+        uint8 oldTier = info.currentTier;
+        uint8 target = info.targetTier;
+
+        if (target < oldTier) {
+            require(
+                block.timestamp - info.tierChangedAt >= TIER_CHANGE_GRACE_PERIOD,
+                "Grace period not passed"
+            );
+            tierStakeCount[oldTier]--;
+            info.currentTier = target;
+            tierStakeCount[target]++;
+            info.tierChangedAt = block.timestamp;
+            info.targetTier = target; // Applied — no longer pending
+            emit TierDowngraded(operator, oldTier, target);
+        }
     }
 
     // Emergency withdraw — only when paused

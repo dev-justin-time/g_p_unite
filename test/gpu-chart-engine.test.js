@@ -308,9 +308,9 @@ describe("Agents Data — Integrity", function () {
   } = require("../gpu-platform/src/agents-data");
 
   describe("AGENTS", function () {
-    it("should have 18 core agents", function () {
+    it("should have 19 core agents", function () {
       expect(AGENTS).to.be.an("array");
-      expect(AGENTS.length).to.equal(18);
+      expect(AGENTS.length).to.equal(19);
     });
 
     it("should have unique IDs", function () {
@@ -380,16 +380,16 @@ describe("Agents Data — Integrity", function () {
       expect(categories.has("platform")).to.be.true;
     });
 
-    it("should include all 8 compute agents", function () {
+    it("should include all 9 compute agents", function () {
       const compute = AGENTS.filter((a) => a.category === "compute");
-      expect(compute.length).to.equal(8);
+      expect(compute.length).to.equal(9);
       const ids = compute.map((a) => a.id);
-      expect(ids).to.include.members(["inf", "ren", "fl", "edge", "zk", "game", "sci", "priv"]);
+      expect(ids).to.include.members(["inf", "ren", "fl", "edge", "zk", "game", "sci", "priv", "obscura"]);
     });
 
-    it("should have at least 8 compute agents", function () {
+    it("should have at least 9 compute agents", function () {
       const compute = AGENTS.filter((a) => a.category === "compute");
-      expect(compute.length).to.be.at.least(8);
+      expect(compute.length).to.be.at.least(9);
     });
 
     it("should have at least 4 infrastructure agents", function () {
@@ -549,9 +549,9 @@ describe("Agents Data — Integrity", function () {
   });
 
   describe("PERMISSION_MATRIX", function () {
-    it("should have 14 permission rows", function () {
+    it("should have 15 permission rows", function () {
       expect(PERMISSION_MATRIX).to.be.an("array");
-      expect(PERMISSION_MATRIX.length).to.equal(14);
+      expect(PERMISSION_MATRIX.length).to.equal(15);
     });
 
     it("each row should have name, admin, operator, viewer", function () {
@@ -646,9 +646,11 @@ describe("RBAC — Permission Logic", function () {
   });
 
   describe("Viewer Permissions", function () {
-    it("should deny all action permissions", function () {
+    it("should deny all action permissions (except obscura)", function () {
       const a = RBAC_PERMISSIONS.viewer.actions;
       for (const [key, val] of Object.entries(a)) {
+        // Obscura browser is available to all roles for web intelligence
+        if (key === "use_obscura") continue;
         expect(val).to.equal(false, `viewer.${key} should be false`);
       }
     });

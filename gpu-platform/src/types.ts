@@ -108,7 +108,7 @@ export type PermissionAction =
   | 'stake' | 'unstake' | 'claim_task' | 'create_proposal'
   | 'vote' | 'approve_milestone' | 'send_chat' | 'manage_roles'
   | 'pause_contracts' | 'emergency_actions' | 'edit_settings'
-  | 'launch_node' | 'configure_multi_sig';
+  | 'launch_node' | 'configure_multi_sig' | 'use_obscura';
 
 export interface RolePermissions {
   label: string;

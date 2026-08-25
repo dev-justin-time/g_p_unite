@@ -1,0 +1,48 @@
+{
+  "name": "obscura-agent",
+  "version": "1.0.0",
+  "description": "Standalone web intelligence agent with headless browser automation, scraping, monitoring, and AI-driven content extraction. Optimized for independent operation with zero external LLM dependencies.",
+  "main": "src/index.js",
+  "bin": {
+    "obscura-agent": "src/cli.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "server": "node src/api-server.js",
+    "cli": "node src/cli.js",
+    "scrape": "node src/cli.js scrape",
+    "monitor": "node src/cli.js monitor",
+    "test": "node test/index.js",
+    "lint": "eslint src/"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "ws": "^8.16.0",
+    "cheerio": "^1.0.0-rc.12",
+    "robots-parser": "^3.0.1",
+    "p-queue": "^8.0.1",
+    "proxy-chain": "^2.4.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "optionalDependencies": {
+    "obscura": "github:h4ckf0r0day/obscura"
+  },
+  "keywords": [
+    "web-scraping",
+    "headless-browser",
+    "obscura",
+    "cdp",
+    "monitoring",
+    "ai-extraction",
+    "fcm-agent"
+  ],
+  "license": "MIT",
+  "author": "FCM Agent Swarm",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fcm-network/obscura-agent"
+  }
+}

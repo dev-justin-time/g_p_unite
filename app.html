@@ -11,7 +11,7 @@
     body { background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif; min-height:100vh; }
     .app { padding:24px; max-width:1400px; margin:0 auto; }
     .header { text-align:center; margin-bottom:28px; }
-    .header h1 { font-size:28px; font-weight:700; background:linear-gradient(135deg,var(--accent),var(--cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .header h1 { font-size:28px; font-weight:700; background:linear-gradient(135deg,var(--accent),var(--cyan)); background-clip:text; -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
     .header p { color:var(--text-dim); font-size:14px; margin-top:6px; }
     .stats-bar { display:flex; gap:16px; justify-content:center; margin-bottom:24px; flex-wrap:wrap; }
     .stat-pill { background:var(--panel); border:1px solid var(--border); border-radius:24px; padding:8px 18px; font-size:13px; display:flex; align-items:center; gap:8px; }
@@ -42,6 +42,9 @@
     .game .agent-icon { background:rgba(239,68,68,0.15); }
     .sci .agent-icon { background:rgba(6,182,212,0.15); }
     .priv .agent-icon { background:rgba(236,72,153,0.15); }
+    .obscura::before { background:linear-gradient(90deg,var(--cyan),var(--green)); }
+    .obscura .agent-icon { background:rgba(6,182,212,0.15); }
+    .obscura .metric-value { color:var(--cyan); }
     .agent-name { font-size:15px; font-weight:600; }
     .agent-role { font-size:11px; color:var(--text-dim); margin-top:2px; }
     .status-badge { font-size:11px; padding:4px 10px; border-radius:12px; font-weight:500; }
@@ -93,7 +96,7 @@
       <p>Built-in logic engines — zero LLM calls required for hot paths</p>
     </div>
     <div class="stats-bar" role="status" aria-label="System statistics">
-      <div class="stat-pill"><span class="dot green"></span>8 Agents Online</div>
+      <div class="stat-pill"><span class="dot green"></span>9 Agents Online</div>
       <div class="stat-pill"><span class="dot blue"></span>Logic Cache Hit: 99.7%</div>
       <div class="stat-pill"><span class="dot green"></span>LLM Calls Saved: 2.4M/hr</div>
       <div class="stat-pill"><span class="dot blue"></span>Avg Latency: 12ms</div>
@@ -198,6 +201,28 @@ const agents = [
   );
   return ensure_geo_diversity(path, min_hops=3);
 }`
+  },
+  {
+    id:'obscura', name:'Obscura Browser', icon:'\u{1f578}', role:'Web intelligence, scraping & monitoring', status:'active',
+    rules:[{n:'Anti-Detection Mode',e:true},{n:'Tracker Blocking',e:true},{n:'Stealth Fingerprinting',e:true},{n:'Parallel Scraping',e:true},{n:'SSRF Protection',e:true}],
+    metrics:[{k:'pages',l:'Pages Scraped',v:'0'},{k:'success',l:'Success Rate',v:'100%'},{k:'latency',l:'Avg Latency',v:'85ms'}],
+    src:`fn scrape_url(url, opts) {
+  let browser = obscura.connect(CDP_PORT);
+  let page = browser.new_page();
+  if opts.stealth { page.apply_stealth(); }
+  page.goto(url, wait_until=opts.wait);
+  if opts.eval { return page.evaluate(opts.eval); }
+  return page.dump(opts.dump || "html");
+}
+
+fn monitor_page(url, interval) {
+  loop {
+    let snap = scrape_url(url, {dump:"text"});
+    if snap != last_snapshot
+      notify_operator(url, diff(last_snapshot, snap));
+    last_snapshot = snap; sleep(interval);
+  }
+}`
   }
 ];
 
@@ -254,6 +279,7 @@ window.sim = function(id) {
   if(id==='game'){ const l=document.getElementById('game-latency'); l.textContent=(Math.random()*10+12).toFixed(0)+'ms'; }
   if(id==='sci'){ const j=document.getElementById('sci-jobs'); j.textContent=parseInt(j.textContent)+1; }
   if(id==='priv'){ const r=document.getElementById('priv-relays'); r.textContent=(1240+Math.floor(Math.random()*20)).toLocaleString(); }
+  if(id==='obscura'){ const p=document.getElementById('obscura-pages'); p.textContent=(parseInt(p.textContent)+1).toLocaleString(); const l=document.getElementById('obscura-latency'); l.textContent=(70+Math.floor(Math.random()*30))+'ms'; }
 };
 
 setInterval(()=>{
