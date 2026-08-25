@@ -502,8 +502,14 @@
               </div>
               <div id="scAlertList" style="margin-top:16px;"></div>
             </div>
-            <div class="card" style="max-height:400px;display:flex;flex-direction:column;">
-              <h3 style="font-weight:700;margin-bottom:16px;">📡 Live Notifications <span id="scNotifBadge" class="badge badge-green" style="font-size:10px;vertical-align:middle;display:none;">0</span></h3>
+            <div class="card" style="max-height:500px;display:flex;flex-direction:column;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><h3 style="font-weight:700;">📡 Live Notifications <span id="scNotifBadge" class="badge badge-green" style="font-size:10px;vertical-align:middle;display:none;">0</span></h3><button class="btn btn-sm btn-secondary" onclick="scClearFeed()">Clear</button></div>
+              <div style="display:flex;gap:8px;margin-bottom:12px;">
+                <input class="form-input" id="scFilterKw" placeholder="Filter by keywords (comma-sep)" style="flex:1;font-size:var(--font-xs);" onkeydown="if(event.key==='Enter') scUpdateFilter()">
+                <button class="btn btn-sm btn-primary" onclick="scUpdateFilter()">Filter</button>
+                <button class="btn btn-sm btn-secondary" onclick="scClearFilter()">Clear</button>
+              </div>
+              <div id="scActiveFilter" style="display:none;margin-bottom:8px;"></div>
               <div id="scNotifFeed" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;"><div style="color:var(--text-muted);text-align:center;padding:24px;font-size:var(--font-sm);">Connect WebSocket to receive real-time notifications</div></div>
             </div>
           </div>
@@ -768,7 +774,10 @@
           document.getElementById('scWsLabel').textContent = 'WS Live';
           document.getElementById('scWsLabel').style.color = 'var(--green)';
           document.getElementById('scWsBtn').textContent = '✅ Connected';
-          scWs.send(JSON.stringify({ type: 'subscribe:alerts' }));
+          // Send existing filter if set
+          var existingFilter = document.getElementById('scFilterKw').value.trim();
+          var kwFilter = existingFilter ? existingFilter.split(',').map(function(s) { return s.trim(); }).filter(Boolean) : [];
+          scWs.send(JSON.stringify({ type: 'subscribe:alerts', keywords: kwFilter }));
         };
         scWs.onmessage = function(event) {
           try {
@@ -873,6 +882,35 @@
         showToast('Alert deleted', 'info');
         scLoadAlerts();
       } catch (e) { showToast('Delete failed: ' + e.message, 'error'); }
+    }
+
+    function scUpdateFilter() {
+      var input = document.getElementById('scFilterKw').value.trim();
+      var keywords = input ? input.split(',').map(function(s) { return s.trim(); }).filter(Boolean) : [];
+      if (scWs && scWs.readyState === WebSocket.OPEN) {
+        scWs.send(JSON.stringify({ type: 'update:filter', keywords: keywords }));
+      }
+      var badge = document.getElementById('scActiveFilter');
+      if (keywords.length > 0) {
+        badge.style.display = '';
+        badge.innerHTML = '<span style="font-size:var(--font-xs);color:var(--text-muted);">Active filter:</span> ' + keywords.map(function(k) { return '<span class="badge badge-blue" style="font-size:10px;">' + k + '</span>'; }).join(' ');
+        showToast('Filter applied: ' + keywords.join(', '), 'success');
+      } else {
+        badge.style.display = 'none';
+        showToast('Filter cleared — showing all notifications', 'info');
+      }
+    }
+
+    function scClearFilter() {
+      document.getElementById('scFilterKw').value = '';
+      scUpdateFilter();
+    }
+
+    function scClearFeed() {
+      document.getElementById('scNotifFeed').innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:24px;font-size:var(--font-sm);">Feed cleared</div>';
+      var badge = document.getElementById('scNotifBadge');
+      badge.textContent = '0';
+      badge.style.display = 'none';
     }
 
     // Load alerts when search console page is shown

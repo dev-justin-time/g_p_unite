@@ -213,6 +213,16 @@ const wsClients = new Set();
 function wsBroadcast(data) {
   const msg = wsEncode(data);
   for (const client of wsClients) {
+    // Skip clients not subscribed
+    if (!client.subscribed) continue;
+
+    // Apply keyword filter if set
+    if (client.keywordFilter && client.keywordFilter.length > 0) {
+      const dataStr = JSON.stringify(data).toLowerCase();
+      const matches = client.keywordFilter.some(kw => dataStr.includes(kw));
+      if (!matches) continue; // skip — no keyword match
+    }
+
     try { client.socket.write(msg); } catch (e) { wsClients.delete(client); }
   }
 }
@@ -1030,7 +1040,24 @@ server.on('upgrade', (req, socket, head) => {
             wsSocket.write(wsEncode({ type: 'pong', timestamp: new Date().toISOString() }));
           } else if (msg.type === 'subscribe:alerts') {
             client.subscribed = true;
-            wsSocket.write(wsEncode({ type: 'subscribed', channel: 'alerts' }));
+            // Accept optional keyword filter: { type: 'subscribe:alerts', keywords: ['AI', 'GPU'] }
+            client.keywordFilter = Array.isArray(msg.keywords) && msg.keywords.length > 0
+              ? msg.keywords.map(k => k.toLowerCase())
+              : null;
+            wsSocket.write(wsEncode({
+              type: 'subscribed',
+              channel: 'alerts',
+              keywordFilter: client.keywordFilter
+            }));
+          } else if (msg.type === 'update:filter') {
+            // Update keyword filter without re-subscribing
+            client.keywordFilter = Array.isArray(msg.keywords) && msg.keywords.length > 0
+              ? msg.keywords.map(k => k.toLowerCase())
+              : null;
+            wsSocket.write(wsEncode({
+              type: 'filter:updated',
+              keywordFilter: client.keywordFilter
+            }));
           }
         } catch (e) { /* ignore malformed messages */ }
       }
