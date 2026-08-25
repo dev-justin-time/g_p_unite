@@ -1,5 +1,6 @@
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
+import { expect } from "chai";
+import hre from "hardhat";
+const { ethers } = await hre.network.create();
 
 describe("FCMToken", function () {
     let token, treasury, admin, user1, user2;

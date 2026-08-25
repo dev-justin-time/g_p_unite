@@ -1,14 +1,24 @@
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
-const path = require("path");
-const fs = require("fs");
+import { expect } from "chai";
+import hre from "hardhat";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 
-const { ResourceAnalyzer } = require("../lib/modules/resource-analyzer");
-const { PermissionManager, ROLES, PERMISSIONS } = require("../lib/modules/permission-manager");
-const { Onboarding } = require("../lib/modules/onboarding");
-const { UseCaseManager, USE_CASE_CATEGORIES, APPROVAL_STATUS } = require("../lib/modules/use-case-manager");
-const { SettingsManager, DEFAULT_SETTINGS } = require("../lib/modules/settings-manager");
-const { ChatInterface } = require("../lib/modules/chat-interface");
+const resourceAnalyzerMod = await import("../lib/modules/resource-analyzer.js");
+const permissionManagerMod = await import("../lib/modules/permission-manager.js");
+const onboardingMod = await import("../lib/modules/onboarding.js");
+const useCaseManagerMod = await import("../lib/modules/use-case-manager.js");
+const settingsManagerMod = await import("../lib/modules/settings-manager.js");
+
+const { ResourceAnalyzer } = resourceAnalyzerMod;
+const { PermissionManager, ROLES, PERMISSIONS } = permissionManagerMod;
+const { Onboarding } = onboardingMod;
+const { UseCaseManager, USE_CASE_CATEGORIES, APPROVAL_STATUS } = useCaseManagerMod;
+const { SettingsManager, DEFAULT_SETTINGS } = settingsManagerMod;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const { ethers } = await hre.network.create();
 
 // ── ResourceAnalyzer Tests ──────────────────────────────────────
 

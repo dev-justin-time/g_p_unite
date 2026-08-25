@@ -1,5 +1,6 @@
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
+import { expect } from "chai";
+import hre from "hardhat";
+const { ethers } = await hre.network.create();
 
 describe("New Feature Contracts", function () {
     let token, tierStaking, rewardsPool, governance, escrow, reputation;

@@ -4,8 +4,6 @@
  * currentRole, applyRBAC, switchRole, renderPermissionMatrix
  */
 
-require("ts-node").register({ transpileOnly: true });
-
 // ── Minimal DOM mocks ──────────────────────────
 if (typeof globalThis.document === "undefined") {
   const elements = {};
@@ -47,7 +45,9 @@ globalThis.showToast = () => {};
 globalThis.navigateTo = () => {};
 globalThis.esc = (s) => s;
 
-const { expect } = require("chai");
+import { expect } from "chai";
+import * as rbac from "../gpu-platform/src/rbac.ts";
+import { RBAC_PERMISSIONS, PERMISSION_MATRIX } from "../gpu-platform/src/agents-data.ts";
 
 describe("RBAC Module — Function Tests", function () {
   let rbac;
@@ -56,11 +56,6 @@ describe("RBAC Module — Function Tests", function () {
   beforeEach(function () {
     // Clear localStorage role to reset state
     localStorage.removeItem("fcm_role");
-    // Fresh require each time
-    delete require.cache[require.resolve("../gpu-platform/src/rbac")];
-    delete require.cache[require.resolve("../gpu-platform/src/agents-data")];
-    delete require.cache[require.resolve("../gpu-platform/src/types")];
-    rbac = require("../gpu-platform/src/rbac");
     originalRole = rbac.currentRole;
   });
 
@@ -223,7 +218,6 @@ describe("RBAC Module — Function Tests", function () {
 });
 
 describe("RBAC Module — Permission Matrix Consistency", function () {
-  const { RBAC_PERMISSIONS, PERMISSION_MATRIX } = require("../gpu-platform/src/agents-data");
 
   it("admin should always have more or equal permissions than operator", function () {
     const adminTrue = Object.values(RBAC_PERMISSIONS.admin.actions).filter(Boolean).length;

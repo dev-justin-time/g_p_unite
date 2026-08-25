@@ -1,5 +1,6 @@
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
+import { expect } from "chai";
+import hre from "hardhat";
+const { ethers } = await hre.network.create();
 
 describe("Critical Vulnerability Fixes", function () {
     let token, registry, marketplace;

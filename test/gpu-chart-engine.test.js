@@ -4,8 +4,6 @@
  * MAX_HISTORY buffer, and data integrity.
  */
 
-require("ts-node").register({ transpileOnly: true });
-
 // ── Minimal DOM mocks ──────────────────────────
 if (typeof globalThis.document === "undefined") {
   globalThis.document = {
@@ -64,16 +62,16 @@ globalThis.showToast = () => {};
 globalThis.navigateTo = () => {};
 globalThis.esc = (s) => s;
 
-const { expect } = require("chai");
+import { expect } from "chai";
+import * as chartModule from "../gpu-platform/src/chart-engine.ts";
+import { AGENTS, TIERS, TASKS, PROPOSALS, BADGES_DATA, CHAT_MESSAGES, NAV_ITEMS, CHART_COLORS, PERMISSION_MATRIX, RBAC_PERMISSIONS } from "../gpu-platform/src/agents-data.ts";
 
 // ── Chart Engine Tests ─────────────────────────
 describe("Chart Engine — Data Functions", function () {
   let histData, pushHistPoint, ingestAgentData, ingestSystemData, ingestRewardsData;
 
   beforeEach(function () {
-    // Fresh module state — clear history by requiring fresh copies
-    // We'll use the exports directly and manipulate histData
-    const chartModule = require("../gpu-platform/src/chart-engine");
+    // Use pre-imported module and manipulate histData
     histData = chartModule.histData;
     pushHistPoint = chartModule.pushHistPoint;
     ingestAgentData = chartModule.ingestAgentData;
@@ -302,10 +300,7 @@ describe("Chart Engine — Data Functions", function () {
 
 // ── Agents Data Tests ──────────────────────────
 describe("Agents Data — Integrity", function () {
-  const {
-    AGENTS, TIERS, TASKS, PROPOSALS, BADGES_DATA, CHAT_MESSAGES,
-    NAV_ITEMS, CHART_COLORS, PERMISSION_MATRIX, RBAC_PERMISSIONS,
-  } = require("../gpu-platform/src/agents-data");
+
 
   describe("AGENTS", function () {
     it("should have 19 core agents", function () {
@@ -588,8 +583,6 @@ describe("Agents Data — Integrity", function () {
 
 // ── RBAC Tests ─────────────────────────────────
 describe("RBAC — Permission Logic", function () {
-  const { RBAC_PERMISSIONS } = require("../gpu-platform/src/agents-data");
-
   describe("Role Definitions", function () {
     it("should define admin, operator, viewer roles", function () {
       expect(RBAC_PERMISSIONS).to.have.property("admin");
@@ -767,8 +760,6 @@ describe("RBAC — Permission Logic", function () {
 
 // ── Tick Function Behavior Tests ───────────────
 describe("Agent Tick Functions — Behavior", function () {
-  const { AGENTS } = require("../gpu-platform/src/agents-data");
-
   describe("Inference Router tick", function () {
     it("should update tps within range", function () {
       const agent = AGENTS.find((a) => a.id === "inf");

@@ -1,13 +1,13 @@
-const { expect } = require("chai");
+import { expect } from "chai";
 
 // Import agent definitions (pure JS objects, no blockchain needed)
-const { tierManager } = require("../agents/tier-manager");
-const { rewardsDistributor } = require("../agents/rewards-distributor");
-const { governanceAgent } = require("../agents/governance-agent");
-const { escrowManager } = require("../agents/escrow-manager");
-const { reputationOracle } = require("../agents/reputation-oracle");
-const { agentCoordinator } = require("../agents/agent-coordinator");
-const { agents, agentCategories } = require("../agents/index");
+import { tierManager } from "../agents/tier-manager.js";
+import { rewardsDistributor } from "../agents/rewards-distributor.js";
+import { governanceAgent } from "../agents/governance-agent.js";
+import { escrowManager } from "../agents/escrow-manager.js";
+import { reputationOracle } from "../agents/reputation-oracle.js";
+import { agentCoordinator } from "../agents/agent-coordinator.js";
+import { agents, agentCategories } from "../agents/index.js";
 
 describe("New Feature Agents", function () {
 

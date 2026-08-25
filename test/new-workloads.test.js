@@ -1,13 +1,21 @@
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
+import { expect } from "chai";
+import hre from "hardhat";
+import fs from "fs";
+import path from "path";
 
-const { ResourceAnalyzer } = require("../lib/modules/resource-analyzer");
-const { PermissionManager, ROLES } = require("../lib/modules/permission-manager");
-const { Onboarding } = require("../lib/modules/onboarding");
-const { UseCaseManager, USE_CASE_CATEGORIES, APPROVAL_STATUS } = require("../lib/modules/use-case-manager");
-const { SettingsManager } = require("../lib/modules/settings-manager");
-const fs = require("fs");
-const path = require("path");
+import resourceAnalyzerMod from "../lib/modules/resource-analyzer.js";
+import permissionManagerMod from "../lib/modules/permission-manager.js";
+import onboardingMod from "../lib/modules/onboarding.js";
+import useCaseManagerMod from "../lib/modules/use-case-manager.js";
+import settingsManagerMod from "../lib/modules/settings-manager.js";
+
+const { ResourceAnalyzer } = resourceAnalyzerMod;
+const { PermissionManager, ROLES } = permissionManagerMod;
+const { Onboarding } = onboardingMod;
+const { UseCaseManager, USE_CASE_CATEGORIES, APPROVAL_STATUS } = useCaseManagerMod;
+const { SettingsManager } = settingsManagerMod;
+
+const { ethers } = await hre.network.create();
 
 // ── ResourceAnalyzer — New Workload Types ───────────────────────
 
@@ -253,8 +261,8 @@ describe("Onboarding — New Workload Types", function () {
     });
 
     it("should complete full onboarding for node", async function () {
-        const { ethers } = require("ethers");
-        const wallet = ethers.Wallet.createRandom();
+        const { ethers: ethersLib } = await import("ethers");
+        const wallet = ethersLib.Wallet.createRandom();
         const result = await onboarding.completeOnboarding({
             privateKey: wallet.privateKey,
             workloadType: "node",
@@ -266,8 +274,8 @@ describe("Onboarding — New Workload Types", function () {
     });
 
     it("should complete full onboarding for storage", async function () {
-        const { ethers } = require("ethers");
-        const wallet = ethers.Wallet.createRandom();
+        const { ethers: ethersLib } = await import("ethers");
+        const wallet = ethersLib.Wallet.createRandom();
         const result = await onboarding.completeOnboarding({
             privateKey: wallet.privateKey,
             workloadType: "storage",
